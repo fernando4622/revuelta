@@ -20,7 +20,7 @@
 
 ---
 
-## DL-002 — Identidad del prestatario como referencia institucional
+## DL-002 — Identidad del prestatario como usuario registrado
 
 | Campo | Valor |
 |---|---|
@@ -28,9 +28,9 @@
 | **Problema** | No está definido si el prestatario es un usuario autenticado de ReVuelta, un ID institucional, o una referencia libre (D-002). |
 | **Spec afectada** | `specs/product.md`, `specs/domain/circulation.md`, `specs/data/data-model.md` |
 | **Opciones** | (A) Prestatario como usuario autenticado de ReVuelta. (B) Referencia institucional (matrícula/ID empleado) capturada por operador. (C) Nombre libre. |
-| **Decisión temporal** | **(B) Referencia institucional.** El campo `borrower_reference` es un string no-nulo, validado (longitud mínima/máxima), capturado por el operador al momento de la entrega. No requiere cuenta en ReVuelta. |
-| **Consecuencia** | Los prestatarios no son usuarios del sistema. No hay login de prestatario. La trazabilidad depende de la precisión del operador al capturar la referencia. Si luego se requiere autenticación del prestatario, se necesitará migración y cambio de modelo. |
-| **Revisar para V2** | SÍ — evaluar si se necesita autenticación del prestatario. |
+| **Decisión temporal** | **(A) Prestatario como usuario registrado.** El campo `borrower_id` en la circulación será un UUID que hace referencia a la tabla de `users`. Los prestatarios deben existir en el sistema. |
+| **Consecuencia** | Mayor trazabilidad e integridad referencial. Requiere un flujo para registrar o importar a los prestatarios al sistema antes de poder entregarles envases. |
+| **Revisar para V2** | SÍ — evaluar si los prestatarios necesitarán autenticarse en la app móvil. |
 
 ---
 
@@ -98,8 +98,8 @@
 | **Problema** | No está definido el mecanismo de autenticación (D-007). |
 | **Spec afectada** | `specs/security/access-control.md`, `specs/features/authentication/requirements.md` |
 | **Opciones** | (A) JWT stateless. (B) Sesión con cookies HttpOnly. (C) OAuth2 con provider externo. |
-| **Decisión temporal** | **(A) JWT stateless.** Login con username/password → JWT access token (expiración: 24h). Sin refresh token en V1. El token incluye: user ID, username, roles. Spring Security valida el token en cada request. Logout es client-side (borrar token). |
-| **Consecuencia** | No hay revocación server-side de tokens individuales en V1. Si un token se compromete, no puede invalidarse antes de su expiración. Aceptable para un piloto interno universitario con usuarios controlados. |
+| **Decisión temporal** | **(A) JWT stateless.** Login con username/password → JWT access token (expiración: 4 horas). Sin refresh token en V1. El token incluye: user ID, username, roles. Spring Security valida el token en cada request. Logout es client-side (borrar token). |
+| **Consecuencia** | No hay revocación server-side de tokens individuales en V1. Si un token se compromete, solo es válido por 4 horas. |
 | **Revisar para V2** | SÍ — evaluar refresh tokens, revocación, y posiblemente OAuth2. |
 
 ---

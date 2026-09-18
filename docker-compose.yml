@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: revuelta-postgres
+    environment:
+      POSTGRES_DB: revuelta_db
+      POSTGRES_USER: revuelta_user
+      POSTGRES_PASSWORD: revuelta_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U revuelta_user -d revuelta_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  revuelta-api:
+    build: ./services/revuelta-api
+    container_name: revuelta-api
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/revuelta_db
+      SPRING_DATASOURCE_USERNAME: revuelta_user
+      SPRING_DATASOURCE_PASSWORD: revuelta_password
+      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - full
+
+volumes:
+  postgres_data:

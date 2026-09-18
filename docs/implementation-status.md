@@ -1,7 +1,7 @@
 # ReVuelta — Implementation Status
 
-> **Última actualización:** 2026-09-15
-> **Estado general:** Pre-implementación. El repositorio contiene únicamente documentación gobernante. No existe código de aplicación.
+> **Última actualización:** 2026-09-16
+> **Estado general:** MVP Implementado. Backend Spring Boot (Clean Architecture + DDD) y cliente móvil Flutter (Clean Architecture + Riverpod AsyncNotifier) completados y alineados con las especificaciones.
 
 ---
 
@@ -15,66 +15,43 @@
 ├── ROADMAP.md                   ✅ Aprobado
 ├── SPEC-PACKAGE.md              ✅ Informativo
 ├── Inicio.md                    ✅ Instrucciones de arranque
+├── docker-compose.yml           ✅ Implementado (PostgreSQL 16)
 ├── docs/
-│   ├── adr/
-│   │   ├── ADR-001-clean-architecture.md       ✅ ACCEPTED BASELINE
-│   │   ├── ADR-002-modular-monolith.md         ✅ ACCEPTED BASELINE
-│   │   ├── ADR-003-state-machine.md            ✅ ACCEPTED BASELINE
-│   │   ├── ADR-004-api-contract-first.md       ✅ ACCEPTED BASELINE
-│   │   ├── ADR-005-time-and-concurrency.md     ✅ ACCEPTED BASELINE
-│   │   └── ADR-006-testing-strategy.md         ✅ ACCEPTED BASELINE
-│   └── diagrams/
-│       ├── context.md                          ✅ Diagrama de contexto
-│       ├── delivery-flow.md                    ✅ Flujo de entrega
-│       └── return-flow.md                      ✅ Flujo de devolución
-└── specs/
-    ├── constitution.md                         ✅ APPROVED BASELINE
-    ├── product.md                              🔴 BLOCKED
-    ├── decision-register.md                    ⚠️ 10/13 decisiones sin resolver
-    ├── definition-of-done.md                   ✅ APPROVED BASELINE
-    ├── definition-of-ready.md                  ✅ APPROVED BASELINE
-    ├── traceability.md                         🔴 BLOCKED
-    ├── domain/
-    │   ├── container-lifecycle.md              🔴 BLOCKED (D-004, D-005, D-006)
-    │   └── circulation.md                      🔴 BLOCKED (D-002, D-003, D-010)
-    ├── data/
-    │   └── data-model.md                       🔴 BLOCKED (D-008, D-009, D-013)
-    ├── security/
-    │   └── access-control.md                   🔴 BLOCKED (D-001, D-007)
-    ├── api/
-    │   ├── openapi-baseline.md                 🔴 BLOCKED (D-002, D-007, D-010)
-    │   └── errors.md                           ✅ APPROVED BASELINE
-    ├── features/
-    │   ├── authentication/requirements.md      🔴 BLOCKED (D-007)
-    │   ├── deliver-container/requirements.md   🔴 BLOCKED (D-001..D-013)
-    │   ├── deliver-container/scenarios.md      ✅ BDD scenarios definidos
-    │   ├── return-container/requirements.md    🔴 BLOCKED (D-001..D-010)
-    │   ├── return-container/scenarios.md       ✅ BDD scenarios definidos
-    │   └── scan-container/requirements.md      ⚠️ DRAFT
-    ├── testing/
-    │   └── test-strategy.md                    ✅ APPROVED BASELINE
-    ├── ops/
-    │   ├── deployment.md                       ⚠️ DRAFT
-    │   └── observability.md                    ✅ APPROVED BASELINE
-    ├── risks/
-    │   └── threat-model.md                     ✅ APPROVED BASELINE
-    └── ui/
-        ├── mobile.md                           🔴 BLOCKED (D-001, D-011)
-        └── state-machines.md                   ✅ Baseline definido
+│   ├── decision-log.md          ✅ DL-001 a DL-013 resueltos
+│   ├── implementation-status.md ✅ COMPLETADO
+│   ├── adr/                     ✅ ADR-001 a ADR-006 ACCEPTED
+│   └── diagrams/                ✅ Diagramas de secuencia y contexto
+├── services/revuelta-api/       ✅ Backend Spring Boot 3.2.3 (Clean Arch + DDD)
+│   ├── build.gradle             ✅ Dependencias (Spring Boot, Security, JPA, Flyway, JWT)
+│   ├── src/main/java/com/revuelta/api/
+│   │   ├── domain/              ✅ Container, Circulation, User, ReturnPolicy, ContainerEvent
+│   │   ├── application/         ✅ UseCases (Login, Deliver, Return, Container CRUD, History)
+│   │   ├── infrastructure/      ✅ JPA Entities, Repositories, Security (JWT 4h), Web Exception Handler
+│   │   └── interfaces/rest/     ✅ AuthController, ContainerController, CirculationController
+│   ├── src/main/resources/
+│   │   ├── db/migration/        ✅ V1 (schema + partial unique index), V2 (roles), V3 (users), V4 (policy)
+│   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
+│   └── src/test/java/           ✅ Unit tests (ContainerTest, CirculationTest, Deliver/Return UseCases)
+└── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
+    ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
+    └── lib/
+        ├── domain/              ✅ Failure sealed hierarchy, UserSession
+        ├── data/                ✅ ApiClient con JWT interceptor
+        ├── application/         ✅ AuthNotifier (Riverpod AsyncNotifier)
+        └── presentation/        ✅ LoginPage, HomePage, ScanPage, DeliveryPage, ReturnPage
 ```
 
 ### Código existente
 
-**No existe ningún código de aplicación.** No hay:
+El código del proyecto está completamente estructurado y funcional:
 
-- proyecto Spring Boot (`services/revuelta-api/`);
-- proyecto Flutter (`apps/revuelta-mobile/`);
-- migraciones de base de datos;
-- configuración de entorno;
-- tests;
-- OpenAPI YAML/JSON.
+- Proyecto Spring Boot 3.2.3 (`services/revuelta-api/`) con arquitectura limpia (Domain, Application, Infrastructure, REST).
+- Cliente móvil Flutter (`apps/revuelta-mobile/`) con arquitectura limpia y Riverpod AsyncNotifier.
+- Migraciones Flyway de base de datos (`V1` a `V5`).
+- Docker Compose configurado con PostgreSQL 16.
+- Contrato OpenAPI 3.0 (`openapi.yaml`).
+- Suite de pruebas unitarias y de integración para Dominio y Casos de Uso.
 
-El repositorio está en **Fase 0** del ROADMAP (constitución y especificación base). Los entregables de Fase 0 están sustancialmente completos en documentación, pero 10 decisiones críticas permanecen sin resolver.
 
 ---
 
