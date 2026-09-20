@@ -1,10 +1,12 @@
 # ReVuelta Data Model Specification
 
-**Status:** PARTIALLY APPROVED. Participant relationships and normal lifecycle persistence are defined; final key, time, idempotency and recovery decisions remain open.
+**Status:** APPROVED BASELINE. Participant relationships, lifecycle persistence, identifiers, time and concurrency are defined. Participant-code recovery remains open under D-018.
 
 ## 1. Data ownership
 
 PostgreSQL is authoritative for persisted business state. Domain/application owns business semantics; database constraints protect relational invariants and races.
+
+Application-generated UUID v4 values are both PostgreSQL primary keys and public API identifiers for the MVP. Business timestamps use Java `Instant`, ISO 8601 UTC values in the API and PostgreSQL `TIMESTAMP WITH TIME ZONE` in storage.
 
 ## 2. Core conceptual records
 
@@ -89,6 +91,8 @@ The raw QR payload MUST NOT contain PII. Secrets/tokens MUST not be logged.
 - `DR-010`: circulation preserves policy identity/version and due-at.
 - `DR-011`: every enabled MVP account has exactly one recognized role; missing or ambiguous roles fail closed.
 - `DR-012`: a `PARTICIPANT` account may read personal data only through an explicit account-to-participant association.
+- `DR-013`: circulation lifecycle fields are internally consistent: active rows have no return fields, completed rows have all return fields, and return/due instants cannot precede delivery.
+- `DR-014`: aggregate updates use optimistic locking so two stale writers cannot both commit state transitions and audit events.
 
 ## 6. Normal transaction boundaries
 
@@ -129,15 +133,23 @@ No unnecessary PII, secrets or full QR payloads are stored in logs.
 
 ## 8. Time
 
-Business time is server/database authoritative. Final project representation remains governed by D-009.
+Business time is server-authoritative and represented as UTC `Instant`. Clients never supply authoritative delivery, return or audit timestamps. Equality with `due_at` is `ON_TIME`; only a later instant is `LATE`.
 
-## 9. Deletion and recovery
+## 9. Concurrency and replay policy
+
+- Delivery uses the partial unique index `idx_circulations_active_container`; at most one active circulation for a container can commit.
+- Mutable container and circulation aggregates use optimistic version columns. A stale competing transition rolls back as a typed conflict.
+- A participant has no equivalent active-circulation uniqueness restriction and may hold multiple different containers.
+- MVP mutation retries do not use a client idempotency key. A replay after a committed transition receives the stable conflict for the resulting state.
+- Database uniqueness and optimistic-lock failures are translated at the persistence boundary; raw SQL details never cross the API.
+
+## 10. Deletion and recovery
 
 Containers, participants, circulations and events with history are not hard-deleted through normal operations.
 
 Participant-code replacement remains blocked by D-018. Schema implementation must not assume that code replacement changes participant identity.
 
-## 10. Data scenarios
+## 11. Data scenarios
 
 ### SC-DATA-001 — Participant code uniqueness
 

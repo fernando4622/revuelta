@@ -3,8 +3,10 @@ package com.revuelta.api.application.circulation;
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
+import com.revuelta.api.application.port.CorrelationIdProviderPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
+import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
 import com.revuelta.api.domain.circulation.Circulation;
@@ -25,6 +27,8 @@ public class DeliverContainerUseCase {
     private final ReturnPolicyRepositoryPort policyRepository;
     private final ContainerEventRepositoryPort eventRepository;
     private final TransactionRunnerPort transactionRunner;
+    private final ServerClockPort clock;
+    private final CorrelationIdProviderPort correlationIds;
 
     public DeliverContainerUseCase(
             ContainerRepositoryPort containerRepository,
@@ -32,7 +36,9 @@ public class DeliverContainerUseCase {
             UserRepositoryPort userRepository,
             ReturnPolicyRepositoryPort policyRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
         this.containerRepository = containerRepository;
         this.circulationRepository = circulationRepository;
@@ -40,6 +46,8 @@ public class DeliverContainerUseCase {
         this.policyRepository = policyRepository;
         this.eventRepository = eventRepository;
         this.transactionRunner = transactionRunner;
+        this.clock = clock;
+        this.correlationIds = correlationIds;
     }
 
     public DeliveryResult execute(ContainerId containerId, UserId borrowerId, UserId operatorId) {
@@ -86,14 +94,19 @@ public class DeliverContainerUseCase {
                 ));
 
         // 5. Server-authoritative time & due-at calculation
-        Instant now = Instant.now();
-        Instant dueAt = policy.calculateDueAt(now);
+        Instant now = clock.now();
 
         // 6. Create Circulation aggregate
-        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, now, dueAt);
+        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, now, policy);
 
         // 7. Transition Container state (AVAILABLE -> IN_USE) & emit event
-        ContainerEvent event = container.transition(ContainerStatus.IN_USE, operatorId, "Container delivered", now);
+        ContainerEvent event = container.transition(
+                ContainerStatus.IN_USE,
+                operatorId,
+                "Container delivered",
+                now,
+                correlationIds.current()
+        );
 
         // 8. Commit atomic mutations
         circulationRepository.save(circulation);

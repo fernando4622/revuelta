@@ -19,10 +19,11 @@ public class Container {
     private ContainerStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
+    private final long version;
 
     // Constructor de reconstitución (desde persistencia)
     public Container(ContainerId id, ContainerCode code, ContainerStatus status,
-                     Instant createdAt, Instant updatedAt) {
+                     Instant createdAt, Instant updatedAt, long version) {
         if (id == null) throw new IllegalArgumentException("Container id must not be null");
         if (code == null) throw new IllegalArgumentException("Container code must not be null");
         if (status == null) throw new IllegalArgumentException("Container status must not be null");
@@ -31,6 +32,7 @@ public class Container {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.version = version;
     }
 
     // Factory para registro inicial
@@ -40,7 +42,8 @@ public class Container {
                 code,
                 ContainerStatus.REGISTERED,
                 now,
-                now
+                now,
+                0
         );
     }
 
@@ -49,7 +52,13 @@ public class Container {
      * Lanza ContainerTransitionException si la transición no es válida.
      * Retorna el evento de dominio generado.
      */
-    public ContainerEvent transition(ContainerStatus target, UserId actor, String reason, Instant now) {
+    public ContainerEvent transition(
+            ContainerStatus target,
+            UserId actor,
+            String reason,
+            Instant now,
+            UUID correlationId
+    ) {
         if (!this.status.canTransitionTo(target)) {
             throw new ContainerTransitionException(
                     "Invalid transition from " + this.status + " to " + target
@@ -70,7 +79,8 @@ public class Container {
                 now,
                 previous,
                 target,
-                reason
+                reason,
+                correlationId
         );
     }
 
@@ -79,6 +89,7 @@ public class Container {
     public ContainerStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
+    public long version() { return version; }
 
     public boolean isEligibleForCirculation() {
         return this.status == ContainerStatus.AVAILABLE;

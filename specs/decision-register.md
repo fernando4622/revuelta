@@ -11,12 +11,12 @@ This register prevents silent assumptions.
 | D-005 | Meaning of ASSIGNED vs IN_USE | unresolved | YES | Product |
 | D-006 | Meaning/persistence of RETURNED state | approved: persistent pending-wash state | NO | Product |
 | D-007 | Authentication/session mechanism | approved for development/MVP demo: username/password + signed JWT for 4 hours, no refresh; production identity provisioning/revocation remains open | NO for MVP demo; YES before real pilot | Architecture/Security |
-| D-008 | Final PK/external identifier strategy | unresolved | YES | Architecture/Data |
-| D-009 | Time/zone representation | unresolved | YES | Architecture/Data |
-| D-010 | API idempotency key/deduplication mechanism | unresolved | YES | Architecture |
+| D-008 | Final PK/external identifier strategy | approved for MVP: application-generated UUID v4, shared as PostgreSQL PK and API identifier | NO | Architecture/Data |
+| D-009 | Time/zone representation | approved: UTC `Instant`, PostgreSQL `TIMESTAMP WITH TIME ZONE`, ISO 8601 API values; business-zone interpretation is configuration | NO | Architecture/Data |
+| D-010 | API idempotency key/deduplication mechanism | approved for MVP: database-enforced state/uniqueness conflicts with deterministic `409`; no client idempotency key | NO for MVP; review after pilot | Architecture |
 | D-011 | Flutter state-management library | unresolved | NO for domain, YES before project-wide convention | Architecture |
 | D-012 | Offline mutation support | baseline recommendation: NO | NO unless scope changes | Product |
-| D-013 | Exact database concurrency mechanism | unresolved | YES before circulation implementation | Architecture/Data |
+| D-013 | Exact database concurrency mechanism | approved: partial unique index for active delivery plus optimistic locking for conflicting aggregate updates | NO | Architecture/Data |
 | D-014 | Perspective selection mechanism | superseded: no selector; authenticated server role selects the experience | NO | Product |
 | D-015 | Actor and physical handoff that finalize a return | approved: Cafetería confirms physical receipt by scanning the container | NO | Product + Operations |
 | D-016 | Canonical ReVuelta logo/brand asset | approved: `apps/revuelta-mobile/resources/logo.jpeg` | NO | Product/Brand |
@@ -30,3 +30,5 @@ No agent may convert an unresolved row into an implementation detail without upd
 The current D-014 decision removes the unrestricted selector. Only the role carried by a valid server-issued session selects the application experience.
 
 D-002 does not make possession of a Participant Code an authenticated session. Only an authorized Cafetería/ReVuelta actor may use it in a protected operation.
+
+D-010 makes mutating operations deterministic for the MVP but does not promise replay of the original success response. A request observed after the first commit receives the stable conflict for its resulting state. Introducing stored idempotency keys requires a future contract decision.

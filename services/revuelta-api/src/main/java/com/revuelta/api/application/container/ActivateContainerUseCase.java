@@ -3,6 +3,8 @@ package com.revuelta.api.application.container;
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.port.CorrelationIdProviderPort;
+import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.domain.container.Container;
 import com.revuelta.api.domain.container.ContainerId;
@@ -17,15 +19,21 @@ public class ActivateContainerUseCase {
     private final ContainerRepositoryPort containerRepository;
     private final ContainerEventRepositoryPort eventRepository;
     private final TransactionRunnerPort transactionRunner;
+    private final ServerClockPort clock;
+    private final CorrelationIdProviderPort correlationIds;
 
     public ActivateContainerUseCase(
             ContainerRepositoryPort containerRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
         this.containerRepository = containerRepository;
         this.eventRepository = eventRepository;
         this.transactionRunner = transactionRunner;
+        this.clock = clock;
+        this.correlationIds = correlationIds;
     }
 
     public Container execute(ContainerId id, UserId actorId, String reason) {
@@ -39,8 +47,14 @@ public class ActivateContainerUseCase {
                         "Container not found: " + id.value()
                 ));
 
-        Instant now = Instant.now();
-        ContainerEvent event = container.transition(ContainerStatus.AVAILABLE, actorId, reason, now);
+        Instant now = clock.now();
+        ContainerEvent event = container.transition(
+                ContainerStatus.AVAILABLE,
+                actorId,
+                reason,
+                now,
+                correlationIds.current()
+        );
 
         eventRepository.save(event);
         return containerRepository.save(container);

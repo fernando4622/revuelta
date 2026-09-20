@@ -1,5 +1,7 @@
 package com.revuelta.api.application.container;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.domain.container.Container;
 import com.revuelta.api.domain.container.ContainerCode;
@@ -16,6 +18,13 @@ public class GetContainerUseCase {
 
     public Optional<Container> findById(ContainerId id) {
         return containerRepository.findById(id);
+    }
+
+    public Container execute(ContainerId id) {
+        return findById(id).orElseThrow(() -> new ApplicationFailureException(
+                FailureCode.CONTAINER_NOT_FOUND,
+                "Container not found: " + id.value()
+        ));
     }
 
     public Optional<Container> findByCode(ContainerCode code) {

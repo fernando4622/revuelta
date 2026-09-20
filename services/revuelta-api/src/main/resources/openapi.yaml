@@ -4,8 +4,8 @@ info:
   description: Operational Container Control System API for University Cafeteria Pilot V1
   version: 1.0.0
 servers:
-  - url: http://localhost:8080/api/v1
-    description: Development Server
+  - url: /api/v1
+    description: Deployment-relative API base
 
 paths:
   /auth/login:
@@ -53,11 +53,14 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /containers:
     post:
       summary: Register new container (ADMIN only)
       operationId: registerContainer
+      x-required-roles: [ADMIN]
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -71,15 +74,20 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/ContainerResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
     get:
       summary: List containers (paginated)
       operationId: listContainers
+      x-required-roles: [OPERATOR, ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: page
@@ -100,15 +108,20 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Container'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /containers/{containerId}:
     get:
       summary: Get container by ID
       operationId: getContainer
+      x-required-roles: [OPERATOR, ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: containerId
@@ -118,35 +131,58 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ContainerResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /containers/{containerId}/activate:
     post:
       summary: Activate container REGISTERED -> AVAILABLE (ADMIN only)
       operationId: activateContainer
+      x-required-roles: [ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: containerId
           in: path
           required: true
           schema: { type: string, format: uuid }
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string, example: "Initial activation" }
       responses:
         '200':
           $ref: '#/components/responses/ContainerResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /circulations:
     post:
       summary: Register container delivery (create active circulation)
+      description: A replay after a committed delivery returns `409 ACTIVE_CIRCULATION_EXISTS`. No client idempotency key is accepted in the MVP.
       operationId: deliverContainer
+      x-required-roles: [OPERATOR, ADMIN]
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -161,17 +197,25 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/CirculationResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '404':
+          $ref: '#/components/responses/404NotFound'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /circulations/{circulationId}/return:
     post:
       summary: Register container return and finalize active circulation
+      description: A replay after a committed return receives `409 RETURN_ALREADY_REGISTERED`. The successful transition leaves the container in `RETURNED` pending wash.
       operationId: returnCirculation
+      x-required-roles: [OPERATOR, ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: circulationId
@@ -181,23 +225,36 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CirculationResponse'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
+        '409':
+          $ref: '#/components/responses/409Conflict'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
   /containers/{containerId}/events:
     get:
       summary: Get container audit history events
       operationId: getContainerEvents
+      x-required-roles: [OPERATOR, ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: containerId
           in: path
           required: true
           schema: { type: string, format: uuid }
+        - name: page
+          in: query
+          schema: { type: integer, minimum: 0, default: 0 }
+        - name: size
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       responses:
         '200':
           description: Append-oriented audit events for the container
@@ -210,10 +267,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ContainerEvent'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
         '401':
           $ref: '#/components/responses/401Unauthenticated'
         '403':
           $ref: '#/components/responses/403Forbidden'
+        '500':
+          $ref: '#/components/responses/500InternalServerError'
 
 components:
   headers:
@@ -249,16 +310,27 @@ components:
 
     Container:
       type: object
+      required: [id, code, status, createdAt, updatedAt, eligibleForCirculation]
       properties:
         id: { type: string, format: uuid }
         code: { type: string }
-        status: { type: string, enum: [REGISTERED, AVAILABLE, IN_USE, DAMAGED, LOST, RETIRED] }
+        status: { type: string, enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST, RETIRED] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
         eligibleForCirculation: { type: boolean }
 
     Circulation:
       type: object
+      required:
+        - id
+        - containerId
+        - borrowerId
+        - deliveredBy
+        - deliveredAt
+        - dueAt
+        - returnPolicyId
+        - returnPolicyVersion
+        - status
       properties:
         id: { type: string, format: uuid }
         containerId: { type: string, format: uuid }
@@ -266,22 +338,31 @@ components:
         deliveredBy: { type: string, format: uuid }
         deliveredAt: { type: string, format: date-time }
         dueAt: { type: string, format: date-time }
-        returnedBy: { type: string, format: uuid }
-        returnedAt: { type: string, format: date-time }
-        punctuality: { type: string, enum: [ON_TIME, LATE] }
+        returnPolicyId: { type: string, format: uuid }
+        returnPolicyVersion: { type: integer, minimum: 1 }
+        returnedBy: { type: string, format: uuid, nullable: true }
+        returnedAt: { type: string, format: date-time, nullable: true }
+        punctuality: { type: string, enum: [ON_TIME, LATE], nullable: true }
         status: { type: string, enum: [ACTIVE, COMPLETED] }
 
     ContainerEvent:
       type: object
+      required: [id, containerId, eventType, actorId, occurredAt, newStatus, correlationId]
       properties:
         id: { type: string, format: uuid }
         containerId: { type: string, format: uuid }
         eventType: { type: string }
         actorId: { type: string, format: uuid }
         occurredAt: { type: string, format: date-time }
-        previousStatus: { type: string }
-        newStatus: { type: string }
-        reason: { type: string }
+        previousStatus:
+          type: string
+          enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST, RETIRED]
+          nullable: true
+        newStatus:
+          type: string
+          enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST, RETIRED]
+        reason: { type: string, nullable: true }
+        correlationId: { type: string, format: uuid }
 
   responses:
     401Unauthenticated:
@@ -345,13 +426,34 @@ components:
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
     404NotFound:
       description: Resource Not Found
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
     409Conflict:
       description: Business Conflict / State Machine Error
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    500InternalServerError:
+      description: Unexpected internal failure; use traceId for support correlation
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'

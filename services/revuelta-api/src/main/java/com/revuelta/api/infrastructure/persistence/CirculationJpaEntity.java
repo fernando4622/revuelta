@@ -34,6 +34,12 @@ public class CirculationJpaEntity {
     @Column(name = "due_at", nullable = false)
     private Instant dueAt;
 
+    @Column(name = "return_policy_id", nullable = false)
+    private UUID returnPolicyId;
+
+    @Column(name = "return_policy_version", nullable = false)
+    private int returnPolicyVersion;
+
     @Column(name = "returned_by")
     private UUID returnedBy;
 
@@ -47,4 +53,8 @@ public class CirculationJpaEntity {
 
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
+
+    @Version
+    @Column(name = "lock_version", nullable = false)
+    private long version;
 }

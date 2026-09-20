@@ -102,6 +102,36 @@ class SecurityErrorContractIntegrationTest {
         UUID.fromString(serverCorrelationId);
     }
 
+    @Test
+    void shouldReturnTypedConflictWhenContainerCodeAlreadyExists() throws Exception {
+        String adminToken = tokenProvider.issue(UserId.generate(), "admin", "ADMIN");
+        String code = "HTTP-DUP-" + UUID.randomUUID();
+
+        HttpResponse<String> created = postContainer(adminToken, code);
+        HttpResponse<String> conflict = postContainer(adminToken, code);
+
+        assertEquals(201, created.statusCode());
+        assertProblem(conflict, 409, "CONTAINER_CODE_ALREADY_EXISTS");
+    }
+
+    @Test
+    void shouldReturnTypedNotFoundProblemForUnknownContainer() throws Exception {
+        String operatorToken = tokenProvider.issue(UserId.generate(), "operator", "OPERATOR");
+        String path = "/api/v1/containers/" + UUID.randomUUID();
+        HttpResponse<String> response = get(path, operatorToken);
+
+        assertProblem(response, 404, "CONTAINER_NOT_FOUND", path);
+    }
+
+    @Test
+    void shouldReturnValidationProblemForMalformedContainerIdentifier() throws Exception {
+        String operatorToken = tokenProvider.issue(UserId.generate(), "operator", "OPERATOR");
+        String path = "/api/v1/containers/not-a-uuid";
+        HttpResponse<String> response = get(path, operatorToken);
+
+        assertProblem(response, 400, "VALIDATION_ERROR", path);
+    }
+
     private HttpResponse<String> getContainers(String token) throws Exception {
         return getContainers(token, null);
     }
@@ -119,7 +149,35 @@ class SecurityErrorContractIntegrationTest {
         return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> get(String path, String token) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + path))
+                .header("Authorization", "Bearer " + token)
+                .GET()
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> postContainer(String token, String code) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + "/api/v1/containers"))
+                .header("Authorization", "Bearer " + token)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"code\":\"" + code + "\"}"))
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     private void assertProblem(HttpResponse<String> response, int status, String code) throws Exception {
+        assertProblem(response, status, code, "/api/v1/containers");
+    }
+
+    private void assertProblem(
+            HttpResponse<String> response,
+            int status,
+            String code,
+            String expectedInstance
+    ) throws Exception {
         assertEquals(status, response.statusCode());
         assertTrue(response.headers().firstValue("Content-Type").orElse("")
                 .startsWith("application/problem+json"));
@@ -127,7 +185,7 @@ class SecurityErrorContractIntegrationTest {
         JsonNode problem = objectMapper.readTree(response.body());
         assertEquals(status, problem.get("status").intValue());
         assertEquals(code, problem.get("code").stringValue());
-        assertEquals("/api/v1/containers", problem.get("instance").stringValue());
+        assertEquals(expectedInstance, problem.get("instance").stringValue());
         assertFalse(problem.get("traceId").stringValue().isBlank());
         assertEquals(
                 response.headers().firstValue("X-Correlation-ID").orElseThrow(),

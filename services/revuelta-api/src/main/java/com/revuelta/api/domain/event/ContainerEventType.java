@@ -7,6 +7,7 @@ public enum ContainerEventType {
     ACTIVATED,
     DELIVERED,
     RETURNED,
+    WASH_COMPLETED,
     MARKED_DAMAGED,
     MARKED_LOST,
     RECOVERED,
@@ -19,8 +20,11 @@ public enum ContainerEventType {
         if (from == ContainerStatus.AVAILABLE && to == ContainerStatus.IN_USE) {
             return DELIVERED;
         }
-        if (from == ContainerStatus.IN_USE && to == ContainerStatus.AVAILABLE) {
+        if (from == ContainerStatus.IN_USE && to == ContainerStatus.RETURNED) {
             return RETURNED;
+        }
+        if (from == ContainerStatus.RETURNED && to == ContainerStatus.AVAILABLE) {
+            return WASH_COMPLETED;
         }
         if (to == ContainerStatus.DAMAGED) {
             return MARKED_DAMAGED;

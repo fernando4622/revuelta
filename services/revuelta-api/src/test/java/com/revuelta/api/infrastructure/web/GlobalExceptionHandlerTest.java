@@ -13,6 +13,7 @@ import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 class GlobalExceptionHandlerTest {
 
@@ -63,6 +64,28 @@ class GlobalExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertEquals("VALIDATION_ERROR", response.getBody().code());
         assertEquals("Request payload is malformed or unreadable", response.getBody().detail());
+    }
+
+    @Test
+    void shouldReturnBadRequestForMalformedPathIdentifierWithoutExposingConversionDetails() {
+        HttpServletRequest request = mockRequest("/api/v1/containers/not-a-uuid");
+
+        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = new GlobalExceptionHandler()
+                .handleTypeMismatch(
+                        new MethodArgumentTypeMismatchException(
+                                "not-a-uuid",
+                                java.util.UUID.class,
+                                "containerId",
+                                null,
+                                new IllegalArgumentException("internal converter detail")
+                        ),
+                        request
+                );
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("VALIDATION_ERROR", response.getBody().code());
+        assertEquals("Request parameter has an invalid format", response.getBody().detail());
     }
 
     private HttpServletRequest mockRequest(String uri) {

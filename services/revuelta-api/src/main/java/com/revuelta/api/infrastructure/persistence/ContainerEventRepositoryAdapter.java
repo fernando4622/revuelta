@@ -7,6 +7,7 @@ import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.event.ContainerEventType;
 import com.revuelta.api.domain.user.UserId;
 import lombok.RequiredArgsConstructor;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,7 @@ import java.util.List;
 public class ContainerEventRepositoryAdapter implements ContainerEventRepositoryPort {
 
     private final SpringDataContainerEventRepository repository;
+    private final EntityManager entityManager;
 
     @Override
     public void save(ContainerEvent event) {
@@ -28,9 +30,11 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
                 event.occurredAt(),
                 event.previousStatus() != null ? event.previousStatus().name() : null,
                 event.newStatus().name(),
-                event.reason()
+                event.reason(),
+                event.correlationId()
         );
-        repository.save(entity);
+        entityManager.persist(entity);
+        entityManager.flush();
     }
 
     @Override
@@ -50,7 +54,8 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
                 entity.getOccurredAt(),
                 entity.getPreviousStatus() != null ? ContainerStatus.valueOf(entity.getPreviousStatus()) : null,
                 ContainerStatus.valueOf(entity.getNewStatus()),
-                entity.getReason()
+                entity.getReason(),
+                entity.getCorrelationId()
         );
     }
 }

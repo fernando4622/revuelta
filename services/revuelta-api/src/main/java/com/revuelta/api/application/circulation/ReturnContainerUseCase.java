@@ -3,8 +3,10 @@ package com.revuelta.api.application.circulation;
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
+import com.revuelta.api.application.port.CorrelationIdProviderPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
+import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.domain.circulation.Circulation;
 import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.container.Container;
@@ -21,17 +23,23 @@ public class ReturnContainerUseCase {
     private final CirculationRepositoryPort circulationRepository;
     private final ContainerEventRepositoryPort eventRepository;
     private final TransactionRunnerPort transactionRunner;
+    private final ServerClockPort clock;
+    private final CorrelationIdProviderPort correlationIds;
 
     public ReturnContainerUseCase(
             ContainerRepositoryPort containerRepository,
             CirculationRepositoryPort circulationRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
         this.containerRepository = containerRepository;
         this.circulationRepository = circulationRepository;
         this.eventRepository = eventRepository;
         this.transactionRunner = transactionRunner;
+        this.clock = clock;
+        this.correlationIds = correlationIds;
     }
 
     public ReturnResult execute(CirculationId circulationId, UserId operatorId) {
@@ -61,13 +69,19 @@ public class ReturnContainerUseCase {
                 ));
 
         // 3. Server-authoritative return time
-        Instant returnedAt = Instant.now();
+        Instant returnedAt = clock.now();
 
         // 4. Finalize circulation (classifies ON_TIME / LATE)
         circulation.finalize(operatorId, returnedAt);
 
-        // 5. Transition container back to AVAILABLE (DL-006)
-        ContainerEvent event = container.transition(ContainerStatus.AVAILABLE, operatorId, "Container returned", returnedAt);
+        // 5. Persist pending-wash state (DL-006)
+        ContainerEvent event = container.transition(
+                ContainerStatus.RETURNED,
+                operatorId,
+                "Container returned",
+                returnedAt,
+                correlationIds.current()
+        );
 
         // 6. Commit atomic transaction
         circulationRepository.save(circulation);

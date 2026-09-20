@@ -14,17 +14,25 @@ import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.user.UserId;
 import com.revuelta.api.support.ImmediateTransactionRunner;
 import java.util.Optional;
+import java.time.Instant;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class ContainerManagementUseCaseTest {
 
     private final ContainerRepositoryPort containers = mock(ContainerRepositoryPort.class);
     private final ContainerEventRepositoryPort events = mock(ContainerEventRepositoryPort.class);
+    private final Instant now = Instant.parse("2026-09-20T18:00:00Z");
+    private final UUID correlationId = UUID.randomUUID();
 
     @Test
     void shouldRejectDuplicateContainerCodeWithStableConflict() {
         when(containers.existsByCode(new ContainerCode("CTR-DUP"))).thenReturn(true);
-        RegisterContainerUseCase useCase = new RegisterContainerUseCase(containers, new ImmediateTransactionRunner());
+        RegisterContainerUseCase useCase = new RegisterContainerUseCase(
+                containers,
+                new ImmediateTransactionRunner(),
+                () -> now
+        );
 
         ApplicationFailureException failure = assertThrows(
                 ApplicationFailureException.class,
@@ -41,12 +49,27 @@ class ContainerManagementUseCaseTest {
         ActivateContainerUseCase useCase = new ActivateContainerUseCase(
                 containers,
                 events,
-                new ImmediateTransactionRunner()
+                new ImmediateTransactionRunner(),
+                () -> now,
+                () -> correlationId
         );
 
         ApplicationFailureException failure = assertThrows(
                 ApplicationFailureException.class,
                 () -> useCase.execute(id, UserId.generate(), "Activation")
+        );
+
+        assertEquals(FailureCode.CONTAINER_NOT_FOUND, failure.code());
+    }
+
+    @Test
+    void shouldRejectLookupOfUnknownContainerWithStableNotFoundFailure() {
+        ContainerId id = ContainerId.generate();
+        when(containers.findById(id)).thenReturn(Optional.empty());
+
+        ApplicationFailureException failure = assertThrows(
+                ApplicationFailureException.class,
+                () -> new GetContainerUseCase(containers).execute(id)
         );
 
         assertEquals(FailureCode.CONTAINER_NOT_FOUND, failure.code());

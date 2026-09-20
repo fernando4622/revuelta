@@ -38,4 +38,7 @@ public class ContainerEventJpaEntity {
     private String newStatus;
 
     private String reason;
+
+    @Column(name = "correlation_id", nullable = false)
+    private UUID correlationId;
 }

@@ -4,7 +4,7 @@ import java.util.Set;
 
 /**
  * Estados permitidos en la máquina de estados simplificada para V1 (DL-005, DL-006):
- * REGISTERED → AVAILABLE → IN_USE → AVAILABLE (ciclo operativo)
+ * REGISTERED → AVAILABLE → IN_USE → RETURNED → AVAILABLE (ciclo operativo)
  * AVAILABLE/IN_USE → DAMAGED → AVAILABLE/RETIRED
  * AVAILABLE/IN_USE → LOST → RETIRED
  */
@@ -12,6 +12,7 @@ public enum ContainerStatus {
     REGISTERED,
     AVAILABLE,
     IN_USE,
+    RETURNED,
     DAMAGED,
     LOST,
     RETIRED;
@@ -24,7 +25,8 @@ public enum ContainerStatus {
         return switch (this) {
             case REGISTERED -> target == AVAILABLE;
             case AVAILABLE -> target == IN_USE || target == DAMAGED || target == LOST;
-            case IN_USE -> target == AVAILABLE || target == DAMAGED || target == LOST;
+            case IN_USE -> target == RETURNED || target == DAMAGED || target == LOST;
+            case RETURNED -> target == AVAILABLE || target == DAMAGED;
             case DAMAGED -> target == AVAILABLE || target == RETIRED;
             case LOST -> target == RETIRED;
             case RETIRED -> false; // Estado terminal

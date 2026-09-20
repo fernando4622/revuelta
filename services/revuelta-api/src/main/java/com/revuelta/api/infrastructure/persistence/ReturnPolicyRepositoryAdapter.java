@@ -23,6 +23,7 @@ public class ReturnPolicyRepositoryAdapter implements ReturnPolicyRepositoryPort
         ReturnPolicyJpaEntity entity = new ReturnPolicyJpaEntity(
                 policy.id(),
                 policy.name(),
+                policy.version(),
                 policy.durationHours(),
                 policy.active(),
                 policy.createdAt()
@@ -35,6 +36,7 @@ public class ReturnPolicyRepositoryAdapter implements ReturnPolicyRepositoryPort
         return new ReturnPolicy(
                 entity.getId(),
                 entity.getName(),
+                entity.getVersion(),
                 entity.getDurationHours(),
                 entity.isActive(),
                 entity.getCreatedAt()

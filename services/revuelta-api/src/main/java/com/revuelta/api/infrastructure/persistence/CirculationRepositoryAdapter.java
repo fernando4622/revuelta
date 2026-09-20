@@ -1,6 +1,8 @@
 package com.revuelta.api.infrastructure.persistence;
 
 import com.revuelta.api.application.port.CirculationRepositoryPort;
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.domain.circulation.Circulation;
 import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.circulation.CirculationStatus;
@@ -9,8 +11,9 @@ import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.user.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
-import java.time.Instant;
 import java.util.Optional;
 
 @Component
@@ -22,8 +25,23 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
     @Override
     public Circulation save(Circulation circulation) {
         CirculationJpaEntity entity = toEntity(circulation);
-        CirculationJpaEntity saved = repository.save(entity);
-        return toDomain(saved);
+        try {
+            CirculationJpaEntity saved = repository.saveAndFlush(entity);
+            return toDomain(saved);
+        } catch (ObjectOptimisticLockingFailureException exception) {
+            throw new ApplicationFailureException(
+                    FailureCode.RETURN_ALREADY_REGISTERED,
+                    "The circulation was changed by another operation"
+            );
+        } catch (DataIntegrityViolationException exception) {
+            if (mostSpecificMessage(exception).contains("idx_circulations_active_container")) {
+                throw new ApplicationFailureException(
+                        FailureCode.ACTIVE_CIRCULATION_EXISTS,
+                        "The container already has an active circulation"
+                );
+            }
+            throw exception;
+        }
     }
 
     @Override
@@ -49,11 +67,14 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
                 domain.deliveredBy().value(),
                 domain.deliveredAt(),
                 domain.dueAt(),
+                domain.returnPolicyId(),
+                domain.returnPolicyVersion(),
                 domain.returnedBy() != null ? domain.returnedBy().value() : null,
                 domain.returnedAt(),
                 domain.punctuality() != null ? domain.punctuality().name() : null,
                 domain.status().name(),
-                domain.deliveredAt()
+                domain.deliveredAt(),
+                domain.version()
         );
     }
 
@@ -65,10 +86,18 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
                 new UserId(entity.getDeliveredBy()),
                 entity.getDeliveredAt(),
                 entity.getDueAt(),
+                entity.getReturnPolicyId(),
+                entity.getReturnPolicyVersion(),
                 entity.getReturnedBy() != null ? new UserId(entity.getReturnedBy()) : null,
                 entity.getReturnedAt(),
                 entity.getPunctuality() != null ? Punctuality.valueOf(entity.getPunctuality()) : null,
-                CirculationStatus.valueOf(entity.getStatus())
+                CirculationStatus.valueOf(entity.getStatus()),
+                entity.getVersion()
         );
+    }
+
+    private String mostSpecificMessage(DataIntegrityViolationException exception) {
+        Throwable cause = exception.getMostSpecificCause();
+        return cause.getMessage() == null ? "" : cause.getMessage();
     }
 }

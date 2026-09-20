@@ -12,6 +12,7 @@ import com.revuelta.api.domain.container.ContainerCode;
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
+import com.revuelta.api.domain.policy.ReturnPolicy;
 import com.revuelta.api.domain.user.UserId;
 import com.revuelta.api.support.ImmediateTransactionRunner;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,11 +21,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +47,7 @@ class ReturnContainerUseCaseTest {
     private final UserId borrowerId = UserId.generate();
     private final UserId operatorId = UserId.generate();
     private final Instant now = Instant.now();
+    private final UUID correlationId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -51,20 +55,22 @@ class ReturnContainerUseCaseTest {
                 containerRepository,
                 circulationRepository,
                 eventRepository,
-                new ImmediateTransactionRunner()
+                new ImmediateTransactionRunner(),
+                () -> now,
+                () -> correlationId
         );
     }
 
     @Test
-    @DisplayName("SC-RET-001: On-time return finalizes circulation as ON_TIME and transitions container to AVAILABLE")
+    @DisplayName("SC-RET-001: On-time return finalizes circulation as ON_TIME and transitions container to RETURNED")
     void shouldFinalizeReturnOnTime() {
         Instant deliveredAt = now.minus(Duration.ofHours(5));
-        Instant dueAt = now.plus(Duration.ofHours(43));
+        ReturnPolicy policy = ReturnPolicy.defaultPolicy(deliveredAt);
 
-        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, deliveredAt, dueAt);
+        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, deliveredAt, policy);
         Container container = Container.register(new ContainerCode("CTR-R1"), deliveredAt);
-        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", deliveredAt);
-        container.transition(ContainerStatus.IN_USE, operatorId, "Delivered", deliveredAt);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", deliveredAt, correlationId);
+        container.transition(ContainerStatus.IN_USE, operatorId, "Delivered", deliveredAt, correlationId);
 
         when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
         when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
@@ -73,23 +79,25 @@ class ReturnContainerUseCaseTest {
 
         assertFalse(result.circulation().isActive());
         assertEquals(Punctuality.ON_TIME, result.circulation().punctuality());
-        assertEquals(ContainerStatus.AVAILABLE, result.container().status());
+        assertEquals(ContainerStatus.RETURNED, result.container().status());
 
         verify(circulationRepository, times(1)).save(any());
         verify(containerRepository, times(1)).save(any());
-        verify(eventRepository, times(1)).save(any());
+        var eventCaptor = ArgumentCaptor.forClass(com.revuelta.api.domain.event.ContainerEvent.class);
+        verify(eventRepository, times(1)).save(eventCaptor.capture());
+        assertEquals(correlationId, eventCaptor.getValue().correlationId());
     }
 
     @Test
     @DisplayName("SC-RET-002: Late return finalizes circulation as LATE")
     void shouldFinalizeReturnLate() {
         Instant deliveredAt = now.minus(Duration.ofHours(50));
-        Instant dueAt = now.minus(Duration.ofHours(2));
+        ReturnPolicy policy = ReturnPolicy.defaultPolicy(deliveredAt);
 
-        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, deliveredAt, dueAt);
+        Circulation circulation = Circulation.create(containerId, borrowerId, operatorId, deliveredAt, policy);
         Container container = Container.register(new ContainerCode("CTR-R2"), deliveredAt);
-        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", deliveredAt);
-        container.transition(ContainerStatus.IN_USE, operatorId, "Delivered", deliveredAt);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", deliveredAt, correlationId);
+        container.transition(ContainerStatus.IN_USE, operatorId, "Delivered", deliveredAt, correlationId);
 
         when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
         when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
@@ -116,7 +124,7 @@ class ReturnContainerUseCaseTest {
                 borrowerId,
                 operatorId,
                 now.minus(Duration.ofHours(2)),
-                now.plus(Duration.ofHours(46))
+                ReturnPolicy.defaultPolicy(now.minus(Duration.ofHours(2)))
         );
         circulation.finalize(operatorId, now);
         when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
@@ -132,7 +140,7 @@ class ReturnContainerUseCaseTest {
                 borrowerId,
                 operatorId,
                 now.minus(Duration.ofHours(2)),
-                now.plus(Duration.ofHours(46))
+                ReturnPolicy.defaultPolicy(now.minus(Duration.ofHours(2)))
         );
         when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
         when(containerRepository.findById(containerId)).thenReturn(Optional.empty());

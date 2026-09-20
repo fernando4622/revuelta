@@ -7,6 +7,8 @@ import com.revuelta.api.interfaces.rest.CirculationController;
 import com.revuelta.api.interfaces.rest.ContainerController;
 import java.io.InputStream;
 import java.lang.reflect.Method;
+import java.lang.reflect.RecordComponent;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +29,22 @@ class RestEndpointOpenApiContractTest {
     @Test
     void everyImplementedEndpointMustMatchExactlyOneOpenApiOperation() {
         assertEquals(openApiRoutes(), implementedRoutes());
+    }
+
+    @Test
+    void publicResponseFieldsMustMatchTheDocumentedSchemas() {
+        assertEquals(
+                recordFields(ContainerController.ContainerResponse.class),
+                openApiSchemaFields("Container")
+        );
+        assertEquals(
+                recordFields(CirculationController.CirculationResponse.class),
+                openApiSchemaFields("Circulation")
+        );
+        assertEquals(
+                recordFields(CirculationController.EventResponse.class),
+                openApiSchemaFields("ContainerEvent")
+        );
     }
 
     private Set<Route> implementedRoutes() {
@@ -70,8 +88,8 @@ class RestEndpointOpenApiContractTest {
 
     @SuppressWarnings("unchecked")
     private Set<Route> openApiRoutes() {
-        try (InputStream source = getClass().getResourceAsStream("/openapi.yaml")) {
-            Map<String, Object> document = new Yaml().load(source);
+        Map<String, Object> document = openApiDocument();
+        try {
             Map<String, Map<String, Object>> paths = (Map<String, Map<String, Object>>) document.get("paths");
             Set<Route> routes = new HashSet<>();
             paths.forEach((path, operations) -> operations.keySet().stream()
@@ -79,6 +97,30 @@ class RestEndpointOpenApiContractTest {
                     .map(method -> new Route(method, path))
                     .forEach(routes::add));
             return routes;
+        } catch (Exception exception) {
+            throw new IllegalStateException("Unable to inspect OpenAPI routes", exception);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> openApiSchemaFields(String schemaName) {
+        Map<String, Object> document = openApiDocument();
+        Map<String, Object> components = (Map<String, Object>) document.get("components");
+        Map<String, Map<String, Object>> schemas = (Map<String, Map<String, Object>>) components.get("schemas");
+        Map<String, Object> schema = schemas.get(schemaName);
+        Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
+        return properties.keySet();
+    }
+
+    private Set<String> recordFields(Class<?> recordType) {
+        return Arrays.stream(recordType.getRecordComponents())
+                .map(RecordComponent::getName)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private Map<String, Object> openApiDocument() {
+        try (InputStream source = getClass().getResourceAsStream("/openapi.yaml")) {
+            return new Yaml().load(source);
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to read OpenAPI contract", exception);
         }

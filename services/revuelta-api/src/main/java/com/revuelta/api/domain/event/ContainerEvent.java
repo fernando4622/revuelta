@@ -16,7 +16,8 @@ public record ContainerEvent(
         Instant occurredAt,
         ContainerStatus previousStatus,
         ContainerStatus newStatus,
-        String reason
+        String reason,
+        UUID correlationId
 ) {
     public ContainerEvent {
         Objects.requireNonNull(id, "Event id must not be null");
@@ -25,5 +26,6 @@ public record ContainerEvent(
         Objects.requireNonNull(actorId, "ActorId must not be null");
         Objects.requireNonNull(occurredAt, "OccurredAt must not be null");
         Objects.requireNonNull(newStatus, "NewStatus must not be null");
+        Objects.requireNonNull(correlationId, "CorrelationId must not be null");
     }
 }

@@ -8,16 +8,21 @@ import java.util.UUID;
 public class ReturnPolicy {
     private final UUID id;
     private final String name;
+    private final int version;
     private final int durationHours;
     private final boolean active;
     private final Instant createdAt;
 
-    public ReturnPolicy(UUID id, String name, int durationHours, boolean active, Instant createdAt) {
+    public ReturnPolicy(UUID id, String name, int version, int durationHours, boolean active, Instant createdAt) {
+        if (version <= 0) {
+            throw new IllegalArgumentException("Version must be positive");
+        }
         if (durationHours <= 0) {
             throw new IllegalArgumentException("Duration hours must be positive");
         }
         this.id = Objects.requireNonNull(id, "Id must not be null");
         this.name = Objects.requireNonNull(name, "Name must not be null");
+        this.version = version;
         this.durationHours = durationHours;
         this.active = active;
         this.createdAt = Objects.requireNonNull(createdAt, "CreatedAt must not be null");
@@ -27,6 +32,7 @@ public class ReturnPolicy {
         return new ReturnPolicy(
                 UUID.randomUUID(),
                 "Default Pilot 48h Policy",
+                1,
                 48,
                 true,
                 now
@@ -39,6 +45,7 @@ public class ReturnPolicy {
 
     public UUID id() { return id; }
     public String name() { return name; }
+    public int version() { return version; }
     public int durationHours() { return durationHours; }
     public boolean active() { return active; }
     public Instant createdAt() { return createdAt; }

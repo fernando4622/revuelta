@@ -53,10 +53,8 @@ public class ContainerController {
     @GetMapping("/{containerId}")
     @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
     public ResponseEntity<ContainerResponse> getById(@PathVariable UUID containerId) {
-        return getContainerUseCase.findById(new ContainerId(containerId))
-                .map(ContainerResponse::fromDomain)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Container container = getContainerUseCase.execute(new ContainerId(containerId));
+        return ResponseEntity.ok(ContainerResponse.fromDomain(container));
     }
 
     @GetMapping

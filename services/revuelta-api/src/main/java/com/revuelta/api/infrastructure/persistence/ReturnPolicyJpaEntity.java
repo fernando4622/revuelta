@@ -22,6 +22,9 @@ public class ReturnPolicyJpaEntity {
     @Column(nullable = false)
     private String name;
 
+    @Column(nullable = false)
+    private int version;
+
     @Column(name = "duration_hours", nullable = false)
     private int durationHours;
 

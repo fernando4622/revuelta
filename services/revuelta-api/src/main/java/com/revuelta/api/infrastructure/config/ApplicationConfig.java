@@ -11,9 +11,11 @@ import com.revuelta.api.application.container.RegisterContainerUseCase;
 import com.revuelta.api.application.port.AccessTokenIssuerPort;
 import com.revuelta.api.application.port.AuthenticationAuditPort;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
+import com.revuelta.api.application.port.CorrelationIdProviderPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.PasswordVerifierPort;
 import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
+import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
@@ -40,7 +42,9 @@ public class ApplicationConfig {
             UserRepositoryPort userRepository,
             ReturnPolicyRepositoryPort policyRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
         return new DeliverContainerUseCase(
                 containerRepository,
@@ -48,7 +52,9 @@ public class ApplicationConfig {
                 userRepository,
                 policyRepository,
                 eventRepository,
-                transactionRunner
+                transactionRunner,
+                clock,
+                correlationIds
         );
     }
 
@@ -57,13 +63,17 @@ public class ApplicationConfig {
             ContainerRepositoryPort containerRepository,
             CirculationRepositoryPort circulationRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
         return new ReturnContainerUseCase(
                 containerRepository,
                 circulationRepository,
                 eventRepository,
-                transactionRunner
+                transactionRunner,
+                clock,
+                correlationIds
         );
     }
 
@@ -71,17 +81,26 @@ public class ApplicationConfig {
     public ActivateContainerUseCase activateContainerUseCase(
             ContainerRepositoryPort containerRepository,
             ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
     ) {
-        return new ActivateContainerUseCase(containerRepository, eventRepository, transactionRunner);
+        return new ActivateContainerUseCase(
+                containerRepository,
+                eventRepository,
+                transactionRunner,
+                clock,
+                correlationIds
+        );
     }
 
     @Bean
     public RegisterContainerUseCase registerContainerUseCase(
             ContainerRepositoryPort containerRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock
     ) {
-        return new RegisterContainerUseCase(containerRepository, transactionRunner);
+        return new RegisterContainerUseCase(containerRepository, transactionRunner, clock);
     }
 
     @Bean

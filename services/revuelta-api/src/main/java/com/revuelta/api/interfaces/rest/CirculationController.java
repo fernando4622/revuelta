@@ -82,6 +82,8 @@ public class CirculationController {
             String deliveredBy,
             Instant deliveredAt,
             Instant dueAt,
+            String returnPolicyId,
+            int returnPolicyVersion,
             String returnedBy,
             Instant returnedAt,
             String punctuality,
@@ -95,6 +97,8 @@ public class CirculationController {
                     c.deliveredBy().value().toString(),
                     c.deliveredAt(),
                     c.dueAt(),
+                    c.returnPolicyId().toString(),
+                    c.returnPolicyVersion(),
                     c.returnedBy() != null ? c.returnedBy().value().toString() : null,
                     c.returnedAt(),
                     c.punctuality() != null ? c.punctuality().name() : null,
@@ -111,7 +115,8 @@ public class CirculationController {
             Instant occurredAt,
             String previousStatus,
             String newStatus,
-            String reason
+            String reason,
+            String correlationId
     ) {
         public static EventResponse fromDomain(ContainerEvent e) {
             return new EventResponse(
@@ -122,7 +127,8 @@ public class CirculationController {
                     e.occurredAt(),
                     e.previousStatus() != null ? e.previousStatus().name() : null,
                     e.newStatus().name(),
-                    e.reason()
+                    e.reason(),
+                    e.correlationId().toString()
             );
         }
     }

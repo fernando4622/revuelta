@@ -1,6 +1,8 @@
 package com.revuelta.api.infrastructure.persistence;
 
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.domain.container.Container;
 import com.revuelta.api.domain.container.ContainerCode;
 import com.revuelta.api.domain.container.ContainerId;
@@ -8,6 +10,8 @@ import com.revuelta.api.domain.container.ContainerStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,8 +25,23 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
     @Override
     public Container save(Container container) {
         ContainerJpaEntity entity = toEntity(container);
-        ContainerJpaEntity saved = repository.save(entity);
-        return toDomain(saved);
+        try {
+            ContainerJpaEntity saved = repository.saveAndFlush(entity);
+            return toDomain(saved);
+        } catch (ObjectOptimisticLockingFailureException exception) {
+            throw new ApplicationFailureException(
+                    FailureCode.INVALID_STATE_TRANSITION,
+                    "The container was changed by another operation"
+            );
+        } catch (DataIntegrityViolationException exception) {
+            if (mostSpecificMessage(exception).contains("containers_code_key")) {
+                throw new ApplicationFailureException(
+                        FailureCode.CONTAINER_CODE_ALREADY_EXISTS,
+                        "Container code already exists"
+                );
+            }
+            throw exception;
+        }
     }
 
     @Override
@@ -55,7 +74,8 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
                 domain.code().value(),
                 domain.status().name(),
                 domain.createdAt(),
-                domain.updatedAt()
+                domain.updatedAt(),
+                domain.version()
         );
     }
 
@@ -65,7 +85,13 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
                 new ContainerCode(entity.getCode()),
                 ContainerStatus.valueOf(entity.getStatus()),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.getVersion()
         );
+    }
+
+    private String mostSpecificMessage(DataIntegrityViolationException exception) {
+        Throwable cause = exception.getMostSpecificCause();
+        return cause.getMessage() == null ? "" : cause.getMessage();
     }
 }

@@ -3,22 +3,25 @@ package com.revuelta.api.application.container;
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.domain.container.Container;
 import com.revuelta.api.domain.container.ContainerCode;
-import java.time.Instant;
 
 public class RegisterContainerUseCase {
 
     private final ContainerRepositoryPort containerRepository;
     private final TransactionRunnerPort transactionRunner;
+    private final ServerClockPort clock;
 
     public RegisterContainerUseCase(
             ContainerRepositoryPort containerRepository,
-            TransactionRunnerPort transactionRunner
+            TransactionRunnerPort transactionRunner,
+            ServerClockPort clock
     ) {
         this.containerRepository = containerRepository;
         this.transactionRunner = transactionRunner;
+        this.clock = clock;
     }
 
     public Container execute(String code) {
@@ -34,7 +37,7 @@ public class RegisterContainerUseCase {
             );
         }
 
-        Container container = Container.register(containerCode, Instant.now());
+        Container container = Container.register(containerCode, clock.now());
         return containerRepository.save(container);
     }
 }

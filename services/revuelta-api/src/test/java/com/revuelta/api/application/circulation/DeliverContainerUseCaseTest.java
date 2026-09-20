@@ -20,10 +20,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -44,6 +46,7 @@ class DeliverContainerUseCaseTest {
     private final UserId borrowerId = UserId.generate();
     private final UserId operatorId = UserId.generate();
     private final Instant now = Instant.now();
+    private final UUID correlationId = UUID.randomUUID();
 
     @BeforeEach
     void setUp() {
@@ -53,7 +56,9 @@ class DeliverContainerUseCaseTest {
                 userRepository,
                 policyRepository,
                 eventRepository,
-                new ImmediateTransactionRunner()
+                new ImmediateTransactionRunner(),
+                () -> now,
+                () -> correlationId
         );
     }
 
@@ -61,7 +66,7 @@ class DeliverContainerUseCaseTest {
     @DisplayName("SC-DEL-001: Successful delivery transitions container to IN_USE and creates active circulation")
     void shouldDeliverContainerSuccessfully() {
         Container container = Container.register(new ContainerCode("CTR-001"), now);
-        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now, correlationId);
 
         when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
         when(userRepository.existsById(borrowerId)).thenReturn(true);
@@ -75,10 +80,15 @@ class DeliverContainerUseCaseTest {
         assertEquals(borrowerId, result.circulation().borrowerId());
         assertEquals(operatorId, result.circulation().deliveredBy());
         assertTrue(result.circulation().isActive());
+        assertEquals(now, result.circulation().deliveredAt());
+        assertNotNull(result.circulation().returnPolicyId());
+        assertEquals(1, result.circulation().returnPolicyVersion());
 
         verify(circulationRepository, times(1)).save(any());
         verify(containerRepository, times(1)).save(any());
-        verify(eventRepository, times(1)).save(any());
+        var eventCaptor = ArgumentCaptor.forClass(com.revuelta.api.domain.event.ContainerEvent.class);
+        verify(eventRepository, times(1)).save(eventCaptor.capture());
+        assertEquals(correlationId, eventCaptor.getValue().correlationId());
     }
 
     @Test
@@ -98,7 +108,7 @@ class DeliverContainerUseCaseTest {
     @DisplayName("SC-DEL-004: Deliver fails when active circulation already exists for container")
     void shouldFailWhenActiveCirculationExists() {
         Container container = Container.register(new ContainerCode("CTR-003"), now);
-        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now, correlationId);
 
         when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
         when(userRepository.existsById(borrowerId)).thenReturn(true);
@@ -142,7 +152,7 @@ class DeliverContainerUseCaseTest {
 
     private Container availableContainer(String code) {
         Container container = Container.register(new ContainerCode(code), now);
-        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now, correlationId);
         return container;
     }
 
