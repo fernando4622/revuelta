@@ -1,6 +1,8 @@
 package com.revuelta.api.infrastructure.web;
 
 import com.revuelta.api.application.auth.AuthenticationFailureException;
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCategory;
 import com.revuelta.api.domain.container.ContainerTransitionException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -52,9 +54,15 @@ public class GlobalExceptionHandler {
         return buildProblem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request);
     }
 
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ProblemDetail> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
-        return buildProblem(HttpStatus.CONFLICT, "BUSINESS_CONFLICT", ex.getMessage(), request);
+    @ExceptionHandler(ApplicationFailureException.class)
+    public ResponseEntity<ProblemDetail> handleApplicationFailure(
+            ApplicationFailureException ex,
+            HttpServletRequest request
+    ) {
+        HttpStatus status = ex.code().category() == FailureCategory.NOT_FOUND
+                ? HttpStatus.NOT_FOUND
+                : HttpStatus.CONFLICT;
+        return buildProblem(status, ex.code().name(), ex.getMessage(), request);
     }
 
     @ExceptionHandler(ContainerTransitionException.class)

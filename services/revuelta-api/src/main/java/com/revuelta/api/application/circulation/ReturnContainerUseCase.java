@@ -1,5 +1,7 @@
 package com.revuelta.api.application.circulation;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
@@ -39,15 +41,24 @@ public class ReturnContainerUseCase {
     private ReturnResult returnByCirculationId(CirculationId circulationId, UserId operatorId) {
         // 1. Resolve Circulation
         Circulation circulation = circulationRepository.findById(circulationId)
-                .orElseThrow(() -> new IllegalArgumentException("Circulation not found: " + circulationId.value()));
+                .orElseThrow(() -> new ApplicationFailureException(
+                        FailureCode.CIRCULATION_NOT_FOUND,
+                        "Circulation not found: " + circulationId.value()
+                ));
 
         if (!circulation.isActive()) {
-            throw new IllegalStateException("Circulation " + circulationId.value() + " is already finalized");
+            throw new ApplicationFailureException(
+                    FailureCode.RETURN_ALREADY_REGISTERED,
+                    "Circulation " + circulationId.value() + " is already finalized"
+            );
         }
 
         // 2. Resolve Container
         Container container = containerRepository.findById(circulation.containerId())
-                .orElseThrow(() -> new IllegalArgumentException("Container not found: " + circulation.containerId().value()));
+                .orElseThrow(() -> new ApplicationFailureException(
+                        FailureCode.CONTAINER_NOT_FOUND,
+                        "Container not found: " + circulation.containerId().value()
+                ));
 
         // 3. Server-authoritative return time
         Instant returnedAt = Instant.now();

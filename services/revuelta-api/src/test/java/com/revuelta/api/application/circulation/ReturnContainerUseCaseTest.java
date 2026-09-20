@@ -1,5 +1,7 @@
 package com.revuelta.api.application.circulation;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.domain.circulation.Circulation;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -102,8 +105,44 @@ class ReturnContainerUseCaseTest {
     void shouldFailWhenCirculationNotFound() {
         when(circulationRepository.findById(circulationId)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () ->
-                returnContainerUseCase.execute(circulationId, operatorId)
+        assertFailure(FailureCode.CIRCULATION_NOT_FOUND, () ->
+                returnContainerUseCase.execute(circulationId, operatorId));
+    }
+
+    @Test
+    void shouldFailWithStableCodeWhenReturnWasAlreadyRegistered() {
+        Circulation circulation = Circulation.create(
+                containerId,
+                borrowerId,
+                operatorId,
+                now.minus(Duration.ofHours(2)),
+                now.plus(Duration.ofHours(46))
         );
+        circulation.finalize(operatorId, now);
+        when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
+
+        assertFailure(FailureCode.RETURN_ALREADY_REGISTERED, () ->
+                returnContainerUseCase.execute(circulation.id(), operatorId));
+    }
+
+    @Test
+    void shouldFailWithStableCodeWhenContainerDoesNotExist() {
+        Circulation circulation = Circulation.create(
+                containerId,
+                borrowerId,
+                operatorId,
+                now.minus(Duration.ofHours(2)),
+                now.plus(Duration.ofHours(46))
+        );
+        when(circulationRepository.findById(circulation.id())).thenReturn(Optional.of(circulation));
+        when(containerRepository.findById(containerId)).thenReturn(Optional.empty());
+
+        assertFailure(FailureCode.CONTAINER_NOT_FOUND, () ->
+                returnContainerUseCase.execute(circulation.id(), operatorId));
+    }
+
+    private void assertFailure(FailureCode code, Executable operation) {
+        ApplicationFailureException failure = assertThrows(ApplicationFailureException.class, operation);
+        assertEquals(code, failure.code());
     }
 }

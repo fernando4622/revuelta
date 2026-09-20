@@ -1,5 +1,7 @@
 package com.revuelta.api.application.circulation;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -85,9 +88,8 @@ class DeliverContainerUseCaseTest {
 
         when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
 
-        assertThrows(IllegalStateException.class, () ->
-                deliverContainerUseCase.execute(containerId, borrowerId, operatorId)
-        );
+        assertFailure(FailureCode.CONTAINER_NOT_AVAILABLE, () ->
+                deliverContainerUseCase.execute(containerId, borrowerId, operatorId));
 
         verify(circulationRepository, never()).save(any());
     }
@@ -102,10 +104,50 @@ class DeliverContainerUseCaseTest {
         when(userRepository.existsById(borrowerId)).thenReturn(true);
         when(circulationRepository.hasActiveCirculation(containerId)).thenReturn(true);
 
-        assertThrows(IllegalStateException.class, () ->
-                deliverContainerUseCase.execute(containerId, borrowerId, operatorId)
-        );
+        assertFailure(FailureCode.ACTIVE_CIRCULATION_EXISTS, () ->
+                deliverContainerUseCase.execute(containerId, borrowerId, operatorId));
 
         verify(circulationRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldFailWithStableCodeWhenContainerDoesNotExist() {
+        when(containerRepository.findById(containerId)).thenReturn(Optional.empty());
+
+        assertFailure(FailureCode.CONTAINER_NOT_FOUND, () ->
+                deliverContainerUseCase.execute(containerId, borrowerId, operatorId));
+    }
+
+    @Test
+    void shouldFailWithStableCodeWhenParticipantDoesNotExist() {
+        Container container = availableContainer("CTR-004");
+        when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
+        when(userRepository.existsById(borrowerId)).thenReturn(false);
+
+        assertFailure(FailureCode.PARTICIPANT_NOT_FOUND, () ->
+                deliverContainerUseCase.execute(containerId, borrowerId, operatorId));
+    }
+
+    @Test
+    void shouldFailWithStableCodeWhenNoReturnPolicyIsActive() {
+        Container container = availableContainer("CTR-005");
+        when(containerRepository.findById(containerId)).thenReturn(Optional.of(container));
+        when(userRepository.existsById(borrowerId)).thenReturn(true);
+        when(circulationRepository.hasActiveCirculation(containerId)).thenReturn(false);
+        when(policyRepository.findActivePolicy()).thenReturn(Optional.empty());
+
+        assertFailure(FailureCode.POLICY_NOT_FOUND, () ->
+                deliverContainerUseCase.execute(containerId, borrowerId, operatorId));
+    }
+
+    private Container availableContainer(String code) {
+        Container container = Container.register(new ContainerCode(code), now);
+        container.transition(ContainerStatus.AVAILABLE, operatorId, "Activated", now);
+        return container;
+    }
+
+    private void assertFailure(FailureCode code, Executable operation) {
+        ApplicationFailureException failure = assertThrows(ApplicationFailureException.class, operation);
+        assertEquals(code, failure.code());
     }
 }

@@ -1,5 +1,7 @@
 package com.revuelta.api.application.circulation;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
@@ -47,25 +49,41 @@ public class DeliverContainerUseCase {
     private DeliveryResult deliver(ContainerId containerId, UserId borrowerId, UserId operatorId) {
         // 1. Validate Container existence and eligibility
         Container container = containerRepository.findById(containerId)
-                .orElseThrow(() -> new IllegalArgumentException("Container not found: " + containerId.value()));
+                .orElseThrow(() -> new ApplicationFailureException(
+                        FailureCode.CONTAINER_NOT_FOUND,
+                        "Container not found: " + containerId.value()
+                ));
 
         if (!container.isEligibleForCirculation()) {
-            throw new IllegalStateException("Container " + containerId.value() + " is not available for delivery (status: " + container.status() + ")");
+            throw new ApplicationFailureException(
+                    FailureCode.CONTAINER_NOT_AVAILABLE,
+                    "Container " + containerId.value()
+                            + " is not available for delivery (status: " + container.status() + ")"
+            );
         }
 
         // 2. Validate Borrower user existence (DL-002)
         if (!userRepository.existsById(borrowerId)) {
-            throw new IllegalArgumentException("Borrower user not found: " + borrowerId.value());
+            throw new ApplicationFailureException(
+                    FailureCode.PARTICIPANT_NOT_FOUND,
+                    "Participant not found: " + borrowerId.value()
+            );
         }
 
         // 3. Ensure no active circulation exists for container (BR-CIR-001)
         if (circulationRepository.hasActiveCirculation(containerId)) {
-            throw new IllegalStateException("Container " + containerId.value() + " already has an active circulation");
+            throw new ApplicationFailureException(
+                    FailureCode.ACTIVE_CIRCULATION_EXISTS,
+                    "Container " + containerId.value() + " already has an active circulation"
+            );
         }
 
         // 4. Resolve effective ReturnPolicy
         ReturnPolicy policy = policyRepository.findActivePolicy()
-                .orElseGet(() -> ReturnPolicy.defaultPolicy(Instant.now()));
+                .orElseThrow(() -> new ApplicationFailureException(
+                        FailureCode.POLICY_NOT_FOUND,
+                        "No active return policy is configured"
+                ));
 
         // 5. Server-authoritative time & due-at calculation
         Instant now = Instant.now();

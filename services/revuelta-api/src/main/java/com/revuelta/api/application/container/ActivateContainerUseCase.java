@@ -1,5 +1,7 @@
 package com.revuelta.api.application.container;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.domain.container.Container;
@@ -32,7 +34,10 @@ public class ActivateContainerUseCase {
 
     private Container activate(ContainerId id, UserId actorId, String reason) {
         Container container = containerRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Container not found: " + id.value()));
+                .orElseThrow(() -> new ApplicationFailureException(
+                        FailureCode.CONTAINER_NOT_FOUND,
+                        "Container not found: " + id.value()
+                ));
 
         Instant now = Instant.now();
         ContainerEvent event = container.transition(ContainerStatus.AVAILABLE, actorId, reason, now);

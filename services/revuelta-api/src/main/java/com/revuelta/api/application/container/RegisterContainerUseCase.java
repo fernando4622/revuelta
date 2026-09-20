@@ -1,5 +1,7 @@
 package com.revuelta.api.application.container;
 
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.domain.container.Container;
@@ -26,7 +28,10 @@ public class RegisterContainerUseCase {
     private Container register(String code) {
         ContainerCode containerCode = new ContainerCode(code);
         if (containerRepository.existsByCode(containerCode)) {
-            throw new IllegalArgumentException("Container code already exists: " + code);
+            throw new ApplicationFailureException(
+                    FailureCode.CONTAINER_CODE_ALREADY_EXISTS,
+                    "Container code already exists: " + code
+            );
         }
 
         Container container = Container.register(containerCode, Instant.now());

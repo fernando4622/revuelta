@@ -24,6 +24,7 @@ Baseline examples:
 ```text
 CONTAINER_NOT_FOUND
 CONTAINER_NOT_AVAILABLE
+CONTAINER_CODE_ALREADY_EXISTS
 INVALID_STATE_TRANSITION
 ACTIVE_CIRCULATION_EXISTS
 CIRCULATION_NOT_FOUND
@@ -44,6 +45,11 @@ WASH_ALREADY_COMPLETED
 ```
 
 A feature may add a code only when its spec explains the exact condition.
+
+`CONTAINER_CODE_ALREADY_EXISTS` is returned when container registration receives a
+normalized code that is already owned by another container. It is a conflict and
+MUST map to HTTP `409`, including when the database uniqueness constraint wins a
+registration race.
 
 ## 3. Ownership
 
