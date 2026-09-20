@@ -23,17 +23,17 @@
 │   ├── implementation-status.md ✅ COMPLETADO
 │   ├── adr/                     ✅ ADR-001 a ADR-006 ACCEPTED
 │   └── diagrams/                ✅ Diagramas de secuencia y contexto
-├── services/revuelta-api/       ✅ Backend Spring Boot 3.2.3 (Clean Arch + DDD)
-│   ├── build.gradle             ✅ Dependencias (Spring Boot, Security, JPA, Flyway, JWT)
+├── services/revuelta-api/       ✅ Backend Spring Boot 4.1.1 (Clean Arch + DDD parcial)
+│   ├── pom.xml + Maven Wrapper  ✅ Build canónico con JDK 17
 │   ├── src/main/java/com/revuelta/api/
 │   │   ├── domain/              ✅ Container, Circulation, User, ReturnPolicy, ContainerEvent
 │   │   ├── application/         ✅ UseCases (Login, Deliver, Return, Container CRUD, History)
 │   │   ├── infrastructure/      ✅ JPA Entities, Repositories, Security (JWT 4h), Web Exception Handler
 │   │   └── interfaces/rest/     ✅ AuthController, ContainerController, CirculationController
 │   ├── src/main/resources/
-│   │   ├── db/migration/        ✅ V1–V6; V6 agrega `PARTICIPANT` a `student1`
+│   │   ├── db/migration/        ✅ V1–V7 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ Unit tests (ContainerTest, CirculationTest, Deliver/Return UseCases)
+│   └── src/test/java/           ✅ 29 pruebas de dominio, aplicación, migración, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -45,14 +45,14 @@
 
 ### Código existente
 
-El código del proyecto está completamente estructurado y funcional:
+El repositorio tiene una base ejecutable y verificable, pero los flujos MVP restantes aún no están completos:
 
-- Proyecto Spring Boot 3.2.3 (`services/revuelta-api/`) con arquitectura limpia (Domain, Application, Infrastructure, REST).
+- Proyecto Spring Boot 4.1.1 (`services/revuelta-api/`) con dominio aislado por pruebas ArchUnit; F2 aún debe corregir dependencias de framework dentro de aplicación.
 - Cliente móvil Flutter (`apps/revuelta-mobile/`) con arquitectura limpia y Riverpod AsyncNotifier.
-- Migraciones Flyway de base de datos (`V1` a `V5`).
+- Migraciones Flyway comunes (`V1` a `V7`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de pruebas unitarias y de integración para Dominio y Casos de Uso.
+- Suite de 29 pruebas, incluidas migraciones sobre PostgreSQL 16 y límites de dependencia del dominio.
 
 
 ---
@@ -235,7 +235,7 @@ Las decisiones técnicas temporales existentes —JWT, UUID, UTC, índice parcia
 | Fase | Estado | Notas |
 |---|---|---|
 | Fase 0 — Constitución | ✅ ~Completa | Docs existentes; decisiones pendientes resueltas temporalmente |
-| Fase 1 — Skeleton | 🔜 Siguiente | Backend + Flutter + Docker |
+| Fase 1 — Skeleton / F1 build | 🟡 Local verificado | Backend, Flutter, Docker, wrapper y CI definidos; ejecución remota pendiente |
 | Fase 2 — Identity & Access | 🔜 Día 3 | JWT + roles |
 | Fase 3 — Container Registry | 🔜 Día 3 | CRUD básico |
 | Fase 4 — Circulation: Entrega | 🔜 Día 4 | Primer vertical completo |
@@ -288,12 +288,25 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 ## 11. Verificación de autenticación por rol — 2026-09-20
 
 - Compilación backend ejecutada con Java 17.
-- `mvn test`: 24 pruebas ejecutadas, 0 fallos, 0 errores.
+- `mvn verify`: 29 pruebas ejecutadas, 0 fallos, 0 errores.
 - Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
 - `git diff --check`: sin errores de espacios en el diff.
 - Flyway aplicó V6 contra PostgreSQL real y la tabla de roles confirmó `student1:PARTICIPANT`, `operator:OPERATOR` y `admin:ADMIN`.
 - Los tres logins se probaron mediante el API real; credenciales inválidas devolvieron `401`.
 - Flutter enruta a shells separados de Alumno/Maestro, Cafetería y Operación ReVuelta; un rol desconocido no recibe un shell protegido.
 - La ruta de login ya no ofrece registro público ni recuperación simulada.
-- `flutter test`: 7 pruebas ejecutadas, todas aprobadas. Incluye resolución de roles y aislamiento de shells.
+- `flutter test`: 8 pruebas ejecutadas, todas aprobadas. Incluye configuración del API, resolución de roles y aislamiento de shells.
 - `flutter analyze`: sin errores ni advertencias bloqueantes; permanecen observaciones informativas de estilo y APIs deprecadas preexistentes.
+
+## 12. Verificación F1 — 2026-09-20
+
+- Maven es el único build del backend; el wrapper real fija Maven 3.9.6 y el enforcer exige JDK 17.
+- Spring Boot se actualizó de 3.2.3 a 4.1.1 y Tomcat a 11.0.25 para eliminar dependencias con vulnerabilidades corregibles conocidas.
+- Flyway 12.4.0 y Testcontainers 2.0.5 validan las migraciones comunes y las semillas `dev` contra PostgreSQL 16.
+- Sin el perfil `dev`, V7 retira las tres cuentas demo conocidas; el repeatable `db/dev` las crea únicamente en desarrollo.
+- Los hashes de las tres cuentas se verifican contra la contraseña documentada mediante BCrypt.
+- La configuración base exige conexión PostgreSQL y `JWT_SECRET`; los valores locales viven solo en `application-dev.yml`.
+- Flutter recibe el API mediante `API_BASE_URL`; `localhost` queda como fallback explícito de desarrollo.
+- ArchUnit protege al dominio de dependencias hacia aplicación, infraestructura, interfaces, Spring, JPA y Jackson.
+- Redocly valida el OpenAPI; Trivy 0.74.0 reporta 0 vulnerabilidades `HIGH/CRITICAL` corregibles en `pom.xml` y `pubspec.lock` y no detectó secretos.
+- `.github/workflows/ci.yml` reproduce build/pruebas backend, migraciones, arquitectura, OpenAPI, seguridad y checks Flutter. Falta observar el primer run remoto exitoso.

@@ -64,16 +64,17 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 | QR | El flujo actual acepta captura manual; no existe un escaneo físico completo y validado. | El recorrido operativo principal no está implementado. |
 | Entrega/devolución | Falta cerrar política, identidad, idempotencia y control de concurrencia. | Doble asignación, doble devolución o historial incorrecto. |
 | API | Implementación, OpenAPI y catálogo de errores no están completamente alineados. | Clientes impredecibles y errores difíciles de operar. |
-| Seguridad | Configuración y datos de desarrollo requieren endurecimiento. | Exposición o accesos indebidos. |
-| Pruebas | Hay pruebas unitarias iniciales, pero no integración PostgreSQL, contrato, seguridad, concurrencia ni E2E. | Los invariantes críticos no están demostrados. |
+| Seguridad | Secretos y semillas ya están aislados y existe escaneo; autorización integral, concurrencia y hardening de piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
+| Pruebas | Ya existen pruebas unitarias, de migración PostgreSQL y arquitectura; faltan contrato integral, seguridad, concurrencia y E2E. | Los invariantes operativos críticos aún no están demostrados. |
 | Operación | No existe todavía evidencia de observabilidad, respaldo, recuperación, despliegue y rollback del piloto. | Incidentes sin diagnóstico o recuperación confiable. |
 
-### 1.3 Evidencia técnica inicial
+### 1.3 Evidencia técnica actual
 
-- El backend compila y sus 17 pruebas actuales pasan con JDK 17.
-- El proyecto declara Java 17, pero el entorno debe fijarlo explícitamente para evitar fallos con versiones distintas.
-- El archivo `mvnw.cmd` actual no constituye un wrapper autosuficiente; depende de Maven instalado.
-- Flutter no pudo verificarse en el entorno de auditoría porque el SDK no estaba disponible.
+- El backend compila con el Maven Wrapper real y JDK 17; 29 pruebas pasan, incluidas migraciones sobre PostgreSQL 16 y límites arquitectónicos del dominio.
+- Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
+- Flutter 3.41.9/Dart 3.11.5 ejecuta 8 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
+- Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
+- La definición de CI existe; su primera ejecución remota sigue pendiente de confirmación después del push.
 - No hay evidencia suficiente para autorizar despliegue productivo.
 
 **Decisión de estado:** `NO-GO` para piloto operativo hasta completar los gates P0 de este roadmap.
@@ -370,7 +371,7 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - `student1` recibe `PARTICIPANT` mediante la migración V6.
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
-- La suite backend compila con Java 17: 24 pruebas, 0 fallos y 0 errores.
+- La suite backend compila con Java 17: 29 pruebas, 0 fallos y 0 errores.
 - Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
 - Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
 - La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
@@ -394,15 +395,15 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 
 ### Trabajo
 
-1. Elegir Maven como herramienta canónica del backend.
-2. Instalar un Maven Wrapper real y fijar JDK 17.
-3. Retirar o deprecar configuración Gradle redundante.
-4. Documentar versiones compatibles de Flutter y Dart.
-5. Separar configuración de desarrollo, prueba y despliegue.
-6. Eliminar secretos y credenciales predecibles de rutas de producción.
-7. Aislar datos semilla de desarrollo.
-8. Hacer configurable la URL del API móvil.
-9. Crear CI con:
+1. [x] Elegir Maven como herramienta canónica del backend.
+2. [x] Instalar un Maven Wrapper real y fijar JDK 17.
+3. [x] Retirar configuración Gradle redundante.
+4. [x] Documentar versiones compatibles de Flutter y Dart.
+5. [x] Separar configuración de desarrollo y despliegue; las pruebas usan configuración explícita y PostgreSQL efímero.
+6. [x] Eliminar secretos y credenciales predecibles de rutas de producción.
+7. [x] Aislar datos semilla de desarrollo.
+8. [x] Hacer configurable la URL del API móvil.
+9. [x] Crear CI con:
    - compilación backend;
    - pruebas unitarias;
    - pruebas de migración e integración;
@@ -410,15 +411,17 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
    - análisis/formato/pruebas Flutter;
    - detección de secretos;
    - verificación de dependencias y arquitectura.
-10. Actualizar el README con arranque local verificable.
+10. [x] Actualizar el README con arranque local verificable.
 
 ### Gate F1
 
 - [ ] Un clon limpio compila con versiones documentadas.
 - [ ] CI reproduce los checks obligatorios.
-- [ ] Ningún secreto real está en el repositorio.
-- [ ] Producción no crea usuarios demo automáticamente.
-- [ ] La app no depende de una IP local codificada.
+- [x] Ningún secreto real fue detectado por el gate local automatizado.
+- [x] Las migraciones comunes no dejan usuarios demo; existe prueba PostgreSQL ejecutable.
+- [x] La URL del API móvil es configurable con `API_BASE_URL`.
+
+**Estado 2026-09-20:** implementación local completa. El cierre formal de F1 espera la primera ejecución remota exitosa de CI sobre un commit limpio.
 
 ---
 
@@ -1008,9 +1011,9 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-El siguiente incremento es **escaneo y resolución QR real de solo lectura**:
+F1 quedó implementada y validada localmente el 2026-09-20; falta observar su primera ejecución remota tras el push. El siguiente incremento funcional es **escaneo y resolución QR real de solo lectura**:
 
-1. Corregir primero el wrapper/JDK, la configuración de secretos de desarrollo y el CI de F1.
+1. Confirmar en GitHub la ejecución remota de los gates de F1.
 2. Implementar el siguiente vertical operativo:
 
 ```text

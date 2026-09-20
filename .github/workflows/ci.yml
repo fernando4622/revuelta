@@ -1,0 +1,89 @@
+name: ReVuelta CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend — Java 17 and Maven
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/revuelta-api
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: services/revuelta-api/pom.xml
+      - name: Verify backend and PostgreSQL migrations
+        run: ./mvnw --batch-mode verify
+
+  api-contract:
+    name: OpenAPI contract
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.17.0'
+      - name: Validate OpenAPI
+        env:
+          REDOCLY_TELEMETRY: off
+          REDOCLY_SUPPRESS_UPDATE_NOTICE: 'true'
+        run: npx --yes @redocly/cli@2.53.3 lint services/revuelta-api/src/main/resources/openapi.yaml --extends=minimal
+
+  security:
+    name: Dependencies and secrets
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+          cache-dependency-path: services/revuelta-api/pom.xml
+      - name: Resolve backend dependency metadata
+        working-directory: services/revuelta-api
+        run: ./mvnw --batch-mode dependency:go-offline
+      - name: Scan high/critical vulnerabilities and committed secrets
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: v0.74.0
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+          skip-dirs: .git,apps/revuelta-mobile/.dart_tool,apps/revuelta-mobile/build,services/revuelta-api/target
+
+  mobile:
+    name: Flutter mobile
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/revuelta-mobile
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.41.9
+          cache: true
+      - run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos
+      - name: Test
+        run: flutter test

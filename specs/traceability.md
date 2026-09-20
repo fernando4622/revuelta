@@ -26,7 +26,9 @@ This matrix links approved or draft requirements to their intended evidence. A r
 | Return domain | `domain/circulation.md` | SC-CIR-004/006 | Current code returns directly to available | PRODUCT FLOW APPROVED / IMPLEMENTATION GAP |
 | Authorization | `security/access-control.md` | SC-SEC-* | Partial | BLOCKED |
 | API error contract | `api/errors.md`, `api/openapi-baseline.md` | contract tests | Partial | BLOCKED |
-| Persistence integrity | `data/data-model.md` | SC-DATA-* | Partial | BLOCKED |
+| Build/configuration baseline | `ops/deployment.md`, `AGENTS.md`, `ROADMAP.md` F1 | Maven Wrapper build; Flutter checks; OpenAPI lint; Trivy scan | Canonical Maven/JDK 17 build, isolated dev seeds, configurable mobile URL and CI workflow | LOCALLY VERIFIED / REMOTE CI PENDING |
+| Domain dependency boundary | `AGENTS.md` §6, ADR-002 | `DomainArchitectureTest` | ArchUnit protects domain from application, infrastructure, interfaces, Spring, JPA and Jackson dependencies | IMPLEMENTED |
+| Persistence integrity | `data/data-model.md` | SC-DATA-*; `MigrationProfileIsolationTest` | Common migrations remove demo users; dev location seeds three tested accounts | PARTIAL |
 | Observability | `ops/observability.md` | integration/ops checks | Partial | DRAFT |
 | Threat controls | `risks/threat-model.md` | security tests | Partial | BLOCKED |
 

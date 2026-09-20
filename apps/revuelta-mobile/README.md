@@ -1,17 +1,23 @@
-# revuelta_mobile
+# ReVuelta Mobile
 
-A new Flutter project.
+Cliente Flutter de ReVuelta. La versión de referencia para desarrollo y CI es Flutter 3.41.9 estable con Dart 3.11.5.
 
-## Getting Started
+La URL del API se configura al compilar o ejecutar:
 
-This project is a starting point for a Flutter application.
+```text
+flutter run --dart-define=API_BASE_URL=http://localhost:8080/api/v1
+```
 
-A few resources to get you started if this is your first Flutter project:
+Ejemplos habituales:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- escritorio/web local: `http://localhost:8080/api/v1`;
+- emulador Android: `http://10.0.2.2:8080/api/v1`;
+- dispositivo físico: URL HTTPS accesible desde el dispositivo.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Comprobaciones:
+
+```text
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze --no-fatal-infos
+flutter test
+```

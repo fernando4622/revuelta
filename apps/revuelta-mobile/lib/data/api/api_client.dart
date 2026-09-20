@@ -3,11 +3,19 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/failure/failure.dart';
 
 class ApiClient {
+  static const defaultBaseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:8080/api/v1',
+  );
+
   final Dio dio;
   final FlutterSecureStorage storage;
 
-  ApiClient({Dio? dioClient, FlutterSecureStorage? secureStorage})
-      : dio = dioClient ?? Dio(BaseOptions(baseUrl: 'http://localhost:8080/api/v1')),
+  ApiClient({
+    Dio? dioClient,
+    FlutterSecureStorage? secureStorage,
+    String baseUrl = defaultBaseUrl,
+  })  : dio = dioClient ?? Dio(BaseOptions(baseUrl: baseUrl)),
         storage = secureStorage ?? const FlutterSecureStorage() {
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -32,7 +40,8 @@ class ApiClient {
     }
   }
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<Map<String, dynamic>> get(String path,
+      {Map<String, dynamic>? queryParameters}) async {
     try {
       final response = await dio.get(path, queryParameters: queryParameters);
       return response.data as Map<String, dynamic>;
@@ -41,7 +50,8 @@ class ApiClient {
     }
   }
 
-  Future<List<dynamic>> getList(String path, {Map<String, dynamic>? queryParameters}) async {
+  Future<List<dynamic>> getList(String path,
+      {Map<String, dynamic>? queryParameters}) async {
     try {
       final response = await dio.get(path, queryParameters: queryParameters);
       return response.data as List<dynamic>;
@@ -66,7 +76,7 @@ class ApiClient {
         case 401:
           return AuthFailure(message, code: code);
         case 403:
-          return AuthFailure('Forbidden operation', code: 'FORBIDDEN');
+          return const AuthFailure('Forbidden operation', code: 'FORBIDDEN');
         case 404:
           return NotFoundFailure(message, code: code);
         case 409:

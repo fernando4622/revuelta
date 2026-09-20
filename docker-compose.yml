@@ -22,6 +22,7 @@ services:
     ports:
       - "8080:8080"
     environment:
+      SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/revuelta_db
       SPRING_DATASOURCE_USERNAME: revuelta_user
       SPRING_DATASOURCE_PASSWORD: revuelta_password
