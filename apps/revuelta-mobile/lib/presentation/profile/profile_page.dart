@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../application/auth/auth_notifier.dart';
+import '../../domain/auth/user_session.dart';
 import '../notifications/notifications_page.dart';
 import '../shared/theme/app_colors.dart';
+import '../shared/widgets/logout_icon_button.dart';
 
 /// Screen representing "Perfil" (Mockup Screen 9).
 /// Shows student identity (Valeria Torres), avatar, and settings options.
-class ProfilePage extends ConsumerWidget {
-  const ProfilePage({super.key});
+class ProfilePage extends StatelessWidget {
+  const ProfilePage({
+    super.key,
+    required this.session,
+  });
+
+  final UserSession session;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final session = ref.watch(authNotifierProvider).value;
-    final username = session?.username ?? 'Valeria Torres';
+  Widget build(BuildContext context) {
+    final username = session.username;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -27,6 +31,7 @@ class ProfilePage extends ConsumerWidget {
               );
             },
           ),
+          const LogoutIconButton(),
         ],
       ),
       body: SafeArea(
@@ -48,7 +53,9 @@ class ProfilePage extends ConsumerWidget {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        username.isNotEmpty ? username.substring(0, 1).toUpperCase() : 'V',
+                        username.isNotEmpty
+                            ? username.substring(0, 1).toUpperCase()
+                            : 'V',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w800,
@@ -71,7 +78,7 @@ class ProfilePage extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${username.toLowerCase().replaceAll(' ', '.')}@universidad.edu',
+                            session.role.displayName,
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppColors.textSecondary,
@@ -86,40 +93,16 @@ class ProfilePage extends ConsumerWidget {
             ),
             const SizedBox(height: 16),
 
-            // Profile navigation options
-            _ProfileOptionTile(
-              icon: Icons.inventory_2_outlined,
-              title: 'Mis contenedores',
-              onTap: () {},
-            ),
-            _ProfileOptionTile(
-              icon: Icons.settings_outlined,
-              title: 'Configuración',
-              onTap: () {},
-            ),
-            _ProfileOptionTile(
-              icon: Icons.help_outline,
-              title: 'Centro de ayuda',
-              onTap: () {},
-            ),
-            _ProfileOptionTile(
-              icon: Icons.description_outlined,
-              title: 'Términos y privacidad',
-              onTap: () {},
-            ),
-            const SizedBox(height: 24),
-
             // Logout Button
-            ElevatedButton.icon(
-              icon: const Icon(Icons.logout, size: 20),
-              label: const Text('CERRAR SESIÓN'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.errorRed,
-                foregroundColor: Colors.white,
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Las opciones de cuenta se habilitarán cuando exista su contrato funcional.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textSecondary),
+                ),
               ),
-              onPressed: () {
-                ref.read(authNotifierProvider.notifier).logout();
-              },
             ),
             const SizedBox(height: 20),
             const Center(
@@ -130,44 +113,6 @@ class ProfilePage extends ConsumerWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ProfileOptionTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final VoidCallback onTap;
-
-  const _ProfileOptionTile({
-    required this.icon,
-    required this.title,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: AppColors.mintGreen,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: AppColors.forestGreen, size: 20),
-        ),
-        title: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
-        onTap: onTap,
       ),
     );
   }

@@ -191,7 +191,7 @@ Definir:
 
 ### G0-02 — Superficies de uso
 
-**Estado 2026-09-20:** decidido. Se conserva una sola aplicación y el rol autenticado determina el shell. No se utilizará un selector libre de perspectiva. La implementación de los shells de Cafetería y Operación ReVuelta sigue pendiente.
+**Estado 2026-09-20:** decidido e implementado como base móvil. Se conserva una sola aplicación y el rol autenticado determina el shell. No se utiliza un selector libre de perspectiva. Los shells de Cafetería y Operación ReVuelta ya existen; sus módulos sin contrato de datos muestran indisponibilidad explícita y no inventan información operativa.
 
 Decidir:
 
@@ -371,8 +371,10 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
 - La suite backend compila con Java 17: 24 pruebas, 0 fallos y 0 errores.
-- Falta aplicar V6 contra PostgreSQL real porque Docker Desktop no estaba iniciado durante la verificación.
-- Falta que Flutter enrute cada sesión al shell correspondiente; actualmente el login aún desemboca en el shell existente.
+- Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
+- Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
+- La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
+- La suite Flutter ejecuta 7 pruebas, incluidas resolución de rol y aislamiento de shells, sin fallos.
 
 ### Gate G0
 
@@ -490,11 +492,8 @@ Completado y verificado en backend:
 
 Pendiente para cerrar F3:
 
-- validar V6 y los tres logins contra PostgreSQL real;
 - probar token ausente, alterado y expirado con el contrato JSON común;
 - probar `403` por rol en cada endpoint sensible;
-- enrutar Flutter por rol y fallar de forma segura ante un rol no soportado;
-- retirar u ocultar registro público, recuperación simulada y accesos sociales no aprobados;
 - separar credenciales semilla del ambiente productivo;
 - definir aprovisionamiento, baja, recuperación y revocación para el piloto real.
 
@@ -1001,20 +1000,18 @@ Reglas:
 
 ## 19. Próximo lote concreto
 
-El siguiente incremento listo para implementación es **autenticación y navegación por rol**:
+El incremento de **autenticación y navegación por rol** quedó implementado y verificado el 2026-09-20:
 
-1. Iniciar PostgreSQL y validar que Flyway aplique V6.
-2. Probar por API los tres usuarios y verificar sus roles efectivos.
-3. Implementar en Flutter un router de sesión explícito:
-   - `PARTICIPANT` → shell Alumno/maestro;
-   - `OPERATOR` → shell Cafetería;
-   - `ADMIN` → shell Operación ReVuelta;
-   - rol ausente/desconocido → acceso seguro rechazado.
-4. Implementar logout común que limpie token, navegación, formularios y escaneo pendiente.
-5. Ocultar las acciones no aprobadas de registro público y recuperación simulada.
-6. Agregar pruebas de estado, navegación y aislamiento por rol.
-7. En paralelo, corregir wrapper/JDK, configuración de secretos de desarrollo y CI de F1.
-8. Después continuar el siguiente vertical operativo:
+- [x] V6 aplicada y tres cuentas verificadas contra PostgreSQL real.
+- [x] Router explícito para `PARTICIPANT`, `OPERATOR`, `ADMIN` y rol no soportado.
+- [x] Logout común y salida de cualquier navegación secundaria.
+- [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
+- [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
+
+El siguiente incremento es **escaneo y resolución QR real de solo lectura**:
+
+1. Corregir primero el wrapper/JDK, la configuración de secretos de desarrollo y el CI de F1.
+2. Implementar el siguiente vertical operativo:
 
 ```text
 sesión y shell por rol
@@ -1023,9 +1020,9 @@ sesión y shell por rol
 → detalle operativo real
 ```
 
-9. Antes de modificar entrega/devolución, cerrar las decisiones de política, idempotencia, tiempo y concurrencia y diseñar sus pruebas PostgreSQL.
-10. Implementar entrega solo después de superar ese gate.
-11. Implementar devolución solo después de demostrar la entrega concurrente.
-12. Liberar a campo únicamente después de F9.
+3. Antes de modificar entrega/devolución, cerrar las decisiones de política, idempotencia, tiempo y concurrencia y diseñar sus pruebas PostgreSQL.
+4. Implementar entrega solo después de superar ese gate.
+5. Implementar devolución solo después de demostrar la entrega concurrente.
+6. Liberar a campo únicamente después de F9.
 
 Este orden reduce el riesgo de seguir ampliando una demostración visual sobre reglas todavía indefinidas.

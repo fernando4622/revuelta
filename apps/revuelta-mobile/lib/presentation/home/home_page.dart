@@ -1,39 +1,38 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../application/auth/auth_notifier.dart';
-import '../delivery/delivery_page.dart';
-import '../return_flow/return_page.dart';
+import '../../domain/auth/user_session.dart';
 import '../return_flow/student_return_flow_page.dart';
 import '../shared/theme/app_colors.dart';
 import '../shared/widgets/container_card.dart';
 import '../container/container_passport_page.dart';
+import '../shared/widgets/logout_icon_button.dart';
 
 /// Screen representing "Inicio" (Mockup Screen 1).
 /// Features user greeting ("Hola, Valeria"), current active container status card with arc gauge,
 /// next action banner ("Devuelve tu contenedor"), prominent QR scan CTA,
 /// and adaptive switcher to preview different modes.
-class HomePage extends ConsumerStatefulWidget {
+class HomePage extends StatefulWidget {
+  final UserSession session;
   final VoidCallback? onScanTap;
   final VoidCallback? onMapTap;
 
   const HomePage({
     super.key,
+    required this.session,
     this.onScanTap,
     this.onMapTap,
   });
 
   @override
-  ConsumerState<HomePage> createState() => _HomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> {
+class _HomePageState extends State<HomePage> {
   // Demonstration toggle: 0: Sin envases, 1: 1 envase (Valeria Default), 2: Varios envases
   int _stateDemoIndex = 1;
 
   @override
   Widget build(BuildContext context) {
-    final session = ref.watch(authNotifierProvider).value;
-    final username = session?.username ?? 'Valeria';
+    final username = widget.session.username;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -72,19 +71,22 @@ class _HomePageState extends ConsumerState<HomePage> {
                   Row(
                     children: [
                       PopupMenuButton<int>(
-                        icon: const Icon(Icons.tune, color: AppColors.textSecondary, size: 20),
+                        icon: const Icon(Icons.tune,
+                            color: AppColors.textSecondary, size: 20),
                         tooltip: 'Cambiar modo adaptativo',
-                        onSelected: (val) => setState(() => _stateDemoIndex = val),
+                        onSelected: (val) =>
+                            setState(() => _stateDemoIndex = val),
                         itemBuilder: (context) => const [
-                          PopupMenuItem(value: 0, child: Text('Modo: 0 envases')),
-                          PopupMenuItem(value: 1, child: Text('Modo: 1 envase (Valeria)')),
-                          PopupMenuItem(value: 2, child: Text('Modo: Varios envases')),
+                          PopupMenuItem(
+                              value: 0, child: Text('Modo: 0 envases')),
+                          PopupMenuItem(
+                              value: 1,
+                              child: Text('Modo: 1 envase (Valeria)')),
+                          PopupMenuItem(
+                              value: 2, child: Text('Modo: Varios envases')),
                         ],
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.logout, color: AppColors.textSecondary, size: 20),
-                        onPressed: () => ref.read(authNotifierProvider.notifier).logout(),
-                      ),
+                      const LogoutIconButton(color: AppColors.textSecondary),
                     ],
                   ),
                 ],
@@ -94,10 +96,34 @@ class _HomePageState extends ConsumerState<HomePage> {
             // Main Scrollable Content
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.warningOrange.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.science_outlined,
+                              size: 18, color: AppColors.warningOrange),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Datos de demostración: aún no están conectados a tu cuenta.',
+                              style: TextStyle(
+                                  fontSize: 12, color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     if (_stateDemoIndex == 1) ...[
                       _buildValeriaActiveContainerState(),
                     ] else if (_stateDemoIndex == 0) ...[
@@ -105,48 +131,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                     ] else ...[
                       _buildMultipleContainersState(),
                     ],
-
-                    const SizedBox(height: 24),
-
-                    // Quick Operational Actions Row
-                    const Text(
-                      'Acciones de Operación',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _ActionTile(
-                            icon: Icons.output,
-                            label: 'Entregar',
-                            color: AppColors.forestGreen,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const DeliveryPage()),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _ActionTile(
-                            icon: Icons.input,
-                            label: 'Devolver',
-                            color: AppColors.darkGreen,
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(builder: (_) => const ReturnPage()),
-                              );
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -168,7 +152,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const StudentReturnFlowPage(containerCode: '#RV-0247'),
+                builder: (_) =>
+                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
               ),
             );
           },
@@ -187,7 +172,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: AppColors.mintGreen.withOpacity(0.4),
-                          border: Border.all(color: AppColors.forestGreen, width: 4),
+                          border: Border.all(
+                              color: AppColors.forestGreen, width: 4),
                         ),
                       ),
                       const Icon(
@@ -226,7 +212,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const StudentReturnFlowPage(containerCode: '#RV-0247'),
+                builder: (_) =>
+                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
               ),
             );
           },
@@ -241,7 +228,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                       color: AppColors.mintGreen,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, size: 16, color: AppColors.forestGreen),
+                    child: const Icon(Icons.check,
+                        size: 16, color: AppColors.forestGreen),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -259,12 +247,14 @@ class _HomePageState extends ConsumerState<HomePage> {
                         SizedBox(height: 2),
                         Text(
                           'Devuelve tu contenedor para que vuelva al ciclo.',
-                          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
+                  const Icon(Icons.chevron_right,
+                      color: AppColors.textHint, size: 20),
                 ],
               ),
             ),
@@ -283,7 +273,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const StudentReturnFlowPage(containerCode: '#RV-0247'),
+                builder: (_) =>
+                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
               ),
             );
           },
@@ -304,7 +295,8 @@ class _HomePageState extends ConsumerState<HomePage> {
             shape: BoxShape.circle,
             color: AppColors.mintGreen.withOpacity(0.5),
           ),
-          child: const Icon(Icons.inventory_2_outlined, size: 48, color: AppColors.forestGreen),
+          child: const Icon(Icons.inventory_2_outlined,
+              size: 48, color: AppColors.forestGreen),
         ),
         const SizedBox(height: 20),
         const Text(
@@ -350,7 +342,8 @@ class _HomePageState extends ConsumerState<HomePage> {
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const StudentReturnFlowPage(containerCode: '#RV-0247'),
+                builder: (_) =>
+                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
               ),
             );
           },
@@ -375,51 +368,6 @@ class _HomePageState extends ConsumerState<HomePage> {
           },
         ),
       ],
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

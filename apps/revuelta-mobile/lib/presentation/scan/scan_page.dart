@@ -5,12 +5,23 @@ import '../delivery/delivery_page.dart';
 import '../return_flow/return_page.dart';
 import '../shared/theme/app_colors.dart';
 import '../shared/widgets/cycle_pulse_indicator.dart';
+import '../shared/widgets/logout_icon_button.dart';
+
+enum ScanMode {
+  participantInformation,
+  cafeteriaOperations,
+}
 
 /// Screen representing "Escáner que Transforma" from the ReVuelta design.
 /// Features a viewfinder frame [  ], quick manual code fallback,
 /// and smooth transformation card on container resolution.
 class ScanPage extends ConsumerStatefulWidget {
-  const ScanPage({super.key});
+  const ScanPage({
+    super.key,
+    this.mode = ScanMode.participantInformation,
+  });
+
+  final ScanMode mode;
 
   @override
   ConsumerState<ScanPage> createState() => _ScanPageState();
@@ -64,12 +75,9 @@ class _ScanPageState extends ConsumerState<ScanPage> {
           'Escanear ReVuelta',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.flash_on, color: Colors.white70),
-            onPressed: () {},
-          ),
-        ],
+        actions: widget.mode == ScanMode.cafeteriaOperations
+            ? const [LogoutIconButton(color: Colors.white)]
+            : null,
       ),
       body: SafeArea(
         child: Column(
@@ -97,11 +105,13 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                           width: 240,
                           height: 240,
                           child: CustomPaint(
-                            painter: _ScannerFramePainter(color: AppColors.primaryGreen),
+                            painter: _ScannerFramePainter(
+                                color: AppColors.primaryGreen),
                           ),
                         ),
                         if (_loading)
-                          const CircularProgressIndicator(color: AppColors.primaryGreen)
+                          const CircularProgressIndicator(
+                              color: AppColors.primaryGreen)
                         else
                           const Icon(
                             Icons.qr_code_scanner,
@@ -142,8 +152,10 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                       hintText: 'Ingresar código (ej. RV-004281)',
                       prefixIcon: const Icon(Icons.qr_code),
                       suffixIcon: IconButton(
-                        icon: const Icon(Icons.search, color: AppColors.primaryGreen),
-                        onPressed: () => _lookupContainer(_codeController.text.trim()),
+                        icon: const Icon(Icons.search,
+                            color: AppColors.primaryGreen),
+                        onPressed: () =>
+                            _lookupContainer(_codeController.text.trim()),
                       ),
                     ),
                     onSubmitted: (val) => _lookupContainer(val.trim()),
@@ -159,12 +171,14 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.error_outline, color: AppColors.errorRed, size: 20),
+                          const Icon(Icons.error_outline,
+                              color: AppColors.errorRed, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               _error!,
-                              style: const TextStyle(color: AppColors.errorRed, fontSize: 13),
+                              style: const TextStyle(
+                                  color: AppColors.errorRed, fontSize: 13),
                             ),
                           ),
                         ],
@@ -189,7 +203,8 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'RV \u2022 ${_container!['code']}',
@@ -213,43 +228,68 @@ class _ScanPageState extends ConsumerState<ScanPage> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                            if (widget.mode ==
+                                ScanMode.cafeteriaOperations) ...[
+                              const SizedBox(height: 16),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                      ),
+                                      onPressed: _container!['status'] ==
+                                              'AVAILABLE'
+                                          ? () {
+                                              Navigator.of(context)
+                                                  .push(MaterialPageRoute(
+                                                builder: (_) => DeliveryPage(
+                                                  initialContainerId:
+                                                      _container!['id'],
+                                                ),
+                                              ));
+                                            }
+                                          : null,
+                                      child: const Text('Entregar'),
                                     ),
-                                    onPressed: _container!['status'] == 'AVAILABLE'
-                                        ? () {
-                                            Navigator.of(context).push(MaterialPageRoute(
-                                              builder: (_) => DeliveryPage(initialContainerId: _container!['id']),
-                                            ));
-                                          }
-                                        : null,
-                                    child: const Text('Entregar'),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton(
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.darkGreen,
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.darkGreen,
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
+                                      ),
+                                      onPressed:
+                                          _container!['status'] == 'IN_USE'
+                                              ? () {
+                                                  Navigator.of(context)
+                                                      .push(MaterialPageRoute(
+                                                    builder: (_) => ReturnPage(
+                                                      initialContainerId:
+                                                          _container!['id'],
+                                                    ),
+                                                  ));
+                                                }
+                                              : null,
+                                      child: const Text('Devolver'),
                                     ),
-                                    onPressed: _container!['status'] == 'IN_USE'
-                                        ? () {
-                                            Navigator.of(context).push(MaterialPageRoute(
-                                              builder: (_) => ReturnPage(initialContainerId: _container!['id']),
-                                            ));
-                                          }
-                                        : null,
-                                    child: const Text('Devolver'),
                                   ),
+                                ],
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 12),
+                              const Text(
+                                'Consulta informativa. Las entregas y devoluciones las confirma Cafetería.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ],
                         ),
                       ),

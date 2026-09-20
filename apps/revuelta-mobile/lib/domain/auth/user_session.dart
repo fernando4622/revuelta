@@ -1,7 +1,9 @@
+import 'user_role.dart';
+
 class UserSession {
   final String userId;
   final String username;
-  final String role;
+  final UserRole role;
   final String token;
 
   const UserSession({

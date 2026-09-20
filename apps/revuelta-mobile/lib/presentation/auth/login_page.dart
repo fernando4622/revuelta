@@ -3,21 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/auth/auth_notifier.dart';
 import '../../domain/failure/failure.dart';
 import '../shared/theme/app_colors.dart';
-import 'register_page.dart';
-import 'splash_welcome_page.dart';
 
 // ignore_for_file: deprecated_member_use
 
-/// Pixel-perfect 100% faithful replication of the ReVuelta Login screen.
-/// Features:
-/// - Organic fluid sage background with corner botanical leaves
-/// - Back arrow navigation
-/// - Authentic ReVuelta leaf-loop mark and typography
-/// - Bordered rounded text fields (Correo institucional, Contraseña con toggle de ojo)
-/// - "¿Olvidaste tu contraseña?" link on right
-/// - Solid dark forest-green "Iniciar sesión" pill button with backend Riverpod integration
-/// - "o" divider and outlined "Crear cuenta" pill button
-/// - "Solo para comunidad ITVer" footer
+/// ReVuelta login backed by the authenticated session API.
+/// Public registration and password recovery are intentionally not exposed.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -69,30 +59,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Top App Bar / Back Navigation Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: Color(0xFF163A2E),
-                        size: 26,
-                      ),
-                      onPressed: () {
-                        if (Navigator.of(context).canPop()) {
-                          Navigator.of(context).pop();
-                        } else {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(builder: (_) => const SplashWelcomePage()),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                ),
-
                 Expanded(
                   child: Center(
                     child: SingleChildScrollView(
@@ -147,7 +113,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFFCCDDD5), width: 1.2),
+                                border: Border.all(
+                                    color: const Color(0xFFCCDDD5), width: 1.2),
                               ),
                               child: TextFormField(
                                 controller: _usernameController,
@@ -158,7 +125,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 decoration: const InputDecoration(
                                   hintText: 'Correo institucional',
-                                  hintStyle: TextStyle(color: Color(0xFF9BB0A5), fontSize: 15),
+                                  hintStyle: TextStyle(
+                                      color: Color(0xFF9BB0A5), fontSize: 15),
                                   prefixIcon: Icon(
                                     Icons.person_outline_rounded,
                                     color: Color(0xFF3F5E52),
@@ -170,9 +138,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   focusedBorder: InputBorder.none,
                                   errorBorder: InputBorder.none,
                                   focusedErrorBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+                                  contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 17),
                                 ),
-                                validator: (val) => val == null || val.isEmpty ? 'Ingresa tu correo o usuario' : null,
+                                validator: (val) => val == null || val.isEmpty
+                                    ? 'Ingresa tu correo o usuario'
+                                    : null,
                               ),
                             ),
                             const SizedBox(height: 14),
@@ -182,7 +153,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFFCCDDD5), width: 1.2),
+                                border: Border.all(
+                                    color: const Color(0xFFCCDDD5), width: 1.2),
                               ),
                               child: TextFormField(
                                 controller: _passwordController,
@@ -194,7 +166,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                 ),
                                 decoration: InputDecoration(
                                   hintText: 'Contraseña',
-                                  hintStyle: const TextStyle(color: Color(0xFF9BB0A5), fontSize: 15),
+                                  hintStyle: const TextStyle(
+                                      color: Color(0xFF9BB0A5), fontSize: 15),
                                   prefixIcon: const Icon(
                                     Icons.lock_outline_rounded,
                                     color: Color(0xFF3F5E52),
@@ -202,11 +175,14 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   ),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                      _obscurePassword
+                                          ? Icons.visibility_outlined
+                                          : Icons.visibility_off_outlined,
                                       color: const Color(0xFF3F5E52),
                                       size: 22,
                                     ),
-                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                    onPressed: () => setState(() =>
+                                        _obscurePassword = !_obscurePassword),
                                   ),
                                   filled: false,
                                   border: InputBorder.none,
@@ -214,30 +190,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   focusedBorder: InputBorder.none,
                                   errorBorder: InputBorder.none,
                                   focusedErrorBorder: InputBorder.none,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 17),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 17),
                                 ),
-                                validator: (val) => val == null || val.isEmpty ? 'Ingresa tu contraseña' : null,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Enlace: ¿Olvidaste tu contraseña?
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: GestureDetector(
-                                onTap: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Recuperación enviada a tu correo')),
-                                  );
-                                },
-                                child: const Text(
-                                  '¿Olvidaste tu contraseña?',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF3F5E52),
-                                  ),
-                                ),
+                                validator: (val) => val == null || val.isEmpty
+                                    ? 'Ingresa tu contraseña'
+                                    : null,
                               ),
                             ),
                             const SizedBox(height: 24),
@@ -245,14 +203,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             // Botón 1: Iniciar sesión (Dark Forest Green Pill Button)
                             authState.isLoading
                                 ? const Center(
-                                    child: CircularProgressIndicator(color: Color(0xFF163A2E)),
+                                    child: CircularProgressIndicator(
+                                        color: Color(0xFF163A2E)),
                                   )
                                 : ElevatedButton(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF163A2E),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      padding: const EdgeInsets.symmetric(vertical: 17),
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 17),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(30),
                                       ),
@@ -267,57 +227,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                       ),
                                     ),
                                   ),
-                            const SizedBox(height: 20),
-
-                            // Separador con 'o'
-                            Row(
-                              children: [
-                                const Expanded(
-                                  child: Divider(color: Color(0xFFD5E2D9), thickness: 1),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                                  child: Text(
-                                    'o',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF3F5E52).withOpacity(0.8),
-                                    ),
-                                  ),
-                                ),
-                                const Expanded(
-                                  child: Divider(color: Color(0xFFD5E2D9), thickness: 1),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-
-                            // Botón 2: Crear cuenta (Outlined Pill Button)
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                backgroundColor: Colors.transparent,
-                                side: const BorderSide(color: Color(0xFF163A2E), width: 1.5),
-                                padding: const EdgeInsets.symmetric(vertical: 17),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30),
-                                ),
-                              ),
-                              onPressed: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(builder: (_) => const RegisterPage()),
-                                );
-                              },
-                              child: const Text(
-                                'Crear cuenta',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF163A2E),
-                                  letterSpacing: 0.2,
-                                ),
-                              ),
-                            ),
                             const SizedBox(height: 14),
 
                             // Error Display
@@ -382,7 +291,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 ///   • Bottom-left:  2 leaves pointing up-right from bottom-left corner
 ///   • Bottom-right: 2 leaves pointing up-left from bottom-right corner
 class _LoginOrganicBackgroundPainter extends CustomPainter {
-  static const _leafFill   = Color(0xFFB5CEC0);
+  static const _leafFill = Color(0xFFB5CEC0);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -395,71 +304,91 @@ class _LoginOrganicBackgroundPainter extends CustomPainter {
 
     // ── TOP-LEFT: 2 leaves emerging from corner, pointing toward center-right
     // Leaf 1 — longer, more horizontal, tip ~30% across screen
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(-8, 28),
-      tip:  Offset(w * 0.28, h * 0.10),
+      tip: Offset(w * 0.28, h * 0.10),
       width: 28,
     );
     // Leaf 2 — shorter, more vertical, slightly below leaf 1
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(-5, 8),
-      tip:  Offset(w * 0.14, h * 0.18),
+      tip: Offset(w * 0.14, h * 0.18),
       width: 20,
     );
 
     // ── TOP-RIGHT: 2 leaves emerging from top-right corner
     // Leaf 1 — pointing down-left
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(w + 8, 20),
-      tip:  Offset(w * 0.80, h * 0.13),
+      tip: Offset(w * 0.80, h * 0.13),
       width: 22,
     );
     // Leaf 2 — shorter, more to the right, partially clipped
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(w + 5, 48),
-      tip:  Offset(w * 0.90, h * 0.06),
+      tip: Offset(w * 0.90, h * 0.06),
       width: 16,
     );
 
     // ── LEFT-MIDDLE: 1 leaf at ~35% height, pointing right into screen
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(-10, h * 0.34),
-      tip:  Offset(w * 0.12, h * 0.30),
+      tip: Offset(w * 0.12, h * 0.30),
       width: 18,
     );
 
     // ── BOTTOM-LEFT: 2 leaves emerging from bottom-left corner
     // Leaf 1 — longer, pointing up-right
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(-8, h - 20),
-      tip:  Offset(w * 0.22, h * 0.88),
+      tip: Offset(w * 0.22, h * 0.88),
       width: 26,
     );
     // Leaf 2 — shorter, more upward
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(10, h + 5),
-      tip:  Offset(w * 0.10, h * 0.82),
+      tip: Offset(w * 0.10, h * 0.82),
       width: 18,
     );
 
     // ── BOTTOM-RIGHT: 2 leaves emerging from bottom-right corner
     // Leaf 1 — pointing up-left
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(w + 8, h - 20),
-      tip:  Offset(w * 0.78, h * 0.88),
+      tip: Offset(w * 0.78, h * 0.88),
       width: 26,
     );
     // Leaf 2 — more upward, partially clipped
-    _leaf(canvas, paint,
+    _leaf(
+      canvas,
+      paint,
       base: Offset(w - 10, h + 5),
-      tip:  Offset(w * 0.90, h * 0.82),
+      tip: Offset(w * 0.90, h * 0.82),
       width: 18,
     );
   }
 
   /// Draws a lanceolate (pointed both ends) leaf from [base] to [tip].
   /// [width] controls the maximum belly width of the leaf.
-  void _leaf(Canvas canvas, Paint paint, {
+  void _leaf(
+    Canvas canvas,
+    Paint paint, {
     required Offset base,
     required Offset tip,
     required double width,
@@ -469,7 +398,7 @@ class _LoginOrganicBackgroundPainter extends CustomPainter {
     final len = (tip - base).distance;
     // Perpendicular direction
     final perpX = -dy / len;
-    final perpY =  dx / len;
+    final perpY = dx / len;
     // Belly point at 55% along the leaf axis
     final belly = Offset(
       base.dx + dx * 0.55,
@@ -482,13 +411,15 @@ class _LoginOrganicBackgroundPainter extends CustomPainter {
     path.quadraticBezierTo(
       belly.dx + perpX * width * 0.5,
       belly.dy + perpY * width * 0.5,
-      tip.dx, tip.dy,
+      tip.dx,
+      tip.dy,
     );
     // Right curve: tip → belly (shifted right) → base
     path.quadraticBezierTo(
       belly.dx - perpX * width * 0.5,
       belly.dy - perpY * width * 0.5,
-      base.dx, base.dy,
+      base.dx,
+      base.dy,
     );
     path.close();
     canvas.drawPath(path, paint);
@@ -497,7 +428,6 @@ class _LoginOrganicBackgroundPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
 
 /// Painter for the ReVuelta leaf loop logo mark on login
 class _LoginLeafIconPainter extends CustomPainter {

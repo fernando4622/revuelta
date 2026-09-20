@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../domain/auth/user_session.dart';
 import '../home/home_page.dart';
 import '../history/history_page.dart';
 import '../scan/scan_page.dart';
@@ -13,14 +13,19 @@ import '../shared/widgets/revuelta_bottom_nav_bar.dart';
 /// - [2] Escanear (ScanPage)
 /// - [3] Impacto (ImpactPage)
 /// - [4] Perfil (ProfilePage)
-class MainShell extends ConsumerStatefulWidget {
-  const MainShell({super.key});
+class MainShell extends StatefulWidget {
+  const MainShell({
+    super.key,
+    required this.session,
+  });
+
+  final UserSession session;
 
   @override
-  ConsumerState<MainShell> createState() => _MainShellState();
+  State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends ConsumerState<MainShell> {
+class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
   void _onTabSelected(int index) {
@@ -32,11 +37,14 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      HomePage(onScanTap: () => _onTabSelected(2)),
+      HomePage(
+        session: widget.session,
+        onScanTap: () => _onTabSelected(2),
+      ),
       const HistoryPage(),
       const ScanPage(),
       const ImpactPage(),
-      const ProfilePage(),
+      ProfilePage(session: widget.session),
     ];
 
     return Scaffold(

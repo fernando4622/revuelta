@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/api/api_client.dart';
 import '../../domain/auth/user_session.dart';
+import '../../domain/auth/user_role.dart';
 import '../../domain/failure/failure.dart';
 
 final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
 
-final authNotifierProvider = AsyncNotifierProvider<AuthNotifier, UserSession?>(() {
+final authNotifierProvider =
+    AsyncNotifierProvider<AuthNotifier, UserSession?>(() {
   return AuthNotifier();
 });
 
@@ -18,12 +20,30 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
     final token = await _apiClient.storage.read(key: 'jwt_token');
     final userId = await _apiClient.storage.read(key: 'user_id');
     final username = await _apiClient.storage.read(key: 'username');
-    final role = await _apiClient.storage.read(key: 'role');
+    final storedRole = await _apiClient.storage.read(key: 'role');
 
-    if (token != null && userId != null && username != null && role != null) {
-      return UserSession(userId: userId, username: username, role: role, token: token);
+    final values = [token, userId, username, storedRole];
+    final hasAnyStoredValue = values.any((value) => value != null);
+    final hasCompleteSession = values.every((value) => value != null);
+
+    if (!hasCompleteSession) {
+      if (hasAnyStoredValue) {
+        await _apiClient.storage.deleteAll();
+      }
+      return null;
     }
-    return null;
+
+    final role = UserRole.fromWire(storedRole);
+    if (!role.isSupported) {
+      await _apiClient.storage.deleteAll();
+    }
+
+    return UserSession(
+      userId: userId!,
+      username: username!,
+      role: role,
+      token: token!,
+    );
   }
 
   Future<void> login(String username, String password) async {
@@ -34,17 +54,24 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
         'password': password,
       });
 
+      final role = UserRole.fromWire(data['role'] as String?);
       final session = UserSession(
-        userId: data['userId'],
-        username: data['username'],
-        role: data['role'],
-        token: data['token'],
+        userId: data['userId'] as String,
+        username: data['username'] as String,
+        role: role,
+        token: data['token'] as String,
       );
+
+      if (!role.isSupported) {
+        await _apiClient.storage.deleteAll();
+        state = AsyncValue.data(session);
+        return;
+      }
 
       await _apiClient.storage.write(key: 'jwt_token', value: session.token);
       await _apiClient.storage.write(key: 'user_id', value: session.userId);
       await _apiClient.storage.write(key: 'username', value: session.username);
-      await _apiClient.storage.write(key: 'role', value: session.role);
+      await _apiClient.storage.write(key: 'role', value: session.role.wireName);
 
       state = AsyncValue.data(session);
     } catch (e, stack) {

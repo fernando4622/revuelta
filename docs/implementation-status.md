@@ -88,7 +88,7 @@ El código del proyecto está completamente estructurado y funcional:
 
 ## 3. Features implementadas
 
-Existe código ejecutable backend y Flutter, pero ninguna feature se considera verificada contra las specs actualizadas del 2026-09-19. En particular, la implementación existente no modela todavía Código ReVuelta persistente ni `RETURNED/Pendiente de lavado`.
+Existe código ejecutable backend y Flutter. La autenticación de desarrollo y el enrutamiento móvil por rol ya tienen verificación ejecutable contra sus specs. La implementación todavía no modela Código ReVuelta persistente ni `RETURNED/Pendiente de lavado`.
 
 ---
 
@@ -114,7 +114,7 @@ Ordenadas por dependencia y prioridad operativa:
 | 14 | Historial/trazabilidad | traceability.md, FR-050..FR-052 | — |
 | 15 | Error handling uniforme | errors.md | — |
 | 16 | Observabilidad básica | observability.md | — |
-| 17 | Flutter: enrutamiento por rol y shells | ui/mobile.md, ui/perspectives.md | Enrutamiento/shells todavía incompletos |
+| 17 | Flutter: enrutamiento por rol y shells | ui/mobile.md, ui/perspectives.md | Base implementada y verificada; módulos internos aún parciales |
 | 18 | Flutter: Scan + Inspect | ui/mobile.md, state-machines.md | — para demo |
 | 19 | Flutter: Delivery/Return/Wash | specs UI por feature | D-007, D-010, D-013 |
 | 20 | Flutter: alumno/historial | student-experience.md | D-007 para datos reales |
@@ -291,5 +291,9 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - `mvn test`: 24 pruebas ejecutadas, 0 fallos, 0 errores.
 - Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
 - `git diff --check`: sin errores de espacios en el diff.
-- La migración V6 no se validó todavía contra PostgreSQL porque Docker Desktop no estaba iniciado durante esta revisión.
-- El enrutamiento Flutter hacia shells distintos por rol continúa pendiente; el login y el rol backend no deben confundirse con esa UI todavía no implementada.
+- Flyway aplicó V6 contra PostgreSQL real y la tabla de roles confirmó `student1:PARTICIPANT`, `operator:OPERATOR` y `admin:ADMIN`.
+- Los tres logins se probaron mediante el API real; credenciales inválidas devolvieron `401`.
+- Flutter enruta a shells separados de Alumno/Maestro, Cafetería y Operación ReVuelta; un rol desconocido no recibe un shell protegido.
+- La ruta de login ya no ofrece registro público ni recuperación simulada.
+- `flutter test`: 7 pruebas ejecutadas, todas aprobadas. Incluye resolución de roles y aislamiento de shells.
+- `flutter analyze`: sin errores ni advertencias bloqueantes; permanecen observaciones informativas de estilo y APIs deprecadas preexistentes.

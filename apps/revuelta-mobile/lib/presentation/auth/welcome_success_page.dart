@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/theme/app_colors.dart';
-import '../shell/main_shell.dart';
+import 'login_page.dart';
 
 /// Screen representing "Bienvenida / Éxito" (Mockup Screen 10).
 /// Shows sunburst celebration around container and "¡Bienvenido/a a ReVuelta! Ir al inicio".
@@ -68,7 +68,7 @@ class WelcomeSuccessPage extends StatelessWidget {
                 ),
                 onPressed: () {
                   Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const MainShell()),
+                    MaterialPageRoute(builder: (_) => const LoginPage()),
                     (route) => false,
                   );
                 },
