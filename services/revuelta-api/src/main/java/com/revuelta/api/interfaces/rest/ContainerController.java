@@ -5,7 +5,6 @@ import com.revuelta.api.application.container.GetContainerUseCase;
 import com.revuelta.api.application.container.ListContainersUseCase;
 import com.revuelta.api.application.container.RegisterContainerUseCase;
 import com.revuelta.api.domain.container.Container;
-import com.revuelta.api.domain.container.ContainerCode;
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.user.UserId;
 import jakarta.validation.Valid;
@@ -55,15 +54,6 @@ public class ContainerController {
     @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
     public ResponseEntity<ContainerResponse> getById(@PathVariable UUID containerId) {
         return getContainerUseCase.findById(new ContainerId(containerId))
-                .map(ContainerResponse::fromDomain)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @GetMapping("/code/{code}")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
-    public ResponseEntity<ContainerResponse> getByCode(@PathVariable String code) {
-        return getContainerUseCase.findByCode(new ContainerCode(code))
                 .map(ContainerResponse::fromDomain)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());

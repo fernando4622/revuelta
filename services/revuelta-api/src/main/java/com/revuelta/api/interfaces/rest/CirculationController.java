@@ -56,17 +56,6 @@ public class CirculationController {
         return ResponseEntity.ok(CirculationResponse.fromDomain(result.circulation()));
     }
 
-    @PostMapping("/circulations/containers/{containerId}/return")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
-    public ResponseEntity<CirculationResponse> returnByContainerId(
-            @PathVariable UUID containerId,
-            @AuthenticationPrincipal String operatorIdString
-    ) {
-        UserId operatorId = new UserId(UUID.fromString(operatorIdString));
-        var result = returnContainerUseCase.executeByContainerId(new ContainerId(containerId), operatorId);
-        return ResponseEntity.ok(CirculationResponse.fromDomain(result.circulation()));
-    }
-
     @GetMapping("/containers/{containerId}/events")
     @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
     public ResponseEntity<List<EventResponse>> getHistory(

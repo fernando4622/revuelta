@@ -36,15 +36,6 @@ public class ReturnContainerUseCase {
         return transactionRunner.required(() -> returnByCirculationId(circulationId, operatorId));
     }
 
-    public ReturnResult executeByContainerId(ContainerId containerId, UserId operatorId) {
-        return transactionRunner.required(() -> {
-            Circulation activeCirculation = circulationRepository.findActiveByContainerId(containerId)
-                    .orElseThrow(() -> new IllegalArgumentException("No active circulation found for container: " + containerId.value()));
-
-            return returnByCirculationId(activeCirculation.id(), operatorId);
-        });
-    }
-
     private ReturnResult returnByCirculationId(CirculationId circulationId, UserId operatorId) {
         // 1. Resolve Circulation
         Circulation circulation = circulationRepository.findById(circulationId)

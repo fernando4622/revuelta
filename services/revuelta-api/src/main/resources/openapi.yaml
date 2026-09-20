@@ -168,13 +168,13 @@ paths:
         '409':
           $ref: '#/components/responses/409Conflict'
 
-  /circulations/containers/{containerId}/return:
+  /circulations/{circulationId}/return:
     post:
       summary: Register container return and finalize active circulation
-      operationId: returnContainer
+      operationId: returnCirculation
       security: [{ bearerAuth: [] }]
       parameters:
-        - name: containerId
+        - name: circulationId
           in: path
           required: true
           schema: { type: string, format: uuid }
