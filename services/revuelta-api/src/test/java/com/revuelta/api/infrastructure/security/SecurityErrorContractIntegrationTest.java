@@ -65,7 +65,7 @@ class SecurityErrorContractIntegrationTest {
     void shouldReturnUnauthenticatedProblemWhenTokenIsInvalidOrExpired() throws Exception {
         HttpResponse<String> invalidResponse = getContainers("not-a-jwt");
         JwtTokenProvider expiredTokenProvider = new JwtTokenProvider(TEST_JWT_SECRET, -1);
-        String expiredToken = expiredTokenProvider.generateToken(
+        String expiredToken = expiredTokenProvider.issue(
                 new UserId(UUID.randomUUID()),
                 "expired-user",
                 "ADMIN"
@@ -78,7 +78,7 @@ class SecurityErrorContractIntegrationTest {
 
     @Test
     void shouldReturnForbiddenProblemWhenRoleCannotAccessEndpoint() throws Exception {
-        String participantToken = tokenProvider.generateToken(
+        String participantToken = tokenProvider.issue(
                 new UserId(UUID.randomUUID()),
                 "student",
                 "PARTICIPANT"

@@ -1,37 +1,44 @@
 package com.revuelta.api.application.auth;
 
+import com.revuelta.api.application.port.AccessTokenIssuerPort;
+import com.revuelta.api.application.port.AuthenticationAuditPort;
+import com.revuelta.api.application.port.PasswordVerifierPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
-import com.revuelta.api.infrastructure.security.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-@Slf4j
-@Service
-@RequiredArgsConstructor
 public class LoginUseCase {
 
     private final UserRepositoryPort userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtTokenProvider tokenProvider;
+    private final PasswordVerifierPort passwordVerifier;
+    private final AccessTokenIssuerPort tokenIssuer;
+    private final AuthenticationAuditPort authenticationAudit;
+
+    public LoginUseCase(
+            UserRepositoryPort userRepository,
+            PasswordVerifierPort passwordVerifier,
+            AccessTokenIssuerPort tokenIssuer,
+            AuthenticationAuditPort authenticationAudit
+    ) {
+        this.userRepository = userRepository;
+        this.passwordVerifier = passwordVerifier;
+        this.tokenIssuer = tokenIssuer;
+        this.authenticationAudit = authenticationAudit;
+    }
 
     public AuthResult execute(String username, String password) {
         UserRepositoryPort.UserRecord user;
         try {
-            user = userRepository.findByUsername(username)
-                    .orElseThrow(AuthenticationFailureException::new);
+            user = userRepository.findByUsername(username).orElse(null);
         } catch (IllegalStateException exception) {
-            log.error("Authentication rejected because the account role configuration is invalid");
+            authenticationAudit.invalidRoleConfiguration();
             throw new AuthenticationFailureException();
         }
 
-        if (!passwordEncoder.matches(password, user.passwordHash())) {
-            log.warn("Authentication failed because the supplied credentials are invalid");
+        if (user == null || !passwordVerifier.matches(password, user.passwordHash())) {
+            authenticationAudit.invalidCredentials();
             throw new AuthenticationFailureException();
         }
 
-        String token = tokenProvider.generateToken(user.id(), user.username(), user.roleName());
+        String token = tokenIssuer.issue(user.id(), user.username(), user.roleName());
 
         return new AuthResult(token, user.id().value().toString(), user.username(), user.roleName());
     }

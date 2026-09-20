@@ -26,8 +26,9 @@ This matrix links approved or draft requirements to their intended evidence. A r
 | Return domain | `domain/circulation.md` | SC-CIR-004/006 | Current code returns directly to available | PRODUCT FLOW APPROVED / IMPLEMENTATION GAP |
 | Authorization | `security/access-control.md` | SC-SEC-*; `SecurityErrorContractIntegrationTest` | Missing/invalid/expired tokens fail with 401; participant bypass against protected container API fails with 403 | PARTIAL |
 | API error contract | `api/errors.md`, `api/openapi-baseline.md` | `GlobalExceptionHandlerTest`; `SecurityErrorContractIntegrationTest` | Malformed requests and security failures use stable `application/problem+json`; remaining endpoint failures require alignment | PARTIAL |
-| Build/configuration baseline | `ops/deployment.md`, `AGENTS.md`, `ROADMAP.md` F1 | Maven Wrapper build; Flutter checks; OpenAPI lint; Trivy scan; GitHub Actions run `35519801008` | Canonical Maven/JDK 17 build, isolated dev seeds, configurable mobile URL and green CI workflow | VERIFIED |
+| Build/configuration baseline | `ops/deployment.md`, `AGENTS.md`, `ROADMAP.md` F1 | Maven Wrapper build; Flutter checks; OpenAPI lint; Trivy scan; GitHub Actions runs `35519801008` and `35520629016` | Canonical Maven/JDK 17 build, isolated dev seeds, configurable mobile URL and green CI workflow | VERIFIED |
 | Domain dependency boundary | `AGENTS.md` §6, ADR-002 | `DomainArchitectureTest` | ArchUnit protects domain from application, infrastructure, interfaces, Spring, JPA and Jackson dependencies | IMPLEMENTED |
+| Application dependency direction | `AGENTS.md` §6.2, ADR-001 | `ApplicationArchitectureTest`; `LoginUseCaseTest` | Application production code cannot depend on infrastructure/interfaces; authentication uses explicit ports for JWT, BCrypt and audit adapters | IMPLEMENTED |
 | Persistence integrity | `data/data-model.md` | SC-DATA-*; `MigrationProfileIsolationTest` | Common migrations remove demo users; dev location seeds three tested accounts | PARTIAL |
 | Observability | `ops/observability.md` | integration/ops checks | Partial | DRAFT |
 | Threat controls | `risks/threat-model.md` | security tests | Partial | BLOCKED |

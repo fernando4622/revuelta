@@ -1,5 +1,6 @@
 package com.revuelta.api.infrastructure.security;
 
+import com.revuelta.api.application.port.AccessTokenIssuerPort;
 import com.revuelta.api.domain.user.UserId;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -16,7 +17,7 @@ import java.util.Date;
 import java.util.UUID;
 
 @Component
-public class JwtTokenProvider {
+public class JwtTokenProvider implements AccessTokenIssuerPort {
 
     private final SecretKey secretKey;
     private final Duration expiration;
@@ -30,7 +31,8 @@ public class JwtTokenProvider {
         this.expiration = Duration.ofHours(expirationHours);
     }
 
-    public String generateToken(UserId userId, String username, String role) {
+    @Override
+    public String issue(UserId userId, String username, String role) {
         Instant now = Instant.now();
         Instant exp = now.plus(expiration);
 

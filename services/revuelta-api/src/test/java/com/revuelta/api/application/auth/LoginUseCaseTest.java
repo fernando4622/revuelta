@@ -1,14 +1,15 @@
 package com.revuelta.api.application.auth;
 
+import com.revuelta.api.application.port.AccessTokenIssuerPort;
+import com.revuelta.api.application.port.AuthenticationAuditPort;
+import com.revuelta.api.application.port.PasswordVerifierPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
 import com.revuelta.api.domain.user.UserId;
-import com.revuelta.api.infrastructure.security.JwtTokenProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -22,14 +23,15 @@ import static org.mockito.Mockito.when;
 class LoginUseCaseTest {
 
     @Mock private UserRepositoryPort userRepository;
-    @Mock private PasswordEncoder passwordEncoder;
-    @Mock private JwtTokenProvider tokenProvider;
+    @Mock private PasswordVerifierPort passwordVerifier;
+    @Mock private AccessTokenIssuerPort tokenIssuer;
+    @Mock private AuthenticationAuditPort authenticationAudit;
 
     private LoginUseCase loginUseCase;
 
     @BeforeEach
     void setUp() {
-        loginUseCase = new LoginUseCase(userRepository, passwordEncoder, tokenProvider);
+        loginUseCase = new LoginUseCase(userRepository, passwordVerifier, tokenIssuer, authenticationAudit);
     }
 
     @Test
@@ -42,8 +44,8 @@ class LoginUseCaseTest {
                 "PARTICIPANT"
         );
         when(userRepository.findByUsername("student1")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("password123", "hash")).thenReturn(true);
-        when(tokenProvider.generateToken(user.id(), user.username(), "PARTICIPANT")).thenReturn("token");
+        when(passwordVerifier.matches("password123", "hash")).thenReturn(true);
+        when(tokenIssuer.issue(user.id(), user.username(), "PARTICIPANT")).thenReturn("token");
 
         LoginUseCase.AuthResult result = loginUseCase.execute("student1", "password123");
 
@@ -62,12 +64,13 @@ class LoginUseCaseTest {
                 "PARTICIPANT"
         );
         when(userRepository.findByUsername("student1")).thenReturn(Optional.of(user));
-        when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
+        when(passwordVerifier.matches("wrong", "hash")).thenReturn(false);
 
         assertThrows(AuthenticationFailureException.class,
                 () -> loginUseCase.execute("student1", "wrong"));
 
-        verify(tokenProvider, never()).generateToken(user.id(), user.username(), user.roleName());
+        verify(authenticationAudit).invalidCredentials();
+        verify(tokenIssuer, never()).issue(user.id(), user.username(), user.roleName());
     }
 
     @Test
@@ -78,7 +81,27 @@ class LoginUseCaseTest {
         assertThrows(AuthenticationFailureException.class,
                 () -> loginUseCase.execute("student1", "password123"));
 
-        verify(tokenProvider, never()).generateToken(
+        verify(authenticationAudit).invalidRoleConfiguration();
+        verify(tokenIssuer, never()).issue(
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString()
+        );
+    }
+
+    @Test
+    void shouldRejectUnknownAccountWithoutVerifyingPasswordOrIssuingToken() {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        assertThrows(AuthenticationFailureException.class,
+                () -> loginUseCase.execute("unknown", "password123"));
+
+        verify(authenticationAudit).invalidCredentials();
+        verify(passwordVerifier, never()).matches(
+                org.mockito.ArgumentMatchers.anyString(),
+                org.mockito.ArgumentMatchers.anyString()
+        );
+        verify(tokenIssuer, never()).issue(
                 org.mockito.ArgumentMatchers.any(),
                 org.mockito.ArgumentMatchers.anyString(),
                 org.mockito.ArgumentMatchers.anyString()
