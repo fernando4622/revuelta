@@ -12,6 +12,7 @@
 - `API-006`: Collection endpoints define pagination/filtering.
 - `API-007`: Responses expose only actor-necessary data.
 - `API-008`: No endpoint generically sets container status.
+- `API-009`: Every HTTP response exposes the server-generated `X-Correlation-ID`; problem bodies use the same value as `traceId`.
 
 ## 2. Proposed resource space
 

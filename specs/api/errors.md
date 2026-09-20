@@ -58,6 +58,7 @@ UI wording              → presentation
 
 - Expected domain failures MUST NOT become generic HTTP 500.
 - Unexpected exceptions MUST be logged internally with correlation data and mapped to a safe generic 500.
+- `traceId` MUST equal the server-generated `X-Correlation-ID` response header.
 - SQL statements, stack traces, secrets, token values, internal class/package names, or connection details MUST NOT reach clients.
 
 ## 5. Client mapping

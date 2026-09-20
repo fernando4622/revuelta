@@ -2,6 +2,7 @@ package com.revuelta.api.infrastructure.security;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.revuelta.api.domain.user.UserId;
@@ -89,12 +90,31 @@ class SecurityErrorContractIntegrationTest {
         assertProblem(response, 403, "FORBIDDEN_OPERATION");
     }
 
+    @Test
+    void shouldReplaceUntrustedClientCorrelationId() throws Exception {
+        HttpResponse<String> response = getContainers(null, "client-controlled-value");
+
+        assertProblem(response, 401, "UNAUTHENTICATED");
+        String serverCorrelationId = response.headers()
+                .firstValue("X-Correlation-ID")
+                .orElseThrow();
+        assertNotEquals("client-controlled-value", serverCorrelationId);
+        UUID.fromString(serverCorrelationId);
+    }
+
     private HttpResponse<String> getContainers(String token) throws Exception {
+        return getContainers(token, null);
+    }
+
+    private HttpResponse<String> getContainers(String token, String correlationId) throws Exception {
         HttpRequest.Builder request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + serverPort + "/api/v1/containers"))
                 .GET();
         if (token != null) {
             request.header("Authorization", "Bearer " + token);
+        }
+        if (correlationId != null) {
+            request.header("X-Correlation-ID", correlationId);
         }
         return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofString());
     }
@@ -109,6 +129,10 @@ class SecurityErrorContractIntegrationTest {
         assertEquals(code, problem.get("code").stringValue());
         assertEquals("/api/v1/containers", problem.get("instance").stringValue());
         assertFalse(problem.get("traceId").stringValue().isBlank());
+        assertEquals(
+                response.headers().firstValue("X-Correlation-ID").orElseThrow(),
+                problem.get("traceId").stringValue()
+        );
         assertFalse(problem.get("timestamp").stringValue().isBlank());
         assertTrue(problem.get("errors").isArray());
     }

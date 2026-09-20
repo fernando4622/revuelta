@@ -33,7 +33,7 @@
 │   ├── src/main/resources/
 │   │   ├── db/migration/        ✅ V1–V7 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 34 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
+│   └── src/test/java/           ✅ 35 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -52,7 +52,7 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 - Migraciones Flyway comunes (`V1` a `V7`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de 34 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites de dependencia de dominio y aplicación.
+- Suite de 35 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites de dependencia de dominio y aplicación.
 
 
 ---
@@ -288,7 +288,7 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 ## 11. Verificación de autenticación por rol — 2026-09-20
 
 - Compilación backend ejecutada con Java 17.
-- `mvn verify`: 34 pruebas ejecutadas, 0 fallos, 0 errores.
+- `mvn verify`: 35 pruebas ejecutadas, 0 fallos, 0 errores.
 - Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
 - `git diff --check`: sin errores de espacios en el diff.
 - Flyway aplicó V6 contra PostgreSQL real y la tabla de roles confirmó `student1:PARTICIPANT`, `operator:OPERATOR` y `admin:ADMIN`.
@@ -327,6 +327,16 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - La aplicación expone puertos para emisión de token, verificación de contraseña y auditoría de autenticación; infraestructura los adapta con JWT, BCrypt y SLF4J.
 - La ausencia de cuenta y la contraseña incorrecta conservan un mismo fallo público y se auditan sin registrar usuario, contraseña ni token.
 - `ApplicationArchitectureTest` falla si código de producción en `application` depende de `infrastructure` o `interfaces`.
-- `mvn verify`: 34 pruebas, 0 fallos, 0 errores, incluidas dos bases PostgreSQL 16 efímeras.
+- `mvn verify`: 35 pruebas, 0 fallos, 0 errores, incluidas dos bases PostgreSQL 16 efímeras.
 - Docker reconstruyó el perfil `full`; salud `UP` y login `student1` emitió un token con rol `PARTICIPANT`.
-- El CI remoto anterior (run `35520629016`, commit `499dfc1`) terminó correctamente; este cambio requiere su propio CI después del push.
+- El CI remoto del commit `8a0a9f8` (run `35521186422`) terminó correctamente.
+
+## 15. Correlación HTTP verificable — 2026-09-20
+
+- El servidor genera un UUID nuevo para cada petición y lo expone como `X-Correlation-ID`; no reutiliza valores proporcionados por el cliente.
+- Los errores `application/problem+json` incluyen exactamente el mismo valor en `traceId`.
+- El identificador vive en MDC solo durante la petición y se elimina siempre al terminar.
+- CORS expone la cabecera para clientes web y OpenAPI documenta la cabecera en las respuestas actuales.
+- La prueba de integración cubre `401`, `403`, token inválido/expirado y reemplazo de una cabecera entrante no confiable.
+- `mvn verify`: 35 pruebas, 0 fallos, 0 errores. Redocly valida OpenAPI con la única advertencia conocida del servidor local de desarrollo.
+- Docker: salud `UP`; un `401 UNAUTHENTICATED` real devolvió el mismo UUID en cabecera y cuerpo.

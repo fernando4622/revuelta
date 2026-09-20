@@ -26,6 +26,9 @@ paths:
       responses:
         '200':
           description: Successful authentication
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
           content:
             application/json:
               schema:
@@ -43,6 +46,9 @@ paths:
           $ref: '#/components/responses/400BadRequest'
         '401':
           description: Invalid username or password
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
           content:
             application/problem+json:
               schema:
@@ -85,6 +91,9 @@ paths:
       responses:
         '200':
           description: Paginated container results for the requested page
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
           content:
             application/json:
               schema:
@@ -192,6 +201,9 @@ paths:
       responses:
         '200':
           description: Append-oriented audit events for the container
+          headers:
+            X-Correlation-ID:
+              $ref: '#/components/headers/CorrelationId'
           content:
             application/json:
               schema:
@@ -204,6 +216,14 @@ paths:
           $ref: '#/components/responses/403Forbidden'
 
 components:
+  headers:
+    CorrelationId:
+      description: Server-generated identifier for correlating this response with operational logs
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   securitySchemes:
     bearerAuth:
       type: http
@@ -266,6 +286,9 @@ components:
   responses:
     401Unauthenticated:
       description: Authentication is missing, invalid or expired
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
       content:
         application/problem+json:
           schema:
@@ -282,6 +305,9 @@ components:
             errors: []
     403Forbidden:
       description: The authenticated role is not authorized for the operation
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
       content:
         application/problem+json:
           schema:
@@ -298,19 +324,34 @@ components:
             errors: []
     ContainerResponse:
       description: Container object
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Container'
     CirculationResponse:
       description: Circulation object
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Circulation'
     400BadRequest:
       description: Bad Request / Validation Failure
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
     404NotFound:
       description: Resource Not Found
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
     409Conflict:
       description: Business Conflict / State Machine Error
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'

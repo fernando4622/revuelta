@@ -6,6 +6,14 @@
 
 Every request path that can mutate critical business state SHOULD carry a trace/correlation identifier. The identifier should be returned where useful for support/debugging.
 
+For the V1 modular monolith:
+
+- the server generates a UUID correlation identifier for every HTTP request;
+- client-provided correlation values are not trusted or reused;
+- the response exposes the identifier as `X-Correlation-ID`;
+- an `application/problem+json` body uses the same value in `traceId`;
+- the identifier is available in logging context only for the request lifetime and is always removed afterward.
+
 ## 2. Structured logs
 
 Logs MUST be structured and SHOULD include:

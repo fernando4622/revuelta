@@ -70,11 +70,11 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 
 ### 1.3 Evidencia técnica actual
 
-- El backend compila con el Maven Wrapper real y JDK 17; 34 pruebas pasan, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites arquitectónicos de dominio y aplicación.
+- El backend compila con el Maven Wrapper real y JDK 17; 35 pruebas pasan, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites arquitectónicos de dominio y aplicación.
 - Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
 - Flutter 3.41.9/Dart 3.11.5 ejecuta 8 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
 - Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
-- GitHub Actions completó correctamente los CI remotos hasta el commit `499dfc1` (run `35520629016`).
+- GitHub Actions completó correctamente los CI remotos hasta el commit `8a0a9f8` (run `35521186422`).
 - No hay evidencia suficiente para autorizar despliegue productivo.
 
 **Decisión de estado:** `NO-GO` para piloto operativo hasta completar los gates P0 de este roadmap.
@@ -371,7 +371,7 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - `student1` recibe `PARTICIPANT` mediante la migración V6.
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
-- La suite backend compila con Java 17: 34 pruebas, 0 fallos y 0 errores.
+- La suite backend compila con Java 17: 35 pruebas, 0 fallos y 0 errores.
 - Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
 - Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
 - La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
@@ -434,8 +434,9 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 
 - `LoginUseCase` ya depende de puertos de aplicación para emitir tokens, verificar contraseñas y auditar rechazos; JWT, BCrypt y logging quedan en adaptadores de infraestructura.
 - `ApplicationArchitectureTest` impide dependencias de producción desde `application` hacia `infrastructure` o `interfaces`.
-- El cambio está verificado con 34 pruebas y con login `PARTICIPANT` desde la imagen Docker reconstruida.
-- F2 continúa abierta: faltan completar el catálogo de fallos, correlación, consistencia OpenAPI, restricciones/concurrencia y revisar los acoplamientos de framework restantes.
+- Los límites y la correlación están verificados con 35 pruebas, OpenAPI válido y la imagen Docker reconstruida.
+- Cada respuesta HTTP recibe un `X-Correlation-ID` generado por el servidor; los errores reutilizan ese valor en `traceId` y rechazan valores entrantes no confiables.
+- F2 continúa abierta: faltan completar el catálogo de fallos, consistencia integral OpenAPI, restricciones/concurrencia y revisar los acoplamientos de framework restantes.
 
 ### 6.1 Fallos y límites de capa
 

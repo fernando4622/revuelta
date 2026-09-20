@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RestControllerAdvice
@@ -31,7 +30,7 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 "UNAUTHENTICATED",
                 "Authentication is required or the supplied token is invalid",
-                request.getRequestURI()
+                request
         );
     }
 
@@ -44,28 +43,28 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED,
                 "INVALID_CREDENTIALS",
                 "Invalid username or password",
-                request.getRequestURI()
+                request
         );
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
-        return buildProblem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request.getRequestURI());
+        return buildProblem(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", ex.getMessage(), request);
     }
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ProblemDetail> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
-        return buildProblem(HttpStatus.CONFLICT, "BUSINESS_CONFLICT", ex.getMessage(), request.getRequestURI());
+        return buildProblem(HttpStatus.CONFLICT, "BUSINESS_CONFLICT", ex.getMessage(), request);
     }
 
     @ExceptionHandler(ContainerTransitionException.class)
     public ResponseEntity<ProblemDetail> handleContainerTransition(ContainerTransitionException ex, HttpServletRequest request) {
-        return buildProblem(HttpStatus.CONFLICT, "INVALID_STATE_TRANSITION", ex.getMessage(), request.getRequestURI());
+        return buildProblem(HttpStatus.CONFLICT, "INVALID_STATE_TRANSITION", ex.getMessage(), request);
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
-        return buildProblem(HttpStatus.FORBIDDEN, "FORBIDDEN_OPERATION", "You are not authorized to perform this operation", request.getRequestURI());
+        return buildProblem(HttpStatus.FORBIDDEN, "FORBIDDEN_OPERATION", "You are not authorized to perform this operation", request);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -77,16 +76,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(new ProblemDetail(
-                "https://revuelta.app/problems/validation-error",
-                "Validation Error",
-                HttpStatus.BAD_REQUEST.value(),
-                "VALIDATION_ERROR",
-                "Request payload validation failed",
-                request.getRequestURI(),
-                UUID.randomUUID().toString(),
-                Instant.now(),
-                errors
-        ));
+                        "https://revuelta.app/problems/validation-error",
+                        "Validation Error",
+                        HttpStatus.BAD_REQUEST.value(),
+                        "VALIDATION_ERROR",
+                        "Request payload validation failed",
+                        request.getRequestURI(),
+                        CorrelationId.resolve(request),
+                        Instant.now(),
+                        errors
+                ));
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
@@ -98,37 +97,37 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST,
                 "VALIDATION_ERROR",
                 "Request payload is malformed or unreadable",
-                request.getRequestURI()
+                request
         );
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
-        String traceId = UUID.randomUUID().toString();
+        String traceId = CorrelationId.resolve(request);
         log.error("Unexpected server failure [traceId={}]: ", traceId, ex);
 
         return buildProblem(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_SERVER_ERROR",
                 "An unexpected internal error occurred. Please reference traceId: " + traceId,
-                request.getRequestURI(),
-                traceId
+                request
         );
     }
 
-    private ResponseEntity<ProblemDetail> buildProblem(HttpStatus status, String code, String detail, String instance) {
-        return buildProblem(status, code, detail, instance, UUID.randomUUID().toString());
-    }
-
-    private ResponseEntity<ProblemDetail> buildProblem(HttpStatus status, String code, String detail, String instance, String traceId) {
+    private ResponseEntity<ProblemDetail> buildProblem(
+            HttpStatus status,
+            String code,
+            String detail,
+            HttpServletRequest request
+    ) {
         ProblemDetail problem = new ProblemDetail(
                 "https://revuelta.app/problems/" + code.toLowerCase().replace('_', '-'),
                 status.getReasonPhrase(),
                 status.value(),
                 code,
                 detail,
-                instance,
-                traceId,
+                request.getRequestURI(),
+                CorrelationId.resolve(request),
                 Instant.now(),
                 List.of()
         );
