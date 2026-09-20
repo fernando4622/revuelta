@@ -23,4 +23,15 @@ class ApplicationArchitectureTest {
                 )
                 .check(productionClasses);
     }
+
+    @Test
+    void applicationMustRemainIndependentFromFrameworks() {
+        noClasses()
+                .that().resideInAPackage("..application..")
+                .should().dependOnClassesThat().resideInAnyPackage(
+                        "org.springframework..",
+                        "lombok.."
+                )
+                .check(productionClasses);
+    }
 }

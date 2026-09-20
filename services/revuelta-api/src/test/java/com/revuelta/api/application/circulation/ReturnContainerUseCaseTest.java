@@ -11,6 +11,7 @@ import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.user.UserId;
+import com.revuelta.api.support.ImmediateTransactionRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,12 @@ class ReturnContainerUseCaseTest {
 
     @BeforeEach
     void setUp() {
-        returnContainerUseCase = new ReturnContainerUseCase(containerRepository, circulationRepository, eventRepository);
+        returnContainerUseCase = new ReturnContainerUseCase(
+                containerRepository,
+                circulationRepository,
+                eventRepository,
+                new ImmediateTransactionRunner()
+        );
     }
 
     @Test

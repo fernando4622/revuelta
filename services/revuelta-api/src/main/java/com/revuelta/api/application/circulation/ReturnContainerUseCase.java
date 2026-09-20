@@ -2,6 +2,7 @@ package com.revuelta.api.application.circulation;
 
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.domain.circulation.Circulation;
 import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.container.Container;
@@ -10,22 +11,41 @@ import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.user.UserId;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 
-@Service
-@RequiredArgsConstructor
 public class ReturnContainerUseCase {
 
     private final ContainerRepositoryPort containerRepository;
     private final CirculationRepositoryPort circulationRepository;
     private final ContainerEventRepositoryPort eventRepository;
+    private final TransactionRunnerPort transactionRunner;
 
-    @Transactional
+    public ReturnContainerUseCase(
+            ContainerRepositoryPort containerRepository,
+            CirculationRepositoryPort circulationRepository,
+            ContainerEventRepositoryPort eventRepository,
+            TransactionRunnerPort transactionRunner
+    ) {
+        this.containerRepository = containerRepository;
+        this.circulationRepository = circulationRepository;
+        this.eventRepository = eventRepository;
+        this.transactionRunner = transactionRunner;
+    }
+
     public ReturnResult execute(CirculationId circulationId, UserId operatorId) {
+        return transactionRunner.required(() -> returnByCirculationId(circulationId, operatorId));
+    }
+
+    public ReturnResult executeByContainerId(ContainerId containerId, UserId operatorId) {
+        return transactionRunner.required(() -> {
+            Circulation activeCirculation = circulationRepository.findActiveByContainerId(containerId)
+                    .orElseThrow(() -> new IllegalArgumentException("No active circulation found for container: " + containerId.value()));
+
+            return returnByCirculationId(activeCirculation.id(), operatorId);
+        });
+    }
+
+    private ReturnResult returnByCirculationId(CirculationId circulationId, UserId operatorId) {
         // 1. Resolve Circulation
         Circulation circulation = circulationRepository.findById(circulationId)
                 .orElseThrow(() -> new IllegalArgumentException("Circulation not found: " + circulationId.value()));
@@ -53,14 +73,6 @@ public class ReturnContainerUseCase {
         eventRepository.save(event);
 
         return new ReturnResult(circulation, container);
-    }
-
-    @Transactional
-    public ReturnResult executeByContainerId(ContainerId containerId, UserId operatorId) {
-        Circulation activeCirculation = circulationRepository.findActiveByContainerId(containerId)
-                .orElseThrow(() -> new IllegalArgumentException("No active circulation found for container: " + containerId.value()));
-
-        return execute(activeCirculation.id(), operatorId);
     }
 
     public record ReturnResult(Circulation circulation, Container container) {}

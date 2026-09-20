@@ -33,7 +33,7 @@
 │   ├── src/main/resources/
 │   │   ├── db/migration/        ✅ V1–V7 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 35 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
+│   └── src/test/java/           ✅ 38 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -47,12 +47,12 @@
 
 El repositorio tiene una base ejecutable y verificable, pero los flujos MVP restantes aún no están completos:
 
-- Proyecto Spring Boot 4.1.1 (`services/revuelta-api/`) con límites de dominio y dirección `application → infrastructure/interfaces` protegidos por ArchUnit; F2 aún debe revisar los acoplamientos de framework restantes en aplicación.
+- Proyecto Spring Boot 4.1.1 (`services/revuelta-api/`) con dominio y aplicación independientes de frameworks y de adaptadores externos, protegidos por ArchUnit.
 - Cliente móvil Flutter (`apps/revuelta-mobile/`) con arquitectura limpia y Riverpod AsyncNotifier.
 - Migraciones Flyway comunes (`V1` a `V7`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de 35 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites de dependencia de dominio y aplicación.
+- Suite de 38 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP, transacciones y límites de dependencia de dominio y aplicación.
 
 
 ---
@@ -288,7 +288,7 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 ## 11. Verificación de autenticación por rol — 2026-09-20
 
 - Compilación backend ejecutada con Java 17.
-- `mvn verify`: 35 pruebas ejecutadas, 0 fallos, 0 errores.
+- `mvn verify`: 38 pruebas ejecutadas, 0 fallos, 0 errores.
 - Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
 - `git diff --check`: sin errores de espacios en el diff.
 - Flyway aplicó V6 contra PostgreSQL real y la tabla de roles confirmó `student1:PARTICIPANT`, `operator:OPERATOR` y `admin:ADMIN`.
@@ -327,9 +327,9 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - La aplicación expone puertos para emisión de token, verificación de contraseña y auditoría de autenticación; infraestructura los adapta con JWT, BCrypt y SLF4J.
 - La ausencia de cuenta y la contraseña incorrecta conservan un mismo fallo público y se auditan sin registrar usuario, contraseña ni token.
 - `ApplicationArchitectureTest` falla si código de producción en `application` depende de `infrastructure` o `interfaces`.
-- `mvn verify`: 35 pruebas, 0 fallos, 0 errores, incluidas dos bases PostgreSQL 16 efímeras.
+- `mvn verify`: 38 pruebas, 0 fallos, 0 errores, incluidas dos bases PostgreSQL 16 efímeras.
 - Docker reconstruyó el perfil `full`; salud `UP` y login `student1` emitió un token con rol `PARTICIPANT`.
-- El CI remoto del commit `8a0a9f8` (run `35521186422`) terminó correctamente.
+- El CI remoto del commit `974ad4b` (run `35521927862`) terminó correctamente.
 
 ## 15. Correlación HTTP verificable — 2026-09-20
 
@@ -338,5 +338,14 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - El identificador vive en MDC solo durante la petición y se elimina siempre al terminar.
 - CORS expone la cabecera para clientes web y OpenAPI documenta la cabecera en las respuestas actuales.
 - La prueba de integración cubre `401`, `403`, token inválido/expirado y reemplazo de una cabecera entrante no confiable.
-- `mvn verify`: 35 pruebas, 0 fallos, 0 errores. Redocly valida OpenAPI con la única advertencia conocida del servidor local de desarrollo.
+- `mvn verify`: 38 pruebas, 0 fallos, 0 errores. Redocly valida OpenAPI con la única advertencia conocida del servidor local de desarrollo.
 - Docker: salud `UP`; un `401 UNAUTHENTICATED` real devolvió el mismo UUID en cabecera y cuerpo.
+
+## 16. Aplicación independiente y transacciones por puerto — 2026-09-20
+
+- Los casos de uso dejaron de usar `@Service`, `@Transactional` y constructores Lombok.
+- `ApplicationConfig` ensambla los casos de uso en infraestructura y `TransactionRunnerPort` mantiene la intención transaccional dentro de aplicación sin importar Spring.
+- `SpringTransactionRunnerAdapter` delega en `TransactionTemplate`; sus pruebas demuestran `commit` exitoso y `rollback` ante excepción.
+- ArchUnit impide dependencias desde `application` hacia Spring, Lombok, `infrastructure` o `interfaces`.
+- `mvn verify`: 38 pruebas, 0 fallos, 0 errores; el contexto completo arrancó con PostgreSQL 16.
+- Docker: salud `UP` y login `operator` respondió `200` con correlación, confirmando el ensamblado real.

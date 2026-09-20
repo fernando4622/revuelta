@@ -3,6 +3,7 @@ package com.revuelta.api.application.circulation;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
+import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
 import com.revuelta.api.domain.circulation.Circulation;
 import com.revuelta.api.domain.container.Container;
@@ -12,14 +13,8 @@ import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.policy.ReturnPolicy;
 import com.revuelta.api.domain.user.UserId;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.time.Instant;
 
-@Service
-@RequiredArgsConstructor
 public class DeliverContainerUseCase {
 
     private final ContainerRepositoryPort containerRepository;
@@ -27,9 +22,29 @@ public class DeliverContainerUseCase {
     private final UserRepositoryPort userRepository;
     private final ReturnPolicyRepositoryPort policyRepository;
     private final ContainerEventRepositoryPort eventRepository;
+    private final TransactionRunnerPort transactionRunner;
 
-    @Transactional
+    public DeliverContainerUseCase(
+            ContainerRepositoryPort containerRepository,
+            CirculationRepositoryPort circulationRepository,
+            UserRepositoryPort userRepository,
+            ReturnPolicyRepositoryPort policyRepository,
+            ContainerEventRepositoryPort eventRepository,
+            TransactionRunnerPort transactionRunner
+    ) {
+        this.containerRepository = containerRepository;
+        this.circulationRepository = circulationRepository;
+        this.userRepository = userRepository;
+        this.policyRepository = policyRepository;
+        this.eventRepository = eventRepository;
+        this.transactionRunner = transactionRunner;
+    }
+
     public DeliveryResult execute(ContainerId containerId, UserId borrowerId, UserId operatorId) {
+        return transactionRunner.required(() -> deliver(containerId, borrowerId, operatorId));
+    }
+
+    private DeliveryResult deliver(ContainerId containerId, UserId borrowerId, UserId operatorId) {
         // 1. Validate Container existence and eligibility
         Container container = containerRepository.findById(containerId)
                 .orElseThrow(() -> new IllegalArgumentException("Container not found: " + containerId.value()));
