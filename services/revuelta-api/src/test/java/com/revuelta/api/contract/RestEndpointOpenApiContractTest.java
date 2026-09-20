@@ -34,6 +34,10 @@ class RestEndpointOpenApiContractTest {
     @Test
     void publicResponseFieldsMustMatchTheDocumentedSchemas() {
         assertEquals(
+                recordFields(AuthController.LoginResponse.class),
+                openApiInlineResponseFields("/auth/login", "post", "200")
+        );
+        assertEquals(
                 recordFields(ContainerController.ContainerResponse.class),
                 openApiSchemaFields("Container")
         );
@@ -44,6 +48,26 @@ class RestEndpointOpenApiContractTest {
         assertEquals(
                 recordFields(CirculationController.EventResponse.class),
                 openApiSchemaFields("ContainerEvent")
+        );
+    }
+
+    @Test
+    void publicRequestFieldsMustMatchTheDocumentedSchemas() {
+        assertEquals(
+                recordFields(AuthController.LoginRequest.class),
+                openApiInlineRequestFields("/auth/login", "post")
+        );
+        assertEquals(
+                recordFields(ContainerController.RegisterContainerRequest.class),
+                openApiInlineRequestFields("/containers", "post")
+        );
+        assertEquals(
+                recordFields(ContainerController.ActivateRequest.class),
+                openApiInlineRequestFields("/containers/{containerId}/activate", "post")
+        );
+        assertEquals(
+                recordFields(CirculationController.DeliverRequest.class),
+                openApiInlineRequestFields("/circulations", "post")
         );
     }
 
@@ -110,6 +134,38 @@ class RestEndpointOpenApiContractTest {
         Map<String, Object> schema = schemas.get(schemaName);
         Map<String, Object> properties = (Map<String, Object>) schema.get("properties");
         return properties.keySet();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> openApiInlineRequestFields(String path, String method) {
+        Map<String, Object> operation = operation(path, method);
+        Map<String, Object> requestBody = (Map<String, Object>) operation.get("requestBody");
+        Map<String, Object> content = (Map<String, Object>) requestBody.get("content");
+        Map<String, Object> mediaType = (Map<String, Object>) content.get("application/json");
+        return schemaProperties(mediaType).keySet();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Set<String> openApiInlineResponseFields(String path, String method, String status) {
+        Map<String, Object> operation = operation(path, method);
+        Map<String, Object> responses = (Map<String, Object>) operation.get("responses");
+        Map<String, Object> response = (Map<String, Object>) responses.get(status);
+        Map<String, Object> content = (Map<String, Object>) response.get("content");
+        Map<String, Object> mediaType = (Map<String, Object>) content.get("application/json");
+        return schemaProperties(mediaType).keySet();
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> operation(String path, String method) {
+        Map<String, Object> document = openApiDocument();
+        Map<String, Map<String, Object>> paths = (Map<String, Map<String, Object>>) document.get("paths");
+        return (Map<String, Object>) paths.get(path).get(method);
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> schemaProperties(Map<String, Object> mediaType) {
+        Map<String, Object> schema = (Map<String, Object>) mediaType.get("schema");
+        return (Map<String, Object>) schema.get("properties");
     }
 
     private Set<String> recordFields(Class<?> recordType) {

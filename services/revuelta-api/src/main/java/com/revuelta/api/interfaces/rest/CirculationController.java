@@ -56,7 +56,7 @@ public class CirculationController {
         return ResponseEntity.ok(CirculationResponse.fromDomain(result.circulation()));
     }
 
-    @GetMapping("/containers/{containerId}/events")
+    @GetMapping("/containers/{containerId}/history")
     @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
     public ResponseEntity<List<EventResponse>> getHistory(
             @PathVariable UUID containerId,

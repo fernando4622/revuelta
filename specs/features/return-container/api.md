@@ -1,6 +1,6 @@
 # Return Container — API Contract
 
-**Status:** DRAFT. Product semantics are approved; authentication, identifiers, time and idempotency remain gated.
+**Status:** DRAFT TARGET. Product semantics, identifiers, server time and MVP replay behavior are approved; QR resolution and feature authorization remain gated.
 
 ## Resolution prerequisite
 
@@ -14,7 +14,7 @@ Permission: RECEIVE_CONTAINER_RETURN
 Actor: Cafetería
 ```
 
-The request contains no client return timestamp or target state. Idempotency metadata follows D-010.
+The request contains no client return timestamp, target state or client idempotency key.
 
 ## Success
 
@@ -52,4 +52,4 @@ The operation finalizes possession but does not make the container available.
 
 ## Idempotency
 
-The final replay contract is blocked by D-010. Repetition or concurrency MUST produce at most one finalization and one return event.
+The active-state check and optimistic version protect the circulation and container updates. Repetition or concurrency MUST produce at most one finalization and one return event. A request observed after the first commit receives `409 RETURN_ALREADY_REGISTERED`; it does not replay the original success response.

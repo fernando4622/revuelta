@@ -1,6 +1,6 @@
 # Participant Code — API Contract
 
-**Status:** DRAFT. Paths and semantics are approved targets; exact identifiers, authentication and idempotency are gated by D-007, D-008 and D-010.
+**Status:** DRAFT. Paths and semantics are approved targets; UUID identifiers are resolved. Authentication, recovery and issuance replay semantics must be completed with D-007 and D-018 before implementation.
 
 ## Issue participant
 
@@ -67,4 +67,4 @@ The response contains no name, email or matrícula.
 - `409 PARTICIPANT_INACTIVE`;
 - safe `500`.
 
-Resolution is read-only and idempotent. Issuance idempotency remains governed by D-010.
+Resolution is read-only and idempotent. Participant issuance has no natural pre-existing resource identity, so its feature spec MUST define a deduplication input before that mutating endpoint is implemented; the core state-conflict policy alone is insufficient for issuance.

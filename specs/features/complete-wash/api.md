@@ -1,6 +1,6 @@
 # Complete Container Washing — API Contract
 
-**Status:** DRAFT. Product semantics are approved; authentication, identifiers and idempotency remain gated.
+**Status:** DRAFT TARGET. Product semantics, identifiers, server time and MVP replay behavior are approved; feature authorization remains gated.
 
 ## Endpoint
 
@@ -10,7 +10,7 @@ Permission: COMPLETE_CONTAINER_WASH
 Actor: Cafetería
 ```
 
-The request contains no client timestamp or target state. Idempotency metadata follows D-010.
+The request contains no client timestamp, target state or client idempotency key.
 
 ## Success
 
@@ -42,4 +42,4 @@ The request contains no client timestamp or target state. Idempotency metadata f
 
 ## Idempotency
 
-The final replay contract is blocked by D-010. Repetition or concurrency MUST produce at most one transition and one wash-completed event.
+Optimistic locking and the state transition protect the mutation. Repetition or concurrency MUST produce at most one transition and one wash-completed event. A request observed after completion receives `409 WASH_ALREADY_COMPLETED`; it does not replay the original success response.

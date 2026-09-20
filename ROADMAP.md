@@ -70,7 +70,7 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 
 ### 1.3 Evidencia técnica actual
 
-- El backend compila con el Maven Wrapper real y JDK 17; 38 pruebas pasan, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
+- El backend compila con el Maven Wrapper real y JDK 17; 62 pruebas pasan, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, seguridad HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
 - Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
 - Flutter 3.41.9/Dart 3.11.5 ejecuta 8 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
 - Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
@@ -363,7 +363,7 @@ Definir:
 - Activo de marca: `apps/revuelta-mobile/resources/logo.jpeg`.
 - Impacto y notificaciones se permiten como mockup con “Datos de demostración”, no como hechos productivos.
 
-Siguen abiertos el aprovisionamiento/recuperación institucional para producción, la vinculación real cuenta–participante, la recuperación del Código ReVuelta, política exacta, idempotencia, tiempo, concurrencia y evidencia de estados excepcionales.
+Siguen abiertos el aprovisionamiento/recuperación institucional para producción, la vinculación real cuenta–participante, la recuperación del Código ReVuelta, la duración final de la política y la evidencia de estados excepcionales. La representación de tiempo, replay del MVP y concurrencia ya tienen decisión técnica aprobada.
 
 ### Evidencia de avance — 2026-09-20
 
@@ -371,7 +371,7 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - `student1` recibe `PARTICIPANT` mediante la migración V6.
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
-- La suite backend compila con Java 17: 38 pruebas, 0 fallos y 0 errores.
+- La suite backend compila con Java 17: 62 pruebas, 0 fallos y 0 errores.
 - Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
 - Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
 - La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
@@ -430,14 +430,18 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 **Prioridad:** P0
 **Dependencias:** G0 para semántica; F1 para verificación.
 
-### Estado — 2026-09-20
+### Estado — 2026-09-20: cerrada
 
 - `LoginUseCase` ya depende de puertos de aplicación para emitir tokens, verificar contraseñas y auditar rechazos; JWT, BCrypt y logging quedan en adaptadores de infraestructura.
 - `ApplicationArchitectureTest` impide dependencias de producción desde `application` hacia `infrastructure` o `interfaces`.
-- Los límites, las transacciones y la correlación están verificados con 38 pruebas, OpenAPI válido y la imagen Docker reconstruida.
+- Los límites, las transacciones y la correlación están verificados con 62 pruebas y OpenAPI válido.
 - Cada respuesta HTTP recibe un `X-Correlation-ID` generado por el servidor; los errores reutilizan ese valor en `traceId` y rechazan valores entrantes no confiables.
 - Aplicación ya no depende de Spring ni Lombok; la demarcación transaccional usa un puerto y un adaptador Spring probado para `commit` y `rollback`.
-- F2 continúa abierta: faltan completar el catálogo de fallos, consistencia integral OpenAPI y restricciones/concurrencia.
+- Los fallos esperados usan códigos estables y se traducen a `400/404/409` sin filtrar detalles internos.
+- Rutas y campos públicos de respuesta tienen una prueba automática de paridad con OpenAPI; Redocly valida el contrato sin advertencias.
+- La migración V8 agrega versión/origen de política, `RETURNED`, restricciones de consistencia, versiones optimistas y correlación de eventos.
+- PostgreSQL demuestra un único ganador bajo entrega concurrente y permite varios recipientes activos para el mismo participante.
+- Los eventos se persisten de forma append-only desde el puerto público y conservan actor, tiempo del servidor, operación y correlación.
 
 ### 6.1 Fallos y límites de capa
 
@@ -478,11 +482,11 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 
 ### Gate F2
 
-- [ ] No hay excepciones genéricas para fallos esperados.
+- [x] No hay excepciones genéricas para fallos esperados en los casos de uso; validaciones sintácticas se traducen a `VALIDATION_ERROR`.
 - [x] Dominio y aplicación respetan la dirección de dependencias.
-- [ ] OpenAPI e implementación coinciden.
-- [ ] Las restricciones relacionales y la concurrencia están documentadas y probadas.
-- [ ] El historial conserva actor, tiempo del servidor, operación y correlación.
+- [x] OpenAPI e implementación coinciden en rutas y campos públicos de respuesta, con validación Redocly.
+- [x] Las restricciones relacionales y la concurrencia están documentadas y probadas sobre PostgreSQL 16.
+- [x] El historial conserva actor, tiempo del servidor, operación y correlación.
 
 ---
 

@@ -1,6 +1,6 @@
 # REST API Contract Baseline
 
-**Status:** DRAFT / BLOCKING until exact key strategy, idempotency, production identity binding and remaining feature contracts are approved. Development/MVP login is approved.
+**Status:** APPROVED F2 BASELINE for identifiers, time, error shape, correlation and MVP replay behavior. Production identity binding and unimplemented feature contracts remain gated in their own phases.
 
 ## 1. Contract principles
 
@@ -146,3 +146,7 @@ Each endpoint requires examples/tests for:
 - conflict/duplicate;
 - concurrency outcome;
 - safe unexpected failure.
+
+## 11. Implemented-contract verification
+
+Enabled REST routes and public response fields MUST match `services/revuelta-api/src/main/resources/openapi.yaml`. `RestEndpointOpenApiContractTest` enforces that parity and Redocly validates the document in CI. Proposed routes in this baseline remain non-production targets until their feature spec and phase gate permit implementation.

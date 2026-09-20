@@ -1,6 +1,6 @@
 # Deliver Container — API Contract
 
-**Status:** DRAFT. Product semantics are approved; authentication, identifiers and idempotency remain gated.
+**Status:** DRAFT TARGET. Product semantics, identifiers, time and MVP replay behavior are approved; participant resolution and feature authorization remain gated.
 
 ## Endpoint
 
@@ -19,7 +19,7 @@ Actor: Cafetería
 }
 ```
 
-Client timestamps and target state are prohibited. Idempotency metadata follows D-010 once approved.
+Client timestamps, target state and client idempotency headers are prohibited in the MVP contract.
 
 ## Success
 
@@ -62,4 +62,4 @@ An existing circulation for a different container and the same participant is no
 
 ## Idempotency
 
-The endpoint is mutating. The final header/key and replay response are blocked by D-010. Database protection for one active circulation per container remains mandatory regardless of client deduplication.
+The endpoint is mutating and uses no client idempotency key in the MVP. A partial unique index permits at most one active circulation for a container under concurrency. A replay observed after the first commit receives `409 ACTIVE_CIRCULATION_EXISTS`; it does not replay the original success response. A participant may still hold active circulations for other containers.

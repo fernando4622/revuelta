@@ -187,9 +187,7 @@ V1 is not acceptable if:
 - D-004 exceptional-state evidence details;
 - D-005 final treatment of unused `ASSIGNED`;
 - production institutional account provisioning, recovery and token revocation beyond the approved MVP mechanism;
-- D-008 final key strategy — resolved for MVP by the decision register;
-- D-009 time representation — resolved for MVP by the decision register;
-- D-010 idempotency mechanism — resolved for MVP by the decision register;
-- D-013 concurrency mechanism — resolved for MVP by the decision register;
 - D-017 real environmental methodology;
 - D-018 Participant Code recovery/replacement.
+
+UUID v4 identifiers, UTC `Instant`, replay by stable conflict and the partial-index/optimistic-locking concurrency strategy are resolved for the MVP in D-008, D-009, D-010 and D-013.

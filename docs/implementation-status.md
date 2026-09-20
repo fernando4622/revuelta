@@ -19,8 +19,8 @@
 ├── Inicio.md                    ✅ Instrucciones de arranque
 ├── docker-compose.yml           ✅ Implementado (PostgreSQL 16)
 ├── docs/
-│   ├── decision-log.md          ✅ DL-001 a DL-013 resueltos
-│   ├── implementation-status.md ✅ COMPLETADO
+│   ├── decision-log.md          ✅ DL-001 a DL-017 documentados
+│   ├── implementation-status.md ✅ Actualizado por fase
 │   ├── adr/                     ✅ ADR-001 a ADR-006 ACCEPTED
 │   └── diagrams/                ✅ Diagramas de secuencia y contexto
 ├── services/revuelta-api/       ✅ Backend Spring Boot 4.1.1 (Clean Arch + DDD parcial)
@@ -31,9 +31,9 @@
 │   │   ├── infrastructure/      ✅ JPA Entities, Repositories, Security (JWT 4h), Web Exception Handler
 │   │   └── interfaces/rest/     ✅ AuthController, ContainerController, CirculationController
 │   ├── src/main/resources/
-│   │   ├── db/migration/        ✅ V1–V7 comunes; semillas demo aisladas en `db/dev`
+│   │   ├── db/migration/        ✅ V1–V8 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 38 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
+│   └── src/test/java/           ✅ 62 pruebas de dominio, aplicación, migración, contrato, seguridad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -49,10 +49,10 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 
 - Proyecto Spring Boot 4.1.1 (`services/revuelta-api/`) con dominio y aplicación independientes de frameworks y de adaptadores externos, protegidos por ArchUnit.
 - Cliente móvil Flutter (`apps/revuelta-mobile/`) con arquitectura limpia y Riverpod AsyncNotifier.
-- Migraciones Flyway comunes (`V1` a `V7`) y semillas repetibles exclusivas del perfil `dev`.
+- Migraciones Flyway comunes (`V1` a `V8`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de 38 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP, transacciones y límites de dependencia de dominio y aplicación.
+- Suite de 62 pruebas, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, seguridad HTTP, transacciones y límites de dependencia de dominio y aplicación.
 
 
 ---
@@ -64,12 +64,12 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 | `AGENTS.md` | Aprobado | Reglas de implementación |
 | `ROADMAP.md` | Aprobado | Fases, arquitectura, principios |
 | `specs/constitution.md` | Approved Baseline | Alcance, principios, exclusiones |
-| `specs/product.md` | Blocked | Actores, journeys, requisitos funcionales |
-| `specs/domain/container-lifecycle.md` | Blocked | Máquina de estados del envase |
-| `specs/domain/circulation.md` | Blocked | Préstamo/devolución, invariantes |
-| `specs/data/data-model.md` | Blocked | Modelo relacional, concurrencia |
+| `specs/product.md` | Partially approved | Actores, journeys, requisitos funcionales |
+| `specs/domain/container-lifecycle.md` | Approved normal flow | Máquina de estados del envase |
+| `specs/domain/circulation.md` | Approved normal handoff | Préstamo/devolución, invariantes |
+| `specs/data/data-model.md` | Approved baseline | Modelo relacional, concurrencia |
 | `specs/security/access-control.md` | Blocked | Autenticación, autorización |
-| `specs/api/openapi-baseline.md` | Blocked | Contrato REST |
+| `specs/api/openapi-baseline.md` | Approved F2 baseline | Contrato REST habilitado y objetivos futuros |
 | `specs/api/errors.md` | Approved Baseline | Taxonomía de errores |
 | `specs/features/*/` | Blocked/Draft | Requisitos y escenarios por feature |
 | `specs/testing/test-strategy.md` | Approved Baseline | Estrategia de testing |
@@ -88,7 +88,7 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 
 ## 3. Features implementadas
 
-Existe código ejecutable backend y Flutter. La autenticación de desarrollo y el enrutamiento móvil por rol ya tienen verificación ejecutable contra sus specs. La implementación todavía no modela Código ReVuelta persistente ni `RETURNED/Pendiente de lavado`.
+Existe código ejecutable backend y Flutter. La autenticación de desarrollo y el enrutamiento móvil por rol ya tienen verificación ejecutable contra sus specs. La base backend ya modela `RETURNED/Pendiente de lavado`; todavía no modela Código ReVuelta persistente ni el caso de uso de lavado completado.
 
 ---
 
@@ -100,23 +100,23 @@ Ordenadas por dependencia y prioridad operativa:
 |---|---|---|---|
 | 1 | Skeleton arquitectónico backend | ADR-001, ADR-002 | Ninguna |
 | 2 | Skeleton arquitectónico Flutter | ADR-001, ui/mobile.md | D-011 |
-| 3 | Base de datos + migraciones iniciales | data/data-model.md | D-008, D-009, D-013 |
+| 3 | Base de datos + migraciones iniciales | data/data-model.md | Base F2 completada; extensiones de participante continúan en F3/F4 |
 | 4 | Dominio: Container entity + state machine | container-lifecycle.md | D-005 |
-| 5 | Dominio: Participant + Participant Code | participant.md, identify-participant/* | D-008, D-018 para recuperación |
-| 6 | Dominio: Circulation entity | circulation.md | D-008, D-009, D-013 |
+| 5 | Dominio: Participant + Participant Code | participant.md, identify-participant/* | D-018 para recuperación y deduplicación de emisión |
+| 6 | Dominio: Circulation entity | circulation.md | Base de política, tiempo y concurrencia completada; Participant pendiente |
 | 7 | Autenticación MVP/demo | authentication/requirements.md, access-control.md | Aprobada; falta hardening productivo |
 | 8 | Autorización (roles/permisos) | access-control.md | Matriz aprobada; falta verificación integral |
-| 9 | Container registry (alta, consulta) | product.md FR-010..FR-014 | D-008 |
-| 10 | QR de participante y recipiente | identify-participant/*, scan-container/* | D-008 |
-| 11 | Entrega (crear circulación) | deliver-container/* | D-007..D-013 |
-| 12 | Devolución a pendiente de lavado | return-container/* | D-007..D-013 |
-| 13 | Lavado completado | complete-wash/* | D-007, D-010, D-013 |
+| 9 | Container registry (alta, consulta) | product.md FR-010..FR-014 | Sin decisión técnica bloqueante; corresponde a F4 |
+| 10 | QR de participante y recipiente | identify-participant/*, scan-container/* | Contrato QR/participante pendiente de F4 |
+| 11 | Entrega (crear circulación) | deliver-container/* | Participant y autorización de feature pendientes |
+| 12 | Devolución a pendiente de lavado | return-container/* | Resolución QR y autorización de feature pendientes |
+| 13 | Lavado completado | complete-wash/* | Caso de uso y autorización pendientes |
 | 14 | Historial/trazabilidad | traceability.md, FR-050..FR-052 | — |
 | 15 | Error handling uniforme | errors.md | — |
 | 16 | Observabilidad básica | observability.md | — |
 | 17 | Flutter: enrutamiento por rol y shells | ui/mobile.md, ui/perspectives.md | Base implementada y verificada; módulos internos aún parciales |
 | 18 | Flutter: Scan + Inspect | ui/mobile.md, state-machines.md | — para demo |
-| 19 | Flutter: Delivery/Return/Wash | specs UI por feature | D-007, D-010, D-013 |
+| 19 | Flutter: Delivery/Return/Wash | specs UI por feature | Contratos de F5/F6 y autorización pendientes |
 | 20 | Flutter: alumno/historial | student-experience.md | D-007 para datos reales |
 | 21 | E2E journey completo | test-strategy.md | Todas anteriores |
 
@@ -132,10 +132,6 @@ Las decisiones de identidad del participante, actor de devolución y estado pend
 | **D-004** | Evidencia para daño/pérdida/retiro | Flujos excepcionales |
 | **D-005** | Tratamiento final de `ASSIGNED` | Limpieza de contrato/modelo |
 | **D-007** | Aprovisionamiento, recuperación y revocación productivos; el JWT MVP/demo ya está aprobado | Piloto real |
-| **D-008** | Estrategia final de identificadores | Persistencia/API |
-| **D-009** | Tiempo/zona horaria | Fechas límite y puntualidad |
-| **D-010** | Idempotencia | Reintentos de mutaciones |
-| **D-013** | Control de concurrencia final | Entrega, devolución y lavado |
 | **D-017** | Metodología ambiental real | Impacto productivo |
 | **D-018** | Recuperación/reemisión del Código ReVuelta | Operación con participantes reales |
 
@@ -158,7 +154,7 @@ Ver `/docs/decision-log.md`. Resumen:
 11. El activo gráfico aprobado es `apps/revuelta-mobile/resources/logo.jpeg`.
 12. Impacto y notificaciones son mockup con “Datos de demostración” hasta contar con fuentes reales.
 
-Las decisiones técnicas temporales existentes —JWT, UUID, UTC, índice parcial, Riverpod— no se consideran aprobación final mientras su registro gobernante permanezca abierto.
+UUID v4, UTC `Instant`, replay por conflicto estable y la combinación índice parcial/bloqueo optimista están aprobados en el registro gobernante para el MVP. JWT sigue limitado al entorno demostrable y Riverpod conserva su alcance de decisión móvil.
 
 ---
 
@@ -349,3 +345,15 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - ArchUnit impide dependencias desde `application` hacia Spring, Lombok, `infrastructure` o `interfaces`.
 - `mvn verify`: 38 pruebas, 0 fallos, 0 errores; el contexto completo arrancó con PostgreSQL 16.
 - Docker: salud `UP` y login `operator` respondió `200` con correlación, confirmando el ensamblado real.
+
+## 17. Cierre de F2 — contrato, errores, datos y trazabilidad — 2026-09-20
+
+- Los endpoints implementados coinciden exactamente con las rutas OpenAPI; una prueba compara también los campos públicos de `Container`, `Circulation` y `ContainerEvent`.
+- Redocly 2.53.3 valida OpenAPI sin advertencias. El contrato declara roles requeridos, paginación, errores `400/401/403/404/409/500` y replay por conflicto estable.
+- Los casos de uso traducen condiciones esperadas a códigos tipados; los adaptadores convierten violaciones únicas y escrituras obsoletas en conflictos estables.
+- V8 preserva política y versión en cada circulación, agrega versiones optimistas, persiste `RETURNED`, valida coherencia temporal/estado y exige correlación en eventos.
+- PostgreSQL 16 demuestra que dos entregas concurrentes sobre el mismo recipiente producen un solo commit y que un participante puede conservar varias circulaciones activas de recipientes distintos.
+- El adaptador de eventos solo agrega registros; las claves foráneas restrictivas impiden eliminar casualmente recursos con historial.
+- El recorrido real de persistencia confirma activación, entrega y devolución atómicas con eventos que conservan actor, operación, tiempo del servidor y correlación.
+- `mvn verify`: 62 pruebas, 0 fallos, 0 errores.
+- F2 queda cerrada. No se inició trabajo de F3 en este bloque.
