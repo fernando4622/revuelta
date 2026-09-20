@@ -34,9 +34,18 @@ paths:
                   tokenType: { type: string, example: "Bearer" }
                   userId: { type: string, format: uuid }
                   username: { type: string }
-                  role: { type: string, example: "OPERATOR" }
+                  role:
+                    type: string
+                    enum: [PARTICIPANT, OPERATOR, ADMIN]
+                    example: "OPERATOR"
         '400':
           $ref: '#/components/responses/400BadRequest'
+        '401':
+          description: Invalid username or password
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetail'
 
   /containers:
     post:
@@ -164,6 +173,22 @@ components:
       bearerFormat: JWT
 
   schemas:
+    ProblemDetail:
+      type: object
+      required: [type, title, status, code, detail, instance, traceId, timestamp, errors]
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        code: { type: string, example: "INVALID_CREDENTIALS" }
+        detail: { type: string }
+        instance: { type: string }
+        traceId: { type: string }
+        timestamp: { type: string, format: date-time }
+        errors:
+          type: array
+          items: { type: string }
+
     Container:
       type: object
       properties:

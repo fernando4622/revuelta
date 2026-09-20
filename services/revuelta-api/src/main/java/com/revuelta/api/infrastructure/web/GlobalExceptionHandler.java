@@ -1,5 +1,6 @@
 package com.revuelta.api.infrastructure.web;
 
+import com.revuelta.api.application.auth.AuthenticationFailureException;
 import com.revuelta.api.domain.container.ContainerTransitionException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +18,19 @@ import java.util.UUID;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthenticationFailureException.class)
+    public ResponseEntity<ProblemDetail> handleAuthenticationFailure(
+            AuthenticationFailureException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.UNAUTHORIZED,
+                "INVALID_CREDENTIALS",
+                "Invalid username or password",
+                request.getRequestURI()
+        );
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {

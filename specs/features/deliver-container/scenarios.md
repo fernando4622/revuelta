@@ -1,36 +1,57 @@
 # Deliver Container — Acceptance Scenarios
 
 ## SC-DEL-001 — Successful delivery
-Given an authorized operator, valid recipient, eligible container, and effective policy,
-when the operator confirms delivery,
-then exactly one circulation is created,
-and the container transitions to the approved delivery state,
-and the due-at value is recorded,
-and one trace event is recorded.
 
-## SC-DEL-002 — Unknown container
-Given a syntactically valid but unknown QR,
-when delivery is requested,
-then no circulation is created,
-and no container state changes.
+Given an authorized Cafetería actor,
+an active participant resolved from a valid Participant Code,
+an available container resolved from its QR,
+and an effective return policy,
+when the actor confirms delivery,
+then exactly one active circulation is created,
+the container becomes `IN_USE`,
+due-at and policy provenance are recorded,
+and one delivery event exists.
 
-## SC-DEL-003 — Ineligible state
-Given an existing container in a non-eligible state,
+## SC-DEL-002 — Additional container for participant
+
+Given the participant already has one active circulation,
+and a different container is available,
+when Cafetería confirms delivery of the different container,
+then a second active circulation is created for the participant.
+
+## SC-DEL-003 — Unknown participant code
+
+Given a syntactically valid but unknown Participant Code,
+when delivery is attempted,
+then no circulation or state mutation occurs.
+
+## SC-DEL-004 — Unknown container
+
+Given a valid participant and unknown container QR,
+when delivery is attempted,
+then no circulation or state mutation occurs.
+
+## SC-DEL-005 — Ineligible container
+
+Given a container is not `AVAILABLE`,
 when delivery is requested,
-then the operation fails with a business conflict,
+then it fails with a business conflict,
 and state is unchanged.
 
-## SC-DEL-004 — Duplicate submission
-Given a successful delivery request,
+## SC-DEL-006 — Duplicate submission
+
+Given a successful delivery command,
 when the same logical command is retried,
-then the system does not create a second active circulation.
+then no second circulation or delivery event is created.
 
-## SC-DEL-005 — Race condition
-Given one eligible container,
+## SC-DEL-007 — Concurrent delivery
+
+Given one available container,
 when two authorized clients submit delivery concurrently,
-then at most one delivery becomes effective.
+then at most one becomes effective.
 
-## SC-DEL-006 — Unauthorized actor
-Given a valid container and recipient,
-when an actor without the required permission calls the endpoint,
-then the system rejects the request without mutation.
+## SC-DEL-008 — Unauthorized actor
+
+Given valid participant and container codes,
+when an unauthorized client requests delivery,
+then the request is rejected without mutation.

@@ -1,6 +1,6 @@
 # Container Lifecycle Specification
 
-**Status:** BLOCKED FOR FINAL APPROVAL. Baseline semantics are defined below; final transition authorization still requires D-004.
+**Status:** APPROVED FOR NORMAL PILOT FLOW. Exceptional-state evidence and final `ASSIGNED` treatment remain open.
 
 ## 1. Concept
 
@@ -11,131 +11,116 @@ A `Container` represents one physical reusable food container that is individual
 - `BR-CTR-001`: One physical container maps to one container identity.
 - `BR-CTR-002`: Container identity is immutable.
 - `BR-CTR-003`: Two active records MUST NOT represent the same physical container.
-- `BR-CTR-004`: QR identification MUST resolve to at most one active container.
+- `BR-CTR-004`: One active container QR resolves to at most one container.
 
-## 3. Baseline states
+## 3. States
+
+| State | Meaning in V1 |
+|---|---|
+| `REGISTERED` | Exists in inventory but is not eligible for delivery |
+| `AVAILABLE` | Clean and eligible for a new circulation |
+| `ASSIGNED` | Reserved state; not used by the current immediate physical-handoff flow |
+| `IN_USE` | In a participant's possession through an active circulation |
+| `RETURNED` | Received by Cafetería, circulation finalized, pending washing |
+| `DAMAGED` | Unavailable because damage was recorded |
+| `LOST` | Unavailable because loss was recorded |
+| `RETIRED` | Permanently excluded from circulation |
+
+## 4. Approved normal transitions
 
 ```text
-REGISTERED
-AVAILABLE
-ASSIGNED
-IN_USE
-RETURNED
-DAMAGED
-LOST
-RETIRED
+REGISTERED → AVAILABLE      activate container
+AVAILABLE  → IN_USE        cafeteria delivery
+IN_USE    → RETURNED       cafeteria physical return
+RETURNED  → AVAILABLE      cafeteria wash completion
 ```
 
-### State meanings
+### Delivery
 
-`REGISTERED`: Container exists in the registry but is not yet operationally available for circulation.
+`AVAILABLE → IN_USE` occurs atomically with circulation creation and delivery event.
 
-`AVAILABLE`: Container is eligible for a new circulation, subject to policy and authorization.
+### Return
 
-`ASSIGNED`: Operational assignment to a circulation/recipient exists, but the product needs to define whether physical possession has begun.
+`IN_USE → RETURNED` occurs atomically with circulation finalization and return event. The participant no longer holds the container after commit.
 
-`IN_USE`: Container is considered physically in the recipient's custody/use phase.
+### Washing
 
-`RETURNED`: A return operation has been accepted; this state is transient or persistent depending on the final state-machine decision below.
+`RETURNED → AVAILABLE` is a separate explicit operation and event. A `RETURNED` container cannot be delivered.
 
-`DAMAGED`: Container is known to be damaged and cannot follow normal circulation rules until recovered or retired.
+## 5. Exceptional transitions
 
-`LOST`: Container is believed lost and cannot follow normal circulation rules.
-
-`RETIRED`: Container is permanently excluded from circulation.
-
-## 4. State-machine issue requiring explicit resolution
-
-The current project history contains both assignment and use semantics. The following question MUST be resolved before implementation:
-
-> Is `ASSIGNED` materially different from `IN_USE`, and is `RETURNED` a persistent state or merely an intermediate event before `AVAILABLE`?
-
-Do not implement both states as cosmetic UI labels. A state exists only if it changes valid operations, invariants, permissions, reporting, or persistence semantics.
-
-## 5. Baseline transition candidates
+Candidate transitions remain:
 
 ```text
-REGISTERED → AVAILABLE
-AVAILABLE → ASSIGNED
-ASSIGNED → IN_USE
-IN_USE → RETURNED
-RETURNED → AVAILABLE
-
 AVAILABLE → DAMAGED
-RETURNED → DAMAGED
-
+RETURNED  → DAMAGED
+IN_USE    → DAMAGED
 AVAILABLE → LOST
-RETURNED → LOST
-
-DAMAGED → AVAILABLE
-DAMAGED → RETIRED
-LOST → RETIRED
+IN_USE    → LOST
+DAMAGED   → AVAILABLE
+DAMAGED   → RETIRED
+LOST      → RETIRED
 ```
 
-These are candidates, not final authorization rules.
+Only Operación ReVuelta may perform them, through named use cases with a mandatory reason. Exact evidence requirements remain blocked by D-004.
 
 ## 6. Transition contract
 
-Every transition MUST define:
+Every transition defines:
 
-- current state;
-- target state;
-- actor type;
-- required permission;
+- current and target state;
+- authorized actor/permission;
 - preconditions;
 - required input;
-- invariants checked;
+- invariant checks;
 - persistence changes;
-- emitted trace event;
-- possible failure codes;
+- trace event;
+- failure codes;
 - concurrency strategy;
-- whether operation is idempotent.
+- idempotency behavior.
 
-## 7. Prohibited mutations
+No layer may expose a generic `container.status = X` operation.
 
-No caller may perform generic state mutation such as:
+## 7. Invariants
 
-```text
-container.status = X
-```
+- `BR-CTR-010`: Only `AVAILABLE` may start a circulation.
+- `BR-CTR-011`: `RETURNED` is not available for delivery.
+- `BR-CTR-012`: `RETIRED`, `LOST` and `DAMAGED` cannot start a normal circulation.
+- `BR-CTR-013`: Invalid transitions do not partially mutate state.
+- `BR-CTR-014`: Each accepted transition creates one trace event.
+- `BR-CTR-015`: A transition failure leaves the aggregate consistent.
+- `BR-CTR-016`: Concurrent operations cannot both succeed when they would violate state.
 
-outside the domain operation that owns the transition.
+## 8. Acceptance scenarios
 
-## 8. Exceptional states
+### SC-CTR-001 — Delivery
 
-### DAMAGED
-Must have an authorized actor and a defined reason/evidence policy.
+Given an available container,
+when authorized Cafetería completes delivery,
+then the container becomes `IN_USE`.
 
-**Decision required:** reason taxonomy and whether evidence/photo/notes are mandatory.
+### SC-CTR-002 — Physical return
 
-### LOST
-Must have an authorized actor and a defined reason/report policy.
+Given an in-use container with active circulation,
+when authorized Cafetería confirms physical receipt,
+then the container becomes `RETURNED`,
+and is not eligible for delivery.
 
-**Decision required:** reason/evidence and recovery policy.
+### SC-CTR-003 — Washing
 
-### RETIRED
-Must be terminal unless a future approved spec explicitly introduces reactivation.
+Given a returned container,
+when authorized Cafetería confirms washing,
+then the container becomes `AVAILABLE`,
+and one washing event exists.
 
-## 9. Invariants
+### SC-CTR-004 — Cannot deliver dirty container
 
-- `BR-CTR-010`: A retired container cannot start a new circulation.
-- `BR-CTR-011`: A lost container cannot start a new circulation.
-- `BR-CTR-012`: A damaged container cannot start a new circulation unless explicitly recovered to an eligible state.
-- `BR-CTR-013`: Invalid transitions MUST not partially mutate state.
-- `BR-CTR-014`: Each accepted transition MUST create traceability evidence.
-- `BR-CTR-015`: A transition failure MUST leave the aggregate in a consistent state.
+Given a returned container pending washing,
+when delivery is attempted,
+then it fails without mutation.
 
-## 10. Concurrency
+### SC-CTR-005 — Concurrent assignment
 
-For any transition whose precondition depends on current state, the implementation MUST guarantee that concurrent requests cannot both succeed when that would violate an invariant.
-
-## 11. Acceptance scenarios
-
-### SC-CTR-001 Valid availability transition
-Given a registered container and an authorized transition operation, when the transition is performed, then the target state is stored and one trace event exists.
-
-### SC-CTR-002 Invalid transition
-Given a container in an incompatible state, when an invalid transition is requested, then the operation fails with a typed business error and no state mutation occurs.
-
-### SC-CTR-003 Concurrent assignment
-Given one available container and two authorized devices attempting assignment concurrently, when both requests complete, then at most one creates the active circulation.
+Given one available container,
+when two authorized devices attempt delivery concurrently,
+then at most one creates an active circulation.

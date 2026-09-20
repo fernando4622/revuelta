@@ -17,12 +17,18 @@ public class LoginUseCase {
     private final JwtTokenProvider tokenProvider;
 
     public AuthResult execute(String username, String password) {
-        var user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+        UserRepositoryPort.UserRecord user;
+        try {
+            user = userRepository.findByUsername(username)
+                    .orElseThrow(AuthenticationFailureException::new);
+        } catch (IllegalStateException exception) {
+            log.error("Authentication rejected because the account role configuration is invalid");
+            throw new AuthenticationFailureException();
+        }
 
         if (!passwordEncoder.matches(password, user.passwordHash())) {
-            log.warn("Authentication failed for user: {}", username);
-            throw new IllegalArgumentException("Invalid username or password");
+            log.warn("Authentication failed because the supplied credentials are invalid");
+            throw new AuthenticationFailureException();
         }
 
         String token = tokenProvider.generateToken(user.id(), user.username(), user.roleName());

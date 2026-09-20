@@ -1,123 +1,170 @@
 # ReVuelta Data Model Specification
 
-**Status:** BLOCKED FOR FINAL APPROVAL until key identity decisions are resolved.
+**Status:** PARTIALLY APPROVED. Participant relationships and normal lifecycle persistence are defined; final key, time, idempotency and recovery decisions remain open.
 
-## 1. Data ownership principles
+## 1. Data ownership
 
-PostgreSQL is the authoritative persistence boundary for business state.
-
-Business invariants are owned by the domain/application layer; relational invariants are additionally enforced by database constraints where appropriate.
+PostgreSQL is authoritative for persisted business state. Domain/application owns business semantics; database constraints protect relational invariants and races.
 
 ## 2. Core conceptual records
 
-### User
-Represents an authenticated or operational actor when the approved identity model uses a local user record.
+### AuthenticatedAccount
 
-### Role
-Represents a named authorization grouping.
+A provisioned login identity with credentials and exactly one recognized MVP role: `PARTICIPANT`, `OPERATOR` or `ADMIN`.
 
-### Permission
-Represents an atomic authorization capability.
+An authenticated account is not interchangeable with a Participant Code. Personal participant queries require an explicit account-to-participant association.
+
+### StaffActor
+
+Authenticated Cafetería or ReVuelta operations identity.
+
+### Role / Permission
+
+Authorization grouping and atomic capabilities.
+
+### Participant
+
+Stable pilot identity for a recipient. Contains no required personal profile fields.
+
+### ParticipantCode
+
+Opaque, scannable public identifier associated with one participant. Has active/inactive status, version and issuance audit fields.
 
 ### Container
-Represents one physical reusable container.
+
+One physical reusable container and its lifecycle state.
 
 ### Circulation
-Represents one period of controlled possession.
+
+One period in which one participant holds one container.
 
 ### ContainerEvent / AuditEvent
-Represents immutable traceability evidence of significant business operations.
+
+Append-oriented evidence for issuance, delivery, return, wash completion, exceptions and corrections.
 
 ### ReturnPolicy
-Represents a versioned rule used to calculate due-at.
 
-Exact relational decomposition MAY differ, but no table should exist without a documented responsibility.
+Versioned rule captured by each circulation to establish due-at.
 
-## 3. Identity strategy
-
-The final choice of primary keys MUST consider:
-
-- natural business identity;
-- immutability;
-- uniqueness scope;
-- privacy/exposure;
-- API design;
-- indexing/lookup;
-- operational issuance.
-
-**Decision required:** final PK strategy for users, containers, circulations, events, roles/permissions, and whether database PK differs from external API identifier.
-
-The system MUST NOT introduce synthetic identifiers purely by habit.
-
-## 4. Candidate relationships
-
-Conceptually:
+## 3. Conceptual relationships
 
 ```text
-User 1 ─── * Circulation (as actor/recipient depending identity model)
-Container 1 ─── * Circulation
-Container 1 ─── * ContainerEvent
-Role * ─── * Permission
-User * ─── * Role
-ReturnPolicy 1 ─── * Circulation (effective policy provenance)
+Participant 1 ─── * ParticipantCode
+Participant 1 ─── * Circulation
+Container   1 ─── * Circulation
+Container   1 ─── * ContainerEvent
+AuthenticatedAccount * ─── 1 Role (MVP)
+AuthenticatedAccount 0..1 ─── 1 Participant
+StaffActor  1 ─── 1 AuthenticatedAccount
+Role        * ─── * Permission
+ReturnPolicy 1 ── * Circulation
 ```
 
-The exact cardinalities around recipient identity depend on D-002.
+A participant may have multiple active circulations. A container may have at most one.
+
+## 4. Required ParticipantCode fields
+
+- internal identity;
+- participant foreign key;
+- opaque public code/hash representation;
+- payload format version;
+- active flag/status;
+- issued-at;
+- issued-by;
+- deactivated-at/by/reason where applicable.
+
+The raw QR payload MUST NOT contain PII. Secrets/tokens MUST not be logged.
 
 ## 5. Required relational invariants
 
-- `DR-001`: container identity is unique.
-- `DR-002`: foreign keys preserve referential integrity.
-- `DR-003`: required business fields are non-null.
-- `DR-004`: audit/history records are not casually cascade-deleted.
-- `DR-005`: one active circulation per container is enforceable under concurrency.
-- `DR-006`: state/domain enumerations cannot silently accept unsupported values.
-- `DR-007`: unique constraints exist where a domain identity must be unique.
+- `DR-001`: container identity and active QR are unique.
+- `DR-002`: active Participant Code is unique and resolves to one participant.
+- `DR-003`: circulation references existing participant and container.
+- `DR-004`: one active circulation per container is enforced under concurrency.
+- `DR-005`: no uniqueness constraint limits active circulations per participant.
+- `DR-006`: `RETURNED` is persisted until wash completion.
+- `DR-007`: audit/history cannot be cascade-deleted through normal maintenance.
+- `DR-008`: required fields are non-null.
+- `DR-009`: unsupported state values are rejected.
+- `DR-010`: circulation preserves policy identity/version and due-at.
+- `DR-011`: every enabled MVP account has exactly one recognized role; missing or ambiguous roles fail closed.
+- `DR-012`: a `PARTICIPANT` account may read personal data only through an explicit account-to-participant association.
 
-## 6. Concurrency enforcement
+## 6. Normal transaction boundaries
 
-The database MUST participate in enforcing the invariant that one container cannot have more than one active circulation. Exact mechanism is an ADR/data implementation decision: unique partial index, lock, or another verified approach.
+### Delivery transaction
 
-The final implementation MUST prove the invariant under concurrent integration testing.
+- create circulation;
+- update container `AVAILABLE → IN_USE`;
+- append delivery event.
 
-## 7. Audit/history
+### Return transaction
 
-Audit/event records SHOULD be append-oriented and contain, where applicable:
+- finalize circulation;
+- update container `IN_USE → RETURNED`;
+- append return event.
 
-- event identity;
-- event type;
-- aggregate/resource identity;
+### Wash transaction
+
+- update container `RETURNED → AVAILABLE`;
+- append wash-completed event.
+
+Each boundary commits all changes or none.
+
+## 7. Audit fields
+
+Events contain, where applicable:
+
+- event identity/type;
+- resource identity;
 - actor identity;
-- occurred-at server timestamp;
+- participant/circulation reference when relevant;
+- previous and resulting state;
+- server occurred-at;
 - correlation/request identifier;
-- relevant outcome/context;
-- immutable payload or normalized fields sufficient for audit.
+- reason for correction/exception;
+- safe structured metadata.
 
-Do not store secrets or unnecessary PII in audit payloads.
+No unnecessary PII, secrets or full QR payloads are stored in logs.
 
-## 8. Time model
+## 8. Time
 
-**Decision required:** one project-wide representation (recommended: UTC instants for timestamps, explicit business time-zone handling only for policy interpretation).
+Business time is server/database authoritative. Final project representation remains governed by D-009.
 
-Business time MUST NOT depend on mobile device clock.
+## 9. Deletion and recovery
 
-## 9. Deletion policy
+Containers, participants, circulations and events with history are not hard-deleted through normal operations.
 
-Normal business operations MUST NOT hard-delete containers with history, circulations with history, or audit records.
+Participant-code replacement remains blocked by D-018. Schema implementation must not assume that code replacement changes participant identity.
 
-Use deactivation/retirement and append-only correction semantics where the domain permits.
+## 10. Data scenarios
 
-## 10. Migration policy
+### SC-DATA-001 — Participant code uniqueness
 
-All schema changes MUST be migration-driven and versioned. Manual production edits are not part of the normal deployment workflow.
+Given an active Participant Code exists,
+when another active code record attempts to reuse its public value,
+then persistence rejects it.
 
-## 11. Data scenarios
+### SC-DATA-002 — Multiple participant circulations
 
-### SC-DATA-001 Duplicate container identity
-Given a container identifier already exists, when a second record tries to use it, then persistence rejects the duplicate.
+Given one participant holds one container,
+when a second different container is delivered,
+then persistence permits both active circulations.
 
-### SC-DATA-002 Concurrent active circulation
-Given one container and no active circulation, when two transactions attempt to create an active circulation concurrently, then at most one succeeds.
+### SC-DATA-003 — Concurrent container delivery
 
-### SC-DATA-003 Historical integrity
-Given completed circulation and audit history, when an administrator performs normal maintenance, then historical facts remain queryable and are not deleted through ordinary entity removal.
+Given one available container,
+when two transactions deliver it concurrently,
+then at most one active circulation commits.
+
+### SC-DATA-004 — Persistent pending wash
+
+Given a circulation is returned,
+when the return transaction commits,
+then the circulation is completed and the container remains `RETURNED` until a later wash transaction.
+
+### SC-DATA-005 — Historical integrity
+
+Given completed history,
+when normal maintenance occurs,
+then historical facts remain queryable.

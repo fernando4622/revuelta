@@ -1,901 +1,1031 @@
-# ReVuelta — ROADMAP
+# ReVuelta — Roadmap de remediación y entrega del MVP ITVer
 
-> **Estado:** Baseline inicial v1.0
-> **Metodología:** Spec-Driven Development (SDD) + Domain-Driven Design (DDD) + Contract-Driven Development (CDD) + Test-Driven Development (TDD) + Behavior-Driven Development (BDD) + Architecture Decision Records (ADR) + threat modeling orientado a riesgos.
-> **Producto:** Aplicación real para el control operativo de envases reutilizables mediante identificación individual (QR), préstamos, devoluciones, estados de ciclo de vida y trazabilidad.
-> **Última revisión:** 2026-09-12
-
----
-
-## 0. Propósito de este documento
-
-Este archivo define **qué se construye, qué no se construye, en qué orden y bajo qué gates**.
-
-No sustituye las especificaciones de cada funcionalidad. Cada fase del roadmap debe desembocar en specs pequeñas y verificables antes de escribir implementación.
-
-La regla central es:
-
-> **Spec aprobada → diseño/contrato → tests → implementación → verificación → cierre.**
-
-SDD se adopta como fuente de intención compartida entre persona desarrolladora y agentes de IA; el código sigue siendo la implementación ejecutable y los tests constituyen evidencia de comportamiento. Este enfoque coincide con prácticas actuales de SDD que recomiendan contratos explícitos, specs locales y trazabilidad entre intención, implementación y validación. [1][2]
+> **Estado:** Propuesto para aprobación
+> **Versión:** 2.0
+> **Última revisión:** 2026-09-18
+> **Punto de partida técnico:** commit `4f4967d` (`feat: initialize ReVuelta MVP`)
+> **Objetivo:** convertir el prototipo actual en un piloto operativo, seguro y verificable para la Cafetería del Instituto Tecnológico de Veracruz.
 
 ---
 
-# 1. Constitución de producto
+## 0. Propósito y autoridad
 
-## 1.1 Problema
+Este documento define la ruta de trabajo para corregir, completar y validar ReVuelta. No declara que el sistema actual esté listo para producción ni reemplaza las especificaciones de producto.
 
-ReVuelta debe permitir controlar el ciclo operativo de envases reutilizables de un sistema de alimentos: identificar un envase concreto, saber quién lo tiene, registrar cuándo fue entregado, controlar su devolución, conocer su estado operativo y conservar trazabilidad de los eventos relevantes.
-
-## 1.2 Resultado esperado de V1
-
-Un operador autorizado debe poder responder, sin consultar sistemas externos ni realizar cálculos manuales:
-
-1. ¿Qué envases existen?
-2. ¿Cuál es el identificador de un envase?
-3. ¿En qué estado se encuentra?
-4. ¿Quién lo tiene actualmente, si está prestado?
-5. ¿Cuándo fue entregado?
-6. ¿Cuándo debe devolverse?
-7. ¿Fue devuelto?
-8. ¿Existe un historial verificable de sus transiciones?
-9. ¿Qué anomalías o devoluciones vencidas requieren atención?
-
-## 1.3 Objetivo de negocio de V1
-
-Establecer una base operativa confiable para medir y mejorar el retorno de envases reutilizables en un piloto universitario.
-
-La métrica de referencia del piloto será:
-
-`return_rate = envases_devuelto_en_ventana / envases_entregados`
-
-La meta histórica del proyecto es **≥85% de retorno dentro de la ventana definida**. La métrica no se utilizará como criterio de aceptación técnica del software; será una métrica de operación del piloto.
-
-## 1.4 Contexto operativo de V1
-
-El primer piloto se limita a un entorno universitario/cafetería del campus.
-
-La ventana operativa de devolución inicial es configurable y deberá poder representar **1 a 3 días**. El sistema no debe codificar el número 1, 2 o 3 como regla permanente: la duración será configuración de negocio versionada y validada.
-
----
-
-# 2. Alcance estrictamente delimitado
-
-## 2.1 Incluido en V1
-
-### Identidad y acceso
-- Autenticación de usuarios.
-- Autorización basada en rol.
-- Sesiones/token según la implementación definida por la spec de seguridad.
-- Auditoría de acciones sensibles.
-
-### Catálogo de envases
-- Alta de envase.
-- Consulta de envase.
-- Identificador único e inmutable.
-- Estado operativo actual.
-- Metadatos mínimos necesarios para operación.
-- Desactivación lógica, nunca borrado destructivo de un envase que tenga historial.
-
-### Identificación
-- Lectura de QR mediante aplicación móvil.
-- Resolución del QR a un envase concreto.
-- Validación de integridad del identificador.
-- Rechazo de QR inexistentes, inactivos o inválidos.
-
-### Préstamo / entrega
-- Registrar entrega de un envase.
-- Asociar envase con la persona receptora.
-- Registrar fecha/hora de operación desde servidor.
-- Calcular o registrar fecha límite de devolución según política vigente.
-- Crear evento de trazabilidad.
-
-### Devolución
-- Registrar devolución.
-- Validar que el envase está en estado compatible con devolución.
-- Registrar fecha/hora efectiva desde servidor.
-- Determinar si la devolución fue dentro de plazo.
-- Crear evento de trazabilidad.
-
-### Estado y ciclo de vida
-- Máquina de estados explícita.
-- Transiciones válidas explícitas.
-- Rechazo de transiciones imposibles.
-- Historial de transiciones/eventos.
-
-### Operación y observabilidad
-- Manejo uniforme de errores API.
-- Logs estructurados.
-- Correlation/request ID.
-- Health checks básicos.
-- Métricas técnicas mínimas.
-
-## 2.2 Fuera de V1
-
-No se implementará en V1 salvo que una nueva spec aprobada cambie el alcance:
-
-- Procesamiento de pagos.
-- Wallet, saldo o cobro automático.
-- Publicidad integrada.
-- Marketplace.
-- Multi-campus productivo.
-- Integración con ERP/SIS universitario.
-- NFC/RFID.
-- Bluetooth.
-- IoT.
-- IA generativa como parte crítica del flujo de préstamo/devolución.
-- Microservicios independientes por cada módulo.
-- Kubernetes.
-- Event streaming distribuido.
-- Recompensas complejas/gamificación.
-- Programa de puntos monetizable.
-- Integraciones de terceros no necesarias para el piloto.
-
-Estas exclusiones son deliberadas. El objetivo de V1 es validar **control, trazabilidad y operación**, no maximizar funcionalidades.
-
----
-
-# 3. Arquitectura objetivo
-
-## 3.1 Estilo
-
-Se adopta **Clean Architecture + DDD táctico + Ports & Adapters / Hexagonal Architecture**.
-
-La lógica de negocio debe permanecer independiente de Flutter widgets, HTTP, PostgreSQL, ORM, QR scanner, proveedores de autenticación y otros detalles externos. DDD y arquitectura hexagonal son compatibles con una separación por dominio y puertos/adaptadores. [3]
-
-## 3.2 Backend
-
-**Tecnología base:** Spring Boot + Java + PostgreSQL.
-
-Capas lógicas:
+La ejecución debe respetar este orden:
 
 ```text
-interfaces
-  ├── REST controllers
-  ├── DTOs / request-response models
-  └── exception translation
-          ↓
-application
-  ├── use cases
-  ├── commands / queries
-  ├── transaction boundaries
-  └── ports
-          ↓
-domain
-  ├── entities
-  ├── value objects
-  ├── aggregates
-  ├── domain services
-  ├── domain events
-  └── business rules
-          ↑
-infrastructure
-  ├── persistence adapters
-  ├── security adapters
-  ├── QR/external adapters
-  └── observability adapters
+decisión de producto
+→ especificación aprobada
+→ contrato y pruebas
+→ implementación
+→ verificación
+→ evidencia de aceptación
 ```
 
-El dominio **no puede importar** Spring, JPA, JDBC, HTTP, Jackson ni clases de infraestructura.
+Jerarquía de fuentes:
 
-## 3.3 Aplicación Flutter
+1. especificaciones de producto y dominio;
+2. ADR aprobados;
+3. contratos API, UI y datos;
+4. `AGENTS.md`;
+5. implementación existente;
+6. este roadmap;
+7. inferencias del equipo.
+
+Si una decisión de negocio material no está especificada, la tarea se detiene en su gate correspondiente. No se debe conservar un comportamiento solo porque ya existe en el código.
+
+---
+
+## 1. Diagnóstico de partida
+
+El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcial. La entrega a GitHub resuelve la trazabilidad del código inicial, no su preparación para piloto.
+
+### 1.1 Activos reutilizables
+
+- Backend Java/Spring Boot organizado por capas.
+- Modelo inicial de contenedores, circulaciones y eventos.
+- PostgreSQL y migraciones iniciales.
+- Contrato OpenAPI inicial.
+- Autenticación JWT básica.
+- Cliente Flutter con navegación y flujos demostrables.
+- Pruebas unitarias iniciales del backend.
+- Documentación de arquitectura, dominio y decisiones pendientes.
+
+### 1.2 Brechas que impiden declarar el MVP terminado
+
+| Área | Estado actual | Riesgo |
+|---|---|---|
+| Producto | Las decisiones abiertas no reflejan por completo las tres perspectivas descritas en `context.md`. | Se puede implementar el flujo equivocado. |
+| Especificaciones | Hay reglas bloqueadas, documentos contradictorios y trazabilidad desactualizada. | El código termina siendo la fuente de verdad accidental. |
+| Acceso | Existen elementos de registro público o acceso social que no están autorizados para el piloto institucional. | Identidades y permisos incorrectos. |
+| Arquitectura móvil | Varias pantallas consumen HTTP y mapas dinámicos directamente. | Reglas duplicadas, estados inconsistentes y baja capacidad de prueba. |
+| Datos de UI | Existen métricas, historial, pasaporte y contenido demostrativo codificado. | El usuario puede interpretar datos ficticios como reales. |
+| QR | El flujo actual acepta captura manual; no existe un escaneo físico completo y validado. | El recorrido operativo principal no está implementado. |
+| Entrega/devolución | Falta cerrar política, identidad, idempotencia y control de concurrencia. | Doble asignación, doble devolución o historial incorrecto. |
+| API | Implementación, OpenAPI y catálogo de errores no están completamente alineados. | Clientes impredecibles y errores difíciles de operar. |
+| Seguridad | Configuración y datos de desarrollo requieren endurecimiento. | Exposición o accesos indebidos. |
+| Pruebas | Hay pruebas unitarias iniciales, pero no integración PostgreSQL, contrato, seguridad, concurrencia ni E2E. | Los invariantes críticos no están demostrados. |
+| Operación | No existe todavía evidencia de observabilidad, respaldo, recuperación, despliegue y rollback del piloto. | Incidentes sin diagnóstico o recuperación confiable. |
+
+### 1.3 Evidencia técnica inicial
+
+- El backend compila y sus 17 pruebas actuales pasan con JDK 17.
+- El proyecto declara Java 17, pero el entorno debe fijarlo explícitamente para evitar fallos con versiones distintas.
+- El archivo `mvnw.cmd` actual no constituye un wrapper autosuficiente; depende de Maven instalado.
+- Flutter no pudo verificarse en el entorno de auditoría porque el SDK no estaba disponible.
+- No hay evidencia suficiente para autorizar despliegue productivo.
+
+**Decisión de estado:** `NO-GO` para piloto operativo hasta completar los gates P0 de este roadmap.
+
+---
+
+## 2. Producto objetivo según `context.md`
+
+### 2.1 Alcance del primer piloto
+
+El primer despliegue es:
+
+- una sola institución: Instituto Tecnológico de Veracruz;
+- una sola ubicación operativa principal: Cafetería del Instituto;
+- un punto de devolución ReVuelta asociado;
+- circulación de recipientes reutilizables;
+- entrega, devolución, consulta de estado e historial trazable;
+- operación en español.
+
+No forman parte del alcance actual:
+
+- múltiples campus;
+- múltiples restaurantes, comercios o socios;
+- marketplace;
+- arquitectura multi-tenant general;
+- programa de recompensas no especificado;
+- aplicación institucional oficial del ITVer;
+- integraciones sociales o comerciales no aprobadas.
+
+### 2.2 Perspectivas que deben diseñarse por separado
+
+| Perspectiva | Necesidad principal | Acciones mínimas |
+|---|---|---|
+| Estudiante | Saber qué recipiente tiene, cuándo devolverlo y dónde hacerlo. | Acceder, consultar préstamo activo, ver fecha límite, historial propio e instrucciones. |
+| Personal de cafetería | Atender rápido y sin ambigüedad. | Escanear, identificar recipiente y persona, validar elegibilidad, confirmar entrega o devolución y conocer el siguiente paso. |
+| Operación ReVuelta | Controlar el piloto y resolver excepciones. | Registrar/desactivar recipientes, consultar circulación e historial, atender incidencias y revisar indicadores reales. |
+
+La matriz exacta de permisos debe aprobarse en la fase G0; esta tabla no concede permisos por sí misma.
+
+### 2.3 Lenguaje, identidad y experiencia
+
+- Usar “Cafetería” o “Cafetería del Instituto”.
+- Evitar términos genéricos como “partner”, “vendor”, “restaurant” o “comercio” en el piloto.
+- Presentar ReVuelta como un servicio diferenciado; no aparentar ser la aplicación oficial del ITVer.
+- No inventar logotipos, colores oficiales, áreas institucionales ni respaldo formal.
+- La interfaz de cafetería debe responder con claridad:
+  1. qué recipiente es;
+  2. quién lo tiene o recibirá;
+  3. si puede entregarse o recibirse;
+  4. cuál es el siguiente paso.
+- Ninguna cifra ambiental, recompensa, historial o estado puede mostrarse como real si proviene de datos de demostración.
+
+### 2.4 Funciones actuales que requieren decisión o aislamiento
+
+Hasta que exista especificación aprobada, deben retirarse del flujo productivo, esconderse detrás de un modo demo claramente identificado o implementarse correctamente:
+
+- registro público de usuarios;
+- acceso con Google o Microsoft;
+- mapas o rutas no sustentados por una necesidad operativa;
+- notificaciones;
+- métricas de impacto ambiental;
+- recompensas;
+- “pasaporte” con datos ficticios;
+- contenido de historial codificado;
+- navegación que mezcle funciones de estudiante, cafetería y operación.
+
+---
+
+## 3. Priorización y secuencia obligatoria
+
+### 3.1 Niveles
+
+- **P0 — Bloqueante:** sin esto no se desarrolla el siguiente flujo crítico ni se autoriza piloto.
+- **P1 — Necesario para piloto:** debe existir antes de operar con usuarios reales.
+- **P2 — Posterior al piloto estable:** aporta valor, pero no debe retrasar la seguridad y consistencia del núcleo.
+
+### 3.2 Mapa de dependencias
 
 ```text
-presentation
-  ├── pages/screens
-  ├── widgets
-  ├── state/controllers
-  └── navigation
-          ↓
-application
-  ├── use-case orchestration
-  ├── state models
-  └── dependency interfaces
-          ↓
-domain
-  ├── entities
-  ├── value objects
-  ├── failures
-  └── repository contracts
-          ↑
-data/infrastructure
-  ├── API clients
-  ├── DTOs
-  ├── mappers
-  ├── local persistence/cache
-  └── device integrations
+G0 Decisiones y specs
+ ├─ F1 Build, configuración y CI
+ ├─ F2 Arquitectura, errores, contrato y datos
+ │   ├─ F3 Identidad y permisos
+ │   └─ F4 Registro, consulta y QR
+ │       └─ F5 Entrega
+ │           └─ F6 Devolución
+ │               └─ F7 Experiencias completas e historial
+ └──────────────────────────────┬─ F8 Seguridad, observabilidad y resiliencia
+                                └─ F9 Validación de campo y salida a piloto
 ```
 
-Los widgets no llaman HTTP directamente.
-
-La UI no conoce DTOs de backend.
-
-La capa de dominio no depende de Flutter.
+No se debe trabajar en F5 o F6 mientras sus reglas de G0 sigan abiertas.
 
 ---
 
-# 4. Dominios y bounded contexts
+## 4. G0 — Cerrar decisiones y especificaciones
 
-La descomposición inicial será por **responsabilidad de negocio**, no por tipo técnico.
+**Prioridad:** P0
+**Resultado:** comportamiento observable aprobado antes de corregir el núcleo.
 
-## 4.1 Identity & Access
+### G0-01 — Actores y permisos
 
-Responsable de:
-- usuario;
-- autenticación;
-- roles/permisos;
-- autorización de operaciones.
+**Estado 2026-09-20:** cerrado para el MVP demostrable en la matriz base: `PARTICIPANT`, `OPERATOR` y `ADMIN`. Permanecen abiertos para piloto real las bajas, suplencias, cambios de rol y aprovisionamiento institucional.
 
-No es responsable del ciclo de vida de envases.
+Definir:
 
-## 4.2 Container Management
+- roles reales del piloto;
+- quién es estudiante, personal de cafetería y operación ReVuelta;
+- qué puede consultar y mutar cada rol;
+- separación entre funciones operativas y administrativas;
+- tratamiento de suplencias, bajas y cambio de rol;
+- regla de denegación por defecto.
 
-Responsable de:
-- identidad del envase;
-- catálogo;
-- estado operativo;
-- elegibilidad para préstamo/devolución;
-- historial relacionado.
+**Entregables:** matriz actor–acción–recurso y escenarios de autorización.
 
-## 4.3 Circulation
+### G0-02 — Superficies de uso
 
-Responsable de:
-- entrega;
-- préstamo activo;
-- devolución;
-- vencimiento;
-- vínculo temporal usuario-envase.
+**Estado 2026-09-20:** decidido. Se conserva una sola aplicación y el rol autenticado determina el shell. No se utilizará un selector libre de perspectiva. La implementación de los shells de Cafetería y Operación ReVuelta sigue pendiente.
 
-## 4.4 Audit / Traceability
+Decidir:
 
-Responsable de:
-- eventos de negocio auditables;
-- quién realizó una acción;
-- cuándo ocurrió;
-- qué agregado fue afectado;
-- correlación técnica.
+- si existe una sola app con navegación por rol;
+- si cafetería usa una superficie separada;
+- si operación ReVuelta usa móvil, web o una herramienta administrativa mínima;
+- qué pantallas pertenecen realmente al estudiante.
 
-No debe convertirse en un segundo sistema de negocio.
+**Entregables:** mapa de navegación por perspectiva y no-goals de cada superficie.
 
-## 4.5 Reporting
+### G0-03 — Acceso institucional
 
-En V1 será una capacidad de lectura derivada, no una fuente primaria de verdad.
+**Estado 2026-09-20:** la base de desarrollo/MVP está aprobada e implementada parcialmente con username/password, BCrypt, JWT de cuatro horas y logout local. El mecanismo institucional productivo, recuperación, revocación y baja siguen abiertos antes del piloto real.
 
-No podrá modificar el dominio.
+Especificar:
 
----
+- método real de autenticación;
+- emisor y verificación de identidad;
+- duración y renovación de sesión;
+- cierre de sesión;
+- recuperación o soporte de acceso;
+- comportamiento sin conexión;
+- datos personales mínimos.
 
-# 5. Máquina de estados del envase
+No mantener registro público ni acceso social por conveniencia técnica.
 
-El modelo de estado debe definirse en una spec antes de implementación.
+### G0-04 — Alta de estudiantes y personal
 
-Baseline inicial propuesto:
+**Estado 2026-09-20:** existen cuentas semilla exclusivamente para desarrollo (`student1`, `operator`, `admin`). El alta, importación o vinculación de cuentas reales no está aprobada y no debe inferirse de estas semillas.
+
+Definir si las cuentas son:
+
+- aprovisionadas;
+- importadas;
+- invitadas;
+- vinculadas a un identificador institucional;
+- creadas por operación ReVuelta.
+
+Incluir duplicados, bajas, datos incompletos y correcciones.
+
+### G0-05 — Identidad del prestatario
+
+Definir el identificador que usa la entrega:
+
+- quién lo captura;
+- cómo se verifica;
+- qué parte puede mostrarse al personal;
+- cómo se protege en logs y respuestas;
+- cómo se evita entregar al usuario equivocado.
+
+### G0-06 — Propietario del escaneo
+
+Para entrega y devolución, documentar:
+
+- quién escanea;
+- qué dispositivo se usa;
+- quién confirma;
+- qué ocurre si falla la cámara;
+- si existe captura manual y bajo qué permiso;
+- cómo se maneja un reintento.
+
+### G0-07 — Ciclo de vida del recipiente
+
+Cerrar la matriz completa para:
 
 ```text
 REGISTERED
-    ↓
 AVAILABLE
-    ↓
 ASSIGNED
-    ↓
 IN_USE
-    ↓
 RETURNED
-    ↓
-AVAILABLE
+DAMAGED
+LOST
+RETIRED
 ```
 
-Estados excepcionales:
+Definir:
+
+- transición, actor y precondiciones;
+- estado posterior a entrega y devolución;
+- inspección;
+- daño, pérdida, retiro y corrección;
+- diferencia exacta entre `ASSIGNED`, `IN_USE` y `RETURNED`;
+- evento de historial producido por cada transición.
+
+### G0-08 — Política de devolución
+
+Definir:
+
+- fecha límite;
+- fuente de la política;
+- versión de política aplicada;
+- zona horaria;
+- puntualidad/retraso;
+- excepciones;
+- cambios posteriores de política;
+- información visible para estudiante y personal.
+
+### G0-09 — Idempotencia y duplicados
+
+Clasificar cada endpoint mutante. Para entrega y devolución, decidir:
+
+- clave idempotente;
+- alcance y vigencia;
+- respuesta ante repetición;
+- comportamiento después de timeout;
+- estrategia ante doble toque, reescaneo o repetición desde otro dispositivo.
+
+### G0-10 — Contenido del QR
+
+Definir:
+
+- formato y versión;
+- identificador expuesto;
+- firma o protección contra manipulación, si aplica;
+- rotación/reimpresión;
+- QR desconocido, malformado, inactivo o alterado;
+- ausencia de autorización implícita por escanear.
+
+### G0-11 — Terminología e identidad visual
+
+Aprobar:
+
+- nombres del servicio y ubicaciones;
+- textos principales en español;
+- tratamiento de marca ReVuelta e ITVer;
+- avisos para evitar afiliación institucional falsa;
+- estados y mensajes de error comprensibles.
+
+### G0-12 — Operación del piloto
+
+Definir:
+
+- ambiente y responsable de despliegue;
+- volumen estimado de recipientes y usuarios;
+- horario y responsables de soporte;
+- dispositivo de cafetería;
+- conexión disponible;
+- procedimiento manual de contingencia;
+- respaldo, recuperación y rollback;
+- criterio de suspensión del piloto.
+
+### Documentos que deben quedar alineados
+
+- `context.md`;
+- specs de producto, autenticación, QR, ciclo de vida, circulación, historial y UI;
+- modelo de datos;
+- OpenAPI;
+- ADR de decisiones técnicas afectadas;
+- registro de decisiones;
+- matriz de trazabilidad;
+- estado de implementación.
+
+### Resoluciones aprobadas — actualización 2026-09-20
+
+- Tres perspectivas: Alumno, Cafetería y Operación ReVuelta.
+- Una sola aplicación conserva el inicio de sesión; no existe selector libre de perspectiva.
+- El rol autenticado decide la experiencia: `PARTICIPANT` → Alumno/maestro, `OPERATOR` → Cafetería y `ADMIN` → Operación ReVuelta.
+- Para desarrollo se usan `student1`, `operator` y `admin`; las credenciales semilla están prohibidas en producción.
+- Participante identificado mediante Código ReVuelta persistente, opaco y sin PII.
+- Cafetería escanea Código ReVuelta + QR de recipiente para entregar.
+- Un participante puede tener múltiples recipientes activos.
+- Cafetería escanea y confirma la devolución física.
+- La devolución finaliza la circulación y transiciona `IN_USE → RETURNED`.
+- `RETURNED` significa “Pendiente de lavado”.
+- Cafetería ejecuta “Lavado completado” para `RETURNED → AVAILABLE`.
+- Punto: “Punto ReVuelta — Cafetería del Instituto”.
+- Activo de marca: `apps/revuelta-mobile/resources/logo.jpeg`.
+- Impacto y notificaciones se permiten como mockup con “Datos de demostración”, no como hechos productivos.
+
+Siguen abiertos el aprovisionamiento/recuperación institucional para producción, la vinculación real cuenta–participante, la recuperación del Código ReVuelta, política exacta, idempotencia, tiempo, concurrencia y evidencia de estados excepcionales.
+
+### Evidencia de avance — 2026-09-20
+
+- El backend reconoce `PARTICIPANT`, `OPERATOR` y `ADMIN`.
+- `student1` recibe `PARTICIPANT` mediante la migración V6.
+- Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
+- Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
+- La suite backend compila con Java 17: 24 pruebas, 0 fallos y 0 errores.
+- Falta aplicar V6 contra PostgreSQL real porque Docker Desktop no estaba iniciado durante la verificación.
+- Falta que Flutter enrute cada sesión al shell correspondiente; actualmente el login aún desemboca en el shell existente.
+
+### Gate G0
+
+- [ ] No existen decisiones bloqueantes para autenticación, roles, entrega, devolución, QR y tiempo.
+- [ ] Cada flujo crítico tiene escenarios Given/When/Then aprobados.
+- [x] Los no-goals del piloto están escritos.
+- [ ] La trazabilidad enlaza requisito → spec → contrato → prueba prevista.
+
+G0 no está cerrado por completo. Esto no impide continuar el slice de autenticación y enrutamiento por rol, cuya especificación sí está lista; sí impide declarar listas las operaciones críticas de entrega/devolución mientras idempotencia, tiempo y concurrencia sigan abiertas.
+
+---
+
+## 5. F1 — Build reproducible, configuración segura y CI
+
+**Prioridad:** P0
+**Dependencia:** puede avanzar en paralelo con G0 solo en tareas que no impliquen reglas de negocio.
+
+### Trabajo
+
+1. Elegir Maven como herramienta canónica del backend.
+2. Instalar un Maven Wrapper real y fijar JDK 17.
+3. Retirar o deprecar configuración Gradle redundante.
+4. Documentar versiones compatibles de Flutter y Dart.
+5. Separar configuración de desarrollo, prueba y despliegue.
+6. Eliminar secretos y credenciales predecibles de rutas de producción.
+7. Aislar datos semilla de desarrollo.
+8. Hacer configurable la URL del API móvil.
+9. Crear CI con:
+   - compilación backend;
+   - pruebas unitarias;
+   - pruebas de migración e integración;
+   - validación OpenAPI;
+   - análisis/formato/pruebas Flutter;
+   - detección de secretos;
+   - verificación de dependencias y arquitectura.
+10. Actualizar el README con arranque local verificable.
+
+### Gate F1
+
+- [ ] Un clon limpio compila con versiones documentadas.
+- [ ] CI reproduce los checks obligatorios.
+- [ ] Ningún secreto real está en el repositorio.
+- [ ] Producción no crea usuarios demo automáticamente.
+- [ ] La app no depende de una IP local codificada.
+
+---
+
+## 6. F2 — Arquitectura, errores, contrato y consistencia de datos
+
+**Prioridad:** P0
+**Dependencias:** G0 para semántica; F1 para verificación.
+
+### 6.1 Fallos y límites de capa
+
+- Crear fallos de dominio/aplicación estables, no excepciones genéricas con textos arbitrarios.
+- Alinear el catálogo público de errores.
+- Mapear intencionalmente `400`, `401`, `403`, `404`, `409` y `500`.
+- Evitar que controladores contengan decisiones de negocio.
+- Definir puertos de aplicación; la capa de aplicación no debe depender directamente de detalles de infraestructura.
+- Mantener dominio libre de Spring, JPA, Jackson y HTTP.
+- Emitir identificador de correlación sin exponer detalles internos.
+
+### 6.2 Modelo y base de datos
+
+- Crear migraciones aditivas para cualquier ajuste.
+- Registrar versión/origen de la política aplicada a una circulación.
+- Definir nulabilidad, unicidad, claves foráneas y restricciones coherentes con specs.
+- Seleccionar y documentar la estrategia de concurrencia:
+  - restricción única;
+  - bloqueo optimista;
+  - bloqueo pesimista;
+  - actualización condicional atómica;
+  - combinación mínima necesaria.
+- Proteger el historial contra reescritura o borrado casual.
+- Revisar cascadas y operaciones administrativas destructivas.
+
+### 6.3 Contrato
+
+- Hacer de OpenAPI la descripción exacta de:
+  - autenticación y autorización;
+  - esquemas;
+  - errores;
+  - conflictos;
+  - idempotencia;
+  - filtros/paginación;
+  - ejemplos.
+- Eliminar endpoints no documentados o documentarlos antes de habilitarlos.
+- Agregar pruebas de contrato servidor–cliente.
+
+### Gate F2
+
+- [ ] No hay excepciones genéricas para fallos esperados.
+- [ ] Dominio y aplicación respetan la dirección de dependencias.
+- [ ] OpenAPI e implementación coinciden.
+- [ ] Las restricciones relacionales y la concurrencia están documentadas y probadas.
+- [ ] El historial conserva actor, tiempo del servidor, operación y correlación.
+
+---
+
+## 7. F3 — Identidad, autenticación y autorización
+
+**Prioridad:** P0
+**Dependencias:** G0-01 a G0-05, F2.
+
+### Estado — 2026-09-20
+
+Completado y verificado en backend:
+
+- login username/password para cuentas provisionadas de desarrollo;
+- BCrypt y JWT con rol;
+- rol `PARTICIPANT` para `student1`;
+- rechazo seguro de roles ausentes, múltiples o desconocidos;
+- respuesta `401 INVALID_CREDENTIALS`;
+- pruebas unitarias de autenticación y resolución de rol.
+
+Pendiente para cerrar F3:
+
+- validar V6 y los tres logins contra PostgreSQL real;
+- probar token ausente, alterado y expirado con el contrato JSON común;
+- probar `403` por rol en cada endpoint sensible;
+- enrutar Flutter por rol y fallar de forma segura ante un rol no soportado;
+- retirar u ocultar registro público, recuperación simulada y accesos sociales no aprobados;
+- separar credenciales semilla del ambiente productivo;
+- definir aprovisionamiento, baja, recuperación y revocación para el piloto real.
+
+### Trabajo
+
+1. Implementar el método de acceso aprobado.
+2. Implementar aprovisionamiento/baja según especificación.
+3. Validar credenciales sin revelar si una cuenta existe más allá de lo permitido.
+4. Devolver `401` para autenticación inválida o expirada.
+5. Devolver `403` para una operación no autorizada.
+6. Aplicar autorización en cada caso de uso sensible.
+7. Hacer que el filtro de seguridad responda con el contrato JSON común.
+8. Implementar expiración, renovación —si fue aprobada— y cierre de sesión.
+9. Separar navegación y acciones por permisos, sin usar la UI como control de seguridad.
+10. Retirar registro público y acceso social si no fueron aprobados.
+11. Auditar cambios de rol y acciones administrativas.
+
+### Pruebas mínimas
+
+- acceso correcto e incorrecto;
+- token ausente, alterado y expirado;
+- rol correcto e incorrecto;
+- acceso directo al API saltándose la UI;
+- usuario dado de baja;
+- datos personales ausentes en logs.
+
+### Gate F3
+
+- [ ] Cada endpoint sensible tiene prueba de autorización.
+- [ ] El servidor niega por defecto.
+- [ ] No existen credenciales o flujos demo en producción.
+- [ ] La experiencia móvil representa correctamente sesión vencida y acceso denegado.
+
+---
+
+## 8. F4 — Registro, consulta operativa y QR real
+
+**Prioridad:** P0
+**Dependencias:** G0-07, G0-10, F2, F3.
+
+### 8.1 Backend
+
+- Registrar un recipiente con identificador definido y evento inicial.
+- Resolver QR como entrada no confiable.
+- Distinguir QR malformado, desconocido, inactivo o alterado.
+- Consultar detalle operativo:
+  - estado;
+  - circulación activa;
+  - prestatario visible según permisos;
+  - momento de entrega;
+  - fecha límite;
+  - historial;
+  - acciones permitidas.
+- Desactivar/retirar con transición explícita; no borrar historial.
+
+### 8.2 Flutter
+
+- Integrar escáner de cámara real.
+- Declarar y manejar permisos de cámara.
+- Modelar estados `Initial / RequestingPermission / Scanning / Resolving / Success / Failure`.
+- Evitar dobles lecturas mediante pausa/debounce.
+- Mostrar captura manual solo si G0 la autoriza.
+- Traducir fallos sin inventar la elegibilidad en la UI.
+- Eliminar datos de ejemplo del detalle productivo.
+
+### Pruebas mínimas
+
+- payload válido, inválido, desconocido e inactivo;
+- manipulación o formato no soportado;
+- escaneo repetido;
+- permiso de cámara denegado;
+- resolución con rol no autorizado;
+- prueba en dispositivo físico objetivo.
+
+### Gate F4
+
+- [ ] El QR físico del piloto se resuelve de extremo a extremo.
+- [ ] Escanear nunca concede autorización.
+- [ ] La UI muestra únicamente información real del servidor.
+- [ ] El operador puede distinguir claramente la siguiente acción válida.
+
+---
+
+## 9. F5 — Entrega de recipiente
+
+**Prioridad:** P0
+**Dependencias:** G0 completo para entrega, F2–F4.
+
+### Resultado atómico esperado
+
+Una entrega exitosa debe:
+
+1. autenticar y autorizar al actor;
+2. resolver y validar el recipiente;
+3. resolver y validar al prestatario;
+4. comprobar disponibilidad;
+5. seleccionar una política de devolución versionada;
+6. usar tiempo autoritativo del servidor;
+7. crear exactamente una circulación activa;
+8. cambiar el estado mediante una transición válida;
+9. registrar exactamente un evento trazable;
+10. responder de forma estable ante reintento.
+
+Todo lo anterior debe confirmar o revertir como una sola operación.
+
+### Correcciones obligatorias
+
+- No usar una política silenciosa por defecto.
+- Guardar la política y versión aplicada.
+- Impedir dos circulaciones activas para el mismo recipiente.
+- Convertir conflictos de base de datos a un error de negocio estable.
+- Definir idempotencia y deduplicación.
+- No exigir que el personal memorice o capture UUID internos.
+- Mostrar confirmación antes de una mutación irreversible cuando la spec lo requiera.
+
+### Pruebas mínimas
+
+- entrega válida;
+- recipiente inexistente/no disponible/inactivo;
+- usuario inexistente/no elegible;
+- operador no autorizado;
+- política ausente;
+- reintento con la misma clave;
+- rollback si falla el evento o la actualización;
+- dos dispositivos intentan entregar el mismo recipiente casi simultáneamente;
+- verificación de tiempo y fecha límite.
+
+### Gate F5
+
+- [ ] Una carrera produce una entrega y un conflicto controlado.
+- [ ] Nunca quedan dos circulaciones activas.
+- [ ] Estado, circulación y evento siempre coinciden.
+- [ ] La app puede recuperarse de timeout sin duplicar la operación.
+
+---
+
+## 10. F6 — Devolución de recipiente
+
+**Prioridad:** P0
+**Dependencias:** G0 completo para devolución, F5.
+
+### Resultado atómico esperado
+
+Una devolución exitosa debe:
+
+1. autenticar y autorizar al actor;
+2. resolver y validar el recipiente;
+3. localizar una única circulación activa;
+4. tomar el tiempo autoritativo del servidor;
+5. finalizar la circulación una sola vez;
+6. calcular puntualidad según la política aplicada;
+7. ejecutar la transición de estado aprobada;
+8. registrar exactamente un evento;
+9. responder de manera determinista ante repetición.
+
+### Correcciones obligatorias
+
+- Usar la estrategia de concurrencia aprobada.
+- Evitar que dos devoluciones creen dos eventos.
+- Distinguir “sin circulación activa” de “ya devuelto”.
+- Definir si existe inspección antes de volver a `AVAILABLE`.
+- No aceptar fechas del cliente como tiempo de negocio.
+- Después de un timeout, permitir consultar el resultado antes de repetir.
+
+### Pruebas mínimas
+
+- devolución válida y tardía;
+- recipiente desconocido o inactivo;
+- ausencia de circulación activa;
+- devolución repetida;
+- rol no autorizado;
+- dos dispositivos devuelven simultáneamente;
+- rollback ante fallo parcial;
+- preservación de la política histórica.
+
+### Gate F6
+
+- [ ] Una carrera produce una devolución y una respuesta idempotente/conflicto definido.
+- [ ] No hay eventos duplicados.
+- [ ] El recipiente nunca queda en un estado imposible.
+- [ ] El resultado visible proviene del servidor.
+
+---
+
+## 11. F7 — Flutter limpio, historial y experiencias por perspectiva
+
+**Prioridad:** P1
+**Dependencias:** F3–F6.
+
+### 11.1 Arquitectura móvil
+
+Organizar el flujo conceptual:
 
 ```text
-AVAILABLE / RETURNED → DAMAGED
-AVAILABLE / RETURNED → LOST
-DAMAGED → AVAILABLE        (solo después de validación operativa)
-LOST → RETIRED              (solo por operación autorizada)
-DAMAGED → RETIRED
+Widget/Page
+→ Controller / Notifier
+→ Use Case
+→ Domain
+→ Repository interface
+→ Remote/local adapter
 ```
 
-### Regla fundamental
+Acciones:
 
-**No se debe modificar `status` arbitrariamente.** Toda transición debe ejecutarse mediante un caso de uso que valide:
+- mover Dio, DTO y JSON a la capa de datos;
+- reemplazar `Map<String, dynamic>` en widgets por modelos tipados;
+- evitar llamadas directas a `ApiClient` desde pantallas;
+- modelar estados asíncronos explícitos;
+- traducir errores a mensajes en español;
+- controlar navegación, cancelación, `mounted` y pérdida de red;
+- agregar pruebas de widget y de estado.
 
-- estado actual;
-- actor;
-- permisos;
-- precondiciones;
-- datos requeridos;
-- efecto esperado;
-- evento de trazabilidad.
+### 11.2 Experiencia del estudiante
 
-La lista anterior es un baseline arquitectónico. La máquina final se congela en la spec `container-lifecycle` antes del primer código de producción.
+Como mínimo:
+
+- préstamo activo real;
+- recipiente;
+- fecha/hora límite;
+- lugar e instrucciones de devolución;
+- historial propio;
+- estado vacío;
+- sesión/error/sin conexión;
+- privacidad adecuada.
+
+### 11.3 Experiencia de cafetería
+
+Como mínimo:
+
+- escáner;
+- identificación operativa mínima;
+- elegibilidad;
+- entrega;
+- devolución;
+- conflictos y reintentos;
+- flujo breve, legible y sin funciones administrativas innecesarias.
+
+### 11.4 Experiencia de operación ReVuelta
+
+Como mínimo:
+
+- alta y retiro de recipientes;
+- búsqueda y detalle;
+- circulación activa;
+- historial y actor;
+- incidencias aprobadas;
+- métricas exclusivamente derivadas de datos reales.
+
+### Consultas necesarias
+
+Implementar contratos explícitos para:
+
+- circulación activa del estudiante;
+- historial propio paginado;
+- detalle operativo por recipiente;
+- listado/búsqueda de recipientes para operación;
+- eventos con filtros autorizados.
+
+### Gate F7
+
+- [ ] No hay HTTP ni JSON crudo en widgets.
+- [ ] No hay información de negocio ficticia en modo productivo.
+- [ ] Cada perspectiva ve solo sus funciones.
+- [ ] Estados de carga, vacío, error, éxito y sesión vencida están cubiertos.
 
 ---
 
-# 6. Modelo de dominio mínimo
+## 12. F8 — Seguridad, observabilidad y resiliencia
 
-Los nombres concretos de tablas/clases se decidirán en la spec de datos, pero V1 debe representar al menos:
+**Prioridad:** P1
+**Dependencias:** atraviesa F2–F7 y se cierra antes de F9.
 
-### User
-Identidad operativa de una persona.
+### Seguridad
 
-### Container
-Unidad física individual e identificable.
+- modelar amenazas para autenticación, QR, identificadores, PII y base de datos;
+- endurecer CORS y cabeceras;
+- validar firma, emisor, audiencia, expiración y rotación JWT según spec;
+- limitar tamaño y formato de entradas;
+- evitar enumeración de usuarios y recursos;
+- revisar dependencias;
+- verificar que logs y respuestas no expongan secretos ni datos innecesarios;
+- probar acceso directo al API y repetición de solicitudes.
 
-### Circulation / Loan
-Hecho de que un envase fue entregado a una persona durante un intervalo temporal.
+### Observabilidad
 
-### ContainerEvent
-Hecho inmutable relacionado con el ciclo de vida o auditoría del envase.
+- propagar `correlationId`;
+- logs estructurados por operación y resultado;
+- métricas de entrega, devolución, conflicto y error;
+- health, liveness y readiness;
+- alertas mínimas para fallos de base de datos, autenticación y tasa anómala de conflictos;
+- trazabilidad sin registrar tokens ni payloads sensibles.
 
-### ReturnPolicy
-Regla que determina la ventana de devolución aplicable.
+### Resiliencia
 
-### Role / Permission
-Modelo de autorización.
+- timeouts explícitos;
+- reintentos únicamente donde sean seguros;
+- manejo de pérdida de red;
+- consulta de resultado tras respuesta incierta;
+- límites de conexión;
+- prueba de reinicio y recuperación.
 
-No se crearán entidades “porque quizá luego hagan falta”. Toda entidad necesita una responsabilidad y al menos una regla que justifique su existencia.
+### Gate F8
 
----
-
-# 7. Reglas de negocio que deben quedar explícitas
-
-Estas reglas no deberán quedar implícitas en controllers, widgets, SQL o validaciones duplicadas.
-
-1. Un envase tiene un identificador único.
-2. Un envase no puede tener dos préstamos activos simultáneamente.
-3. Un préstamo debe apuntar a un envase existente y elegible.
-4. Solo roles autorizados pueden ejecutar operaciones sensibles.
-5. La fecha/hora de negocio usada para la operación se obtiene del servidor.
-6. La fecha límite se determina a partir de la política vigente del préstamo.
-7. Una devolución no puede registrarse dos veces como devolución efectiva del mismo préstamo.
-8. Toda transición válida produce una huella de trazabilidad.
-9. Una transición inválida no cambia el estado.
-10. El historial de eventos de auditoría no se edita destructivamente.
-11. Los errores esperables se devuelven como errores de negocio tipados, no como `500` genérico.
-12. Una petición repetida accidentalmente no debe crear dos operaciones cuando el caso de uso sea idempotente.
-13. Las operaciones que cruzan varias escrituras críticas deben ejecutarse dentro de una frontera transaccional definida.
-14. La concurrencia debe resolverse explícitamente; nunca asumirse inexistente.
+- [ ] La revisión de seguridad no tiene hallazgos P0/P1 abiertos.
+- [ ] Cada mutación crítica puede rastrearse de extremo a extremo.
+- [ ] Un timeout o reintento no viola invariantes.
+- [ ] Monitoreo y runbook permiten detectar y atender fallos básicos.
 
 ---
 
-# 8. Estrategia de manejo de errores
+## 13. F9 — Verificación integral y salida controlada a piloto
 
-## 8.1 Jerarquía conceptual
+**Prioridad:** P0 para liberar
+**Dependencias:** todos los gates anteriores.
+
+### 13.1 Pirámide de verificación
+
+| Nivel | Evidencia mínima |
+|---|---|
+| Dominio | Transiciones, valores, política, fechas e invariantes. |
+| Aplicación | Autorización, orquestación, idempotencia y errores. |
+| Persistencia | PostgreSQL real, migraciones, restricciones y transacciones. |
+| Concurrencia | Entrega y devolución simultáneas desde dos sesiones. |
+| Seguridad | Tokens, roles, acceso directo, entradas alteradas y fuga de datos. |
+| Contrato | OpenAPI contra servidor y cliente. |
+| Flutter | Controladores, widgets, cámara, errores y navegación por rol. |
+| E2E | Acceso → escaneo → entrega → consulta → devolución → historial. |
+| Operación | Despliegue, respaldo, restauración, observabilidad y rollback. |
+
+### 13.2 Preparación de ambiente
+
+- staging equivalente al piloto;
+- migraciones desde una base vacía y desde la versión anterior;
+- respaldo y restauración ensayados;
+- secretos administrados fuera del repositorio;
+- datos semilla controlados;
+- dispositivo y QR físicos;
+- conectividad real de cafetería;
+- cuentas de prueba por rol;
+- procedimiento de soporte e incidentes;
+- rollback probado.
+
+### 13.3 Prueba de campo
+
+Ejecutar con responsables:
+
+1. alta de recipientes;
+2. acceso de cada rol;
+3. entrega normal;
+4. doble escaneo;
+5. pérdida de red durante confirmación;
+6. entrega concurrente;
+7. consulta del estudiante;
+8. devolución normal y tardía;
+9. devolución concurrente;
+10. recipiente desconocido, dañado, perdido o retirado;
+11. consulta de historial;
+12. recuperación ante error operativo.
+
+### Gate de salida
+
+- [ ] Todas las specs aplicables están aprobadas.
+- [ ] No quedan datos ficticios en el flujo productivo.
+- [ ] Todas las migraciones y pruebas obligatorias pasan en CI.
+- [ ] No hay defectos P0/P1 abiertos.
+- [ ] Seguridad y privacidad tienen aprobación.
+- [ ] Respaldo, restauración y rollback fueron demostrados.
+- [ ] Cafetería y operación ReVuelta aceptaron los recorridos.
+- [ ] Existe responsable y horario de soporte.
+- [ ] Se acordaron métricas y criterio de suspensión.
+
+Solo entonces el estado cambia de `NO-GO` a `GO CONTROLADO`.
+
+---
+
+## 14. Plan indicativo de ejecución
+
+Las duraciones son esfuerzo aproximado, no fechas comprometidas. Deben recalcularse después de G0 según capacidad real.
+
+| Tramo | Duración estimada | Salida |
+|---|---:|---|
+| G0 Decisiones y specs | 2–4 días-persona | Requisitos aprobados y trazables |
+| F1 Build y CI | 2–3 días-persona | Entorno reproducible |
+| F2 Arquitectura/contrato/datos | 3–5 días-persona | Base consistente y verificable |
+| F3 Identidad y permisos | 3–4 días-persona | Acceso institucional seguro |
+| F4 Registro/consulta/QR | 3–5 días-persona | Escaneo real y detalle operativo |
+| F5 Entrega | 3–4 días-persona | Entrega atómica e idempotente |
+| F6 Devolución | 3–4 días-persona | Devolución concurrente segura |
+| F7 Experiencias e historial | 4–6 días-persona | Flujos completos por perspectiva |
+| F8 Seguridad/observabilidad | 3–5 días-persona | Operación diagnosticable |
+| F9 Verificación/piloto | 4–7 días-persona | Evidencia y decisión GO/NO-GO |
+
+**Rango inicial:** 30–47 días-persona, sujeto a las decisiones de G0 y a la disponibilidad de infraestructura e identidad institucional.
+
+Una demostración de una semana puede cubrir una porción del flujo, pero no equivale a un piloto autorizado.
+
+### Iteraciones sugeridas
+
+- **Iteración 0:** G0 + F1.
+- **Iteración 1:** F2 + completar autenticación/enrutamiento de F3. La autenticación base del backend ya está implementada.
+- **Iteración 2:** F3 completo + F4.
+- **Iteración 3:** F5.
+- **Iteración 4:** F6 + consultas reales.
+- **Iteración 5:** F7 + cierre F8.
+- **Iteración 6:** F9 y piloto controlado.
+
+Cada iteración debe terminar con software demostrable, pruebas y documentación alineada.
+
+---
+
+## 15. Definition of Ready por historia
+
+Una historia puede entrar a implementación solo si:
+
+- [ ] tiene propósito y actor;
+- [ ] alcance y no-goals son explícitos;
+- [ ] precondiciones, entradas y salidas están definidas;
+- [ ] permisos están definidos;
+- [ ] transiciones e invariantes están definidas;
+- [ ] tiempo autoritativo y zona horaria están definidos;
+- [ ] errores y conflictos están enumerados;
+- [ ] idempotencia/concurrencia están clasificadas;
+- [ ] impacto en datos, API y UI está identificado;
+- [ ] escenarios de aceptación están aprobados;
+- [ ] no depende de una decisión bloqueada.
+
+---
+
+## 16. Definition of Done por vertical
+
+Una entrega vertical está terminada solo si:
+
+- [ ] cumple exactamente la spec aprobada;
+- [ ] no introduce comportamiento adicional;
+- [ ] dominio, aplicación, adaptadores e UI respetan sus responsabilidades;
+- [ ] OpenAPI y modelos del cliente coinciden;
+- [ ] migraciones son deterministas;
+- [ ] autorización se aplica en servidor;
+- [ ] concurrencia e idempotencia están probadas;
+- [ ] fallos son tipados y traducidos;
+- [ ] pruebas unitarias, integración, contrato y UI relevantes pasan;
+- [ ] logs no exponen secretos ni PII innecesaria;
+- [ ] documentación y trazabilidad están actualizadas;
+- [ ] no hay datos demo en la ruta productiva;
+- [ ] CI conserva evidencia del resultado;
+- [ ] no existen cambios ajenos al alcance.
+
+---
+
+## 17. Definition of Done del MVP
+
+El MVP del piloto ITVer está completo cuando:
+
+- [ ] las tres perspectivas aprobadas funcionan;
+- [ ] autenticación y autorización institucional están validadas;
+- [ ] el QR físico funciona en el dispositivo objetivo;
+- [ ] entrega y devolución preservan invariantes bajo concurrencia;
+- [ ] el estudiante consulta información real;
+- [ ] el personal de cafetería completa cada operación sin ambigüedad;
+- [ ] operación ReVuelta puede rastrear y atender incidencias;
+- [ ] el historial es append-oriented y auditable;
+- [ ] no existen endpoints o pantallas productivas sin especificación;
+- [ ] el sistema es desplegable, observable, respaldable y reversible;
+- [ ] la prueba E2E y la prueba de campo fueron aceptadas;
+- [ ] la decisión de salida está firmada por producto, operación y responsable técnico.
+
+---
+
+## 18. Trazabilidad y control de estado
+
+Cada requisito debe mantener esta cadena:
 
 ```text
-Failure
-├── ValidationFailure
-├── AuthenticationFailure
-├── AuthorizationFailure
-├── NotFoundFailure
-├── ConflictFailure
-├── BusinessRuleFailure
-├── InfrastructureFailure
-└── UnexpectedFailure
+REQ-ID
+→ SPEC
+→ ADR (si aplica)
+→ OPENAPI / MODELO DE DATOS
+→ CASO DE USO
+→ PRUEBAS
+→ EVIDENCIA CI
+→ ESTADO
 ```
 
-## 8.2 API
-
-Los errores deben tener una forma estable, versionable y documentada mediante OpenAPI.
-
-Baseline conceptual:
-
-```json
-{
-  "type": "https://revuelta.app/problems/container-not-available",
-  "title": "Container is not available",
-  "status": 409,
-  "code": "CONTAINER_NOT_AVAILABLE",
-  "detail": "The container cannot be assigned in its current state.",
-  "instance": "/api/v1/circulations",
-  "traceId": "...",
-  "errors": []
-}
-```
-
-No se debe filtrar stack traces, SQL, secretos ni detalles internos al cliente.
-
-## 8.3 Flutter
-
-Los fallos de dominio/API se transformarán a estados presentables para UI.
-
-La UI no mostrará mensajes de excepción cruda.
-
----
-
-# 9. Estrategia de estados de UI
-
-Los flujos asíncronos no se modelarán con múltiples booleanos contradictorios (`isLoading`, `hasError`, `isSuccess`, etc.).
-
-Baseline:
+Estados recomendados:
 
 ```text
-Initial
-Loading
-Success<T>
-Failure<Failure>
+DRAFT
+→ READY_FOR_REVIEW
+→ APPROVED
+→ IMPLEMENTING
+→ VERIFIED
+→ ACCEPTED
 ```
 
-Para flujos complejos se usará un modelo discriminado explícito, por ejemplo:
+Reglas:
+
+- “implementado” no significa “verificado”;
+- un cambio de requisito vuelve a abrir contrato y pruebas afectadas;
+- no se cierra una tarea con checks pendientes;
+- el estado de implementación debe derivarse de evidencia, no de una declaración manual;
+- cada PR debe indicar requisito, spec, pruebas y riesgos.
+
+---
+
+## 19. Próximo lote concreto
+
+El siguiente incremento listo para implementación es **autenticación y navegación por rol**:
+
+1. Iniciar PostgreSQL y validar que Flyway aplique V6.
+2. Probar por API los tres usuarios y verificar sus roles efectivos.
+3. Implementar en Flutter un router de sesión explícito:
+   - `PARTICIPANT` → shell Alumno/maestro;
+   - `OPERATOR` → shell Cafetería;
+   - `ADMIN` → shell Operación ReVuelta;
+   - rol ausente/desconocido → acceso seguro rechazado.
+4. Implementar logout común que limpie token, navegación, formularios y escaneo pendiente.
+5. Ocultar las acciones no aprobadas de registro público y recuperación simulada.
+6. Agregar pruebas de estado, navegación y aislamiento por rol.
+7. En paralelo, corregir wrapper/JDK, configuración de secretos de desarrollo y CI de F1.
+8. Después continuar el siguiente vertical operativo:
 
 ```text
-AuthenticationState
-Unauthenticated
-Authenticating
-Authenticated(session)
-AuthenticationFailed(failure)
+sesión y shell por rol
+→ escaneo QR real de solo lectura
+→ resolución de solo lectura
+→ detalle operativo real
 ```
 
-El estado debe poder representar exactamente una situación válida por vez.
-
----
-
-# 10. API: Contract-Driven Development
-
-La API será **contract-first**.
-
-El contrato OpenAPI versionado será aprobado antes de implementar cada vertical relevante. Contract-driven development usa las especificaciones de API como contratos ejecutables o verificables y desplaza errores de compatibilidad hacia etapas tempranas. [4]
-
-Orden obligatorio:
-
-```text
-Business spec
-    ↓
-Use-case spec
-    ↓
-API contract
-    ↓
-Acceptance tests
-    ↓
-Implementation
-```
-
-La implementación no puede introducir endpoints ad hoc “porque era más rápido”.
-
----
-
-# 11. Estrategia de testing
-
-Se combina:
-
-## TDD
-Para reglas de dominio, casos de uso y lógica determinista.
-
-## BDD / Acceptance Testing
-Para flujos observables por usuario y operación.
-
-## Contract Testing
-Para asegurar compatibilidad entre app móvil y backend.
-
-## Integration Testing
-Para persistencia, seguridad, transacciones y adaptadores reales.
-
-## E2E Testing
-Solo para journeys críticos, no para cada detalle de UI.
-
-### Pirámide objetivo
-
-```text
-              E2E
-           /       \
-      Contract   Integration
-       /               \
-    Application / Domain
-       /               \
-   Unit tests (mayoría)
-```
-
-No se perseguirá cobertura porcentual ciega. La prioridad será la cobertura de **riesgos y reglas de negocio**.
-
----
-
-# 12. Threat / risk driven development
-
-Antes de implementar seguridad avanzada se identificarán amenazas concretas.
-
-Riesgos mínimos a analizar:
-
-- QR manipulado.
-- Usuario no autorizado intentando devolver/asignar.
-- Repetición de una operación.
-- Dos operaciones concurrentes sobre el mismo envase.
-- Manipulación del identificador de otro usuario.
-- Exposición de datos personales.
-- Enumeración de recursos.
-- Token comprometido.
-- Requests falsificados desde clientes no oficiales.
-- Borrado accidental de historial.
-
-Cada riesgo debe quedar relacionado con una mitigación verificable.
-
----
-
-# 13. Fases de implementación
-
-## FASE 0 — Constitución y especificación base
-
-**Objetivo:** que el proyecto tenga una única fuente de verdad antes del código serio.
-
-Entregables:
-
-- `AGENTS.md` aprobado.
-- `ROADMAP.md` aprobado.
-- `specs/constitution.md`.
-- `specs/product.md`.
-- `specs/domain/container-lifecycle.md`.
-- `specs/domain/circulation.md`.
-- `specs/security/access-control.md`.
-- `specs/data/data-model.md`.
-- ADR inicial de arquitectura.
-- matriz de trazabilidad.
-
-**Gate:** ningún feature puede pasar a implementación si hay ambigüedades en actores, estados, entradas, salidas o reglas críticas.
-
----
-
-## FASE 1 — Skeleton arquitectónico
-
-**Objetivo:** crear la estructura física de backend y Flutter sin funcionalidad de negocio significativa.
-
-Backend:
-- módulos/capas Clean Architecture;
-- configuración;
-- error boundary;
-- logging;
-- health endpoint;
-- OpenAPI base;
-- test infrastructure.
-
-Flutter:
-- capas Clean Architecture;
-- routing;
-- dependency injection;
-- estado global mínimo;
-- error presentation;
-- environment configuration;
-- API client abstraction.
-
-**Gate:** arquitectura compilable, tests base ejecutándose y reglas de dependencia verificables.
-
----
-
-## FASE 2 — Identity & Access
-
-Implementar:
-- autenticación;
-- sesión/token;
-- roles;
-- autorización;
-- logout/revocación según spec;
-- auditoría de operaciones sensibles.
-
-**Acceptance:** un usuario sin permisos no puede acceder ni por UI ni por API a una operación restringida.
-
----
-
-## FASE 3 — Container Registry
-
-Implementar:
-- registrar envase;
-- consultar envase;
-- listar/filtrar;
-- desactivar;
-- QR identity;
-- estado inicial;
-- historial.
-
-**Acceptance:** cada envase existe una sola vez y su identidad no puede colisionar.
-
----
-
-## FASE 4 — Circulation: entrega
-
-Implementar el primer vertical completo:
-
-```text
-scan QR
- → resolve container
- → validate state
- → authorize actor
- → create circulation
- → transition container
- → persist event
- → return result
-```
-
-La operación deberá probarse bajo repetición y concurrencia.
-
----
-
-## FASE 5 — Circulation: devolución
-
-Implementar:
-
-```text
-scan QR
- → resolve container
- → resolve active circulation
- → validate actor/policy
- → register return
- → calculate punctuality
- → transition container
- → persist event
- → return result
-```
-
-Debe diferenciarse claramente:
-
-- devuelto a tiempo;
-- devuelto tarde;
-- devolución inválida;
-- envase no encontrado;
-- envase sin préstamo activo.
-
----
-
-## FASE 6 — Operación móvil
-
-Implementar UX de los journeys críticos:
-
-1. Login.
-2. Escanear envase.
-3. Ver detalle.
-4. Registrar entrega.
-5. Registrar devolución.
-6. Ver estado.
-7. Ver incidencias necesarias para el rol.
-
-La UI no implementará reglas de negocio duplicadas.
-
----
-
-## FASE 7 — Observabilidad y resiliencia
-
-Agregar:
-- correlation IDs;
-- structured logs;
-- métricas;
-- health/readiness;
-- timeouts;
-- retry solo donde sea seguro;
-- idempotency donde corresponda;
-- manejo explícito de degradación de red en móvil.
-
----
-
-## FASE 8 — Hardening y validación de piloto
-
-Validar:
-- seguridad;
-- concurrencia;
-- integridad de datos;
-- backups;
-- restauración;
-- performance razonable;
-- errores de conectividad;
-- dispositivos reales;
-- operación de campo;
-- trazabilidad completa.
-
-**Gate de piloto:** ninguna severidad crítica/alta abierta que comprometa identidad, autorización, integridad de circulación, pérdida de historial o consistencia de estados.
-
----
-
-## FASE 9 — Pilot release
-
-El piloto se desplegará como **una unidad operativa acotada**.
-
-Antes de activarlo debe existir:
-
-- procedimiento operativo;
-- procedimiento de recuperación;
-- definición de soporte;
-- mecanismo de reporte de incidencias;
-- dataset inicial controlado;
-- seed/admin procedure;
-- métricas de éxito;
-- rollback plan.
-
----
-
-# 14. Feature workflow obligatorio
-
-Cada nueva feature sigue este flujo:
-
-```text
-01. Idea
- ↓
-02. Feature spec
- ↓
-03. Review / ambiguity removal
- ↓
-04. Domain design
- ↓
-05. API/UI contract if applicable
- ↓
-06. Acceptance scenarios
- ↓
-07. Implementation tasks
- ↓
-08. TDD / implementation
- ↓
-09. Integration + contract tests
- ↓
-10. Security/risk review
- ↓
-11. Verification
- ↓
-12. Merge
- ↓
-13. Spec/task status update
-```
-
-Nunca:
-
-```text
-Prompt → generate 500 files → debug until it works
-```
-
----
-
-# 15. Definition of Ready
-
-Una feature está **Ready for Implementation** solo si:
-
-- tiene propósito;
-- tiene actor;
-- tiene precondiciones;
-- tiene postcondiciones;
-- define entradas;
-- define salidas;
-- define errores esperables;
-- define permisos;
-- define cambios de estado;
-- define persistencia cuando corresponda;
-- tiene escenarios de aceptación;
-- tiene fuera de alcance;
-- tiene dependencias identificadas;
-- no contiene decisiones técnicas contradictorias con `AGENTS.md` o ADRs.
-
----
-
-# 16. Definition of Done
-
-Una feature está terminada solo si:
-
-- la implementación coincide con la spec;
-- los tests de dominio pasan;
-- los casos de uso están cubiertos por tests relevantes;
-- los contratos API están validados;
-- los errores están tipados y mapeados;
-- las reglas de autorización están probadas;
-- no existe lógica de negocio duplicada entre capas;
-- no hay TODO crítico;
-- la documentación afectada está actualizada;
-- la spec está marcada como implementada solo después de verificarla;
-- el diff no contiene cambios no relacionados.
-
----
-
-# 17. Trazabilidad
-
-Cada feature deberá poder responder:
-
-```text
-Requirement
-   ↓
-Spec
-   ↓
-Scenario
-   ↓
-Use Case
-   ↓
-Domain Rule
-   ↓
-API/UI Contract
-   ↓
-Test
-   ↓
-Implementation
-```
-
-Código sin razón de negocio rastreable debe cuestionarse.
-
----
-
-# 18. Estructura documental propuesta
-
-```text
-.
-├── AGENTS.md
-├── ROADMAP.md
-├── docs/
-│   ├── adr/
-│   │   ├── ADR-001-clean-architecture.md
-│   │   ├── ADR-002-api-versioning.md
-│   │   └── ADR-003-state-machine.md
-│   └── diagrams/
-├── specs/
-│   ├── constitution.md
-│   ├── product.md
-│   ├── security/
-│   ├── domain/
-│   ├── data/
-│   ├── api/
-│   ├── ui/
-│   ├── testing/
-│   └── features/
-│       └── <feature>/
-│           ├── requirements.md
-│           ├── plan.md
-│           └── validation.md
-├── apps/
-│   └── revuelta-mobile/
-└── services/
-    └── revuelta-api/
-```
-
----
-
-# 19. ADR policy
-
-Toda decisión arquitectónica con impacto transversal se registra como ADR.
-
-Ejemplos:
-
-- por qué modular monolith y no microservices;
-- estrategia de autenticación;
-- control de concurrencia;
-- política de IDs;
-- estrategia de migraciones;
-- versionado API;
-- estrategia de estado Flutter;
-- observabilidad.
-
-Los ADRs no deben documentar preferencias triviales.
-
----
-
-# 20. Principios de diseño
-
-1. **Domain first.** El negocio manda sobre el framework.
-2. **Explicit over implicit.** Las reglas importantes se escriben.
-3. **Small specs over giant specs.** Cada spec debe tener un alcance manejable.
-4. **One source of truth per concern.** No duplicar reglas.
-5. **Fail explicitly.** Los estados imposibles deben ser imposibles o rechazados.
-6. **Immutable history.** El pasado se registra; no se reescribe.
-7. **Secure by default.** La autorización se deniega por defecto.
-8. **Concurrency is a requirement.** No se asume secuencialidad.
-9. **No speculative architecture.** No agregar complejidad por posibles futuros.
-10. **AI accelerates implementation; it does not decide product semantics.**
-
----
-
-# 21. Próximo trabajo concreto
-
-El siguiente lote no es escribir controllers ni pantallas.
-
-Debe producir exactamente estos artefactos:
-
-1. `specs/constitution.md`
-2. `specs/product.md`
-3. `specs/domain/container-lifecycle.md`
-4. `specs/domain/circulation.md`
-5. `specs/security/access-control.md`
-6. `specs/data/data-model.md`
-7. `docs/adr/ADR-001-clean-architecture.md`
-8. primera matriz de trazabilidad.
-
-Después se congela el baseline y comienza **FASE 1**.
-
----
-
-# Referencias
-
-[1] Microsoft, “Spec-Driven Development: A Spec-First Approach to AI-Native Engineering”, 2026. https://developer.microsoft.com/blog/spec-driven-development-ai-native-engineering/
-
-[2] SpecDD, “Spec-Driven Development framework”, 2026. https://github.com/specdd/specdd
-
-[3] AWS Prescriptive Guidance, “Hexagonal architectures / Domain-driven design”. https://docs.aws.amazon.com/prescriptive-guidance/latest/hexagonal-architectures/overview.html
-
-[4] Specmatic, “Contract Driven Development”. https://docs.specmatic.io/contract_driven_development
+9. Antes de modificar entrega/devolución, cerrar las decisiones de política, idempotencia, tiempo y concurrencia y diseñar sus pruebas PostgreSQL.
+10. Implementar entrega solo después de superar ese gate.
+11. Implementar devolución solo después de demostrar la entrega concurrente.
+12. Liberar a campo únicamente después de F9.
+
+Este orden reduce el riesgo de seguir ampliando una demostración visual sobre reglas todavía indefinidas.

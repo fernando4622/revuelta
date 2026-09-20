@@ -1,144 +1,195 @@
 # ReVuelta Product Specification
 
-**Status:** BLOCKED FOR FINAL APPROVAL until all `Decision required` items are resolved.
+**Status:** PARTIALLY APPROVED. Pilot actors, development/MVP authentication, participant identification, return ownership and post-return washing flow are approved. Production identity provisioning, participant-code recovery and remaining technical decisions stay open.
 
-## 1. Actors
+## 1. Product boundary
 
-### 1.1 Operator
-An authenticated staff/operator role that performs operational container actions.
+ReVuelta V1 operates only in the Instituto Tecnológico de Veracruz pilot:
 
-Responsibilities expected by V1:
+```text
+ITVer
+→ Cafetería del Instituto
+→ Punto ReVuelta — Cafetería del Instituto
+→ reusable-container circulation
+```
 
-- identify containers;
-- inspect container state;
-- register delivery/assignment;
-- register return;
-- inspect circulation/history as permitted.
+No multi-campus, restaurant-partner or multi-organization behavior belongs to V1.
 
-**Decision required:** final name, exact permissions, and whether there is more than one operational role.
+## 2. Actors and perspectives
 
-### 1.2 Administrator
-A privileged role for system configuration and operational administration.
+### 2.1 Alumno / participante
 
-Expected responsibilities:
+A member of the participating ITVer community who may hold one or more ReVuelta containers.
 
-- manage users/roles;
-- manage containers;
-- manage return policy;
-- access audit information;
-- perform authorized exceptional operations.
+Responsibilities:
 
-**Decision required:** exact administrative scope.
+- present their persistent Participant Code when receiving a container;
+- keep and return assigned containers;
+- consult their own container state, due information and history when a trusted identity/session becomes available;
+- follow instructions for the approved return point.
 
-### 1.3 Borrower / recipient
-A person who receives a container through a circulation. V1 needs a stable identity reference for the recipient.
+The Participant Code does not prove institutional status and is not authentication.
 
-**Decision required:** whether borrower is represented as an authenticated ReVuelta user, an institutional identifier, an external student/employee record, or another bounded representation. Do not infer from the current UI or prior prototype.
+### 2.2 Personal de Cafetería
 
-## 2. Primary journeys
+The operational actor performing physical handoffs.
 
-### J-01 Login
-Actor authenticates and receives an authorized application session.
+Responsibilities:
 
-### J-02 Scan container
-Operator scans QR. App resolves the QR to a container or returns a safe identification failure.
+- scan/resolve a Participant Code;
+- scan/resolve a container QR;
+- confirm delivery;
+- scan and confirm physical return;
+- verify the pending-wash queue;
+- confirm washing so a returned container becomes available;
+- inspect only the minimum information required for the handoff;
+- escalate incidents to Operación ReVuelta.
 
-### J-03 Inspect container
-Operator sees current state and relevant operational information without mutating it.
+### 2.3 Operación ReVuelta
 
-### J-04 Deliver container
-Authorized operator creates a circulation. The system validates container eligibility, recipient identity, authorization, return policy, performs one transaction, changes container state, and records traceability.
+The administrative actor for this pilot.
 
-### J-05 Return container
-Authorized operator resolves the container and active circulation, validates return eligibility, records return time from server authority, classifies punctuality, transitions the container, and records traceability.
+Responsibilities:
 
-### J-06 Inspect history
-Authorized actor can inspect immutable lifecycle/circulation history according to access policy.
+- register, activate and retire containers through explicit operations;
+- issue Participant Codes;
+- reprint/replace container QR;
+- search containers and circulations;
+- inspect complete traceability;
+- manage approved exceptional states;
+- resolve operational incidents;
+- make approved corrections as append-oriented operations with a reason;
+- manage return policy when authorized.
 
-## 3. Functional requirements
+Operation ReVuelta does not use a generic status editor and does not rewrite history.
 
-### Identity/access
+## 3. Primary journeys
 
-- `FR-001`: The system MUST authenticate protected users before protected operations.
-- `FR-002`: The system MUST authorize every protected mutation server-side.
-- `FR-003`: Logout/session invalidation behavior MUST follow the approved security spec.
+### J-00 Authenticate and resolve experience
+
+The user signs in with a provisioned account. The server-issued role opens exactly one experience: Alumno/maestro participante, Cafetería or Operación ReVuelta. There is no unrestricted perspective selector.
+
+### J-01 Issue Participant Code
+
+An authorized ReVuelta actor creates a persistent participant record and issues an opaque code/QR containing no personal data.
+
+### J-02 Deliver container
+
+Cafetería scans the Participant Code and container QR, reviews eligibility and confirms the physical handoff. One active circulation is created for that container.
+
+### J-03 Student information
+
+Alumno or maestro views their active containers, return instructions and history only when the authenticated account is explicitly associated with the participant record. The development account may use seeded data; real pilot binding remains subject to production identity provisioning.
+
+### J-04 Return container
+
+Cafetería scans the container, resolves the active circulation, confirms physical receipt, finalizes the circulation, unlinks it from the participant and moves the container to `RETURNED`.
+
+### J-05 Complete washing
+
+Cafetería selects a `RETURNED` container and confirms “Lavado completado”. The container moves to `AVAILABLE` and an audit event is recorded.
+
+### J-06 Inspect and administer pilot
+
+Operación ReVuelta searches inventory/circulations, reviews events and executes only explicit authorized operations.
+
+## 4. Functional requirements
+
+### Identity and access
+
+- `FR-001`: Every protected mutation MUST be performed by an authenticated actor before the real pilot.
+- `FR-002`: Every protected mutation MUST be authorized server-side.
+- `FR-003`: The server-issued authenticated role MUST determine the available UI experience; the client MUST NOT choose or override its role.
+- `FR-004`: Participant Code possession MUST NOT authorize a business mutation.
+
+### Participant
+
+- `FR-005`: Each participant MUST have one persistent internal identity.
+- `FR-006`: Each active Participant Code MUST resolve to at most one participant.
+- `FR-007`: The Participant Code payload MUST contain no name, email, matrícula or institutional role.
+- `FR-008`: A participant MAY have more than one active circulation.
+- `FR-009`: Lost/replaced Participant Code recovery MUST remain disabled until D-018 is approved.
 
 ### Containers
 
 - `FR-010`: The system MUST maintain one logical record per physical container.
 - `FR-011`: A container identifier MUST be unique and immutable once issued.
-- `FR-012`: A container with business history MUST NOT be physically deleted through normal operations.
+- `FR-012`: A container with history MUST NOT be physically deleted through normal operations.
 - `FR-013`: The system MUST expose current operational state.
+- `FR-014`: A `RETURNED` container MUST NOT be eligible for delivery.
 
 ### QR
 
-- `FR-020`: The mobile app MUST scan a QR payload.
-- `FR-021`: The backend MUST resolve the payload as untrusted input.
-- `FR-022`: Unknown, inactive, malformed, or unsupported QR payloads MUST produce explicit failures.
+- `FR-020`: Cafetería MUST scan a Participant Code and container QR for delivery.
+- `FR-021`: Cafetería MUST scan the container QR for return.
+- `FR-022`: The backend MUST treat every scanned payload as untrusted.
+- `FR-023`: Participant and container QR formats MUST be distinguishable.
+- `FR-024`: Unknown, inactive, malformed or unsupported payloads MUST produce explicit failures.
 
-### Circulation
+### Circulation and delivery
 
-- `FR-030`: The system MUST create a circulation only when all eligibility rules pass.
+- `FR-030`: A circulation is created only when actor, participant and container validations pass.
 - `FR-031`: A container MUST NOT have more than one active circulation.
-- `FR-032`: Delivery time MUST be authoritative server time.
-- `FR-033`: Due date MUST be derived from the approved policy and effective context.
-- `FR-034`: The system MUST record the operator/actor responsible for delivery.
+- `FR-032`: There is no product-level limit of one active circulation per participant.
+- `FR-033`: Delivery time is authoritative server time.
+- `FR-034`: Due-at derives from the approved effective policy.
+- `FR-035`: Delivery records the Cafetería actor and participant.
 
-### Returns
+### Return
 
-- `FR-040`: A return MUST resolve an active circulation before finalizing.
-- `FR-041`: Return time MUST be authoritative server time.
-- `FR-042`: A completed return MUST NOT be recorded twice for the same circulation.
-- `FR-043`: The system MUST classify whether the return was within the applicable window.
-- `FR-044`: The return operation MUST record traceability.
+- `FR-040`: Return MUST resolve an active circulation.
+- `FR-041`: Cafetería is the actor that confirms physical receipt.
+- `FR-042`: Return time and punctuality are server-authoritative.
+- `FR-043`: A circulation cannot be finalized twice.
+- `FR-044`: A successful return finalizes the circulation and transitions `IN_USE → RETURNED`.
+- `FR-045`: Finalizing return removes current possession from the participant.
+
+### Washing
+
+- `FR-046`: `RETURNED` means “Pendiente de lavado”.
+- `FR-047`: Only an authorized Cafetería actor may perform the normal “Lavado completado” operation.
+- `FR-048`: Washing transitions `RETURNED → AVAILABLE`.
+- `FR-049`: Return and washing MUST create separate trace events.
 
 ### Traceability
 
 - `FR-050`: Sensitive business actions MUST create an auditable event.
-- `FR-051`: Audit history MUST preserve actor, time, affected aggregate/resource, action/result, and correlation information where defined.
-- `FR-052`: Audit records MUST NOT be silently edited or deleted to correct business history.
+- `FR-051`: Events preserve actor, time, resource, action/result and correlation where defined.
+- `FR-052`: Audit records MUST NOT be silently edited or deleted.
 
-## 4. Success metrics
+### UI demonstration
 
-### Operational metric
-
-`return_rate = qualifying_returns_within_defined_window / eligible_deliveries`
-
-Historical project target: ≥85% return within the defined window.
-
-This is a pilot/business metric, not a software correctness criterion.
+- `FR-060`: Impact and notifications MAY appear in demo builds only with a visible “Datos de demostración” label.
+- `FR-061`: Demo values MUST NOT be sent to or stored as production business facts.
+- `FR-062`: The approved prototype logo is `apps/revuelta-mobile/resources/logo.jpeg`.
+- `FR-063`: The official return-point label is “Punto ReVuelta — Cafetería del Instituto”.
 
 ## 5. Product acceptance boundaries
 
-A V1 release is not acceptable if:
+V1 is not acceptable if:
 
-- container identity can collide;
-- two active circulations can exist for one container;
-- unauthorized clients can mutate a protected operation;
-- lifecycle state can be changed without validation;
-- return can be duplicated;
-- audit history can be destroyed through normal business flows;
-- client time is treated as authoritative business time;
-- critical concurrent operations can violate invariants.
+- one Participant Code resolves to multiple active participants;
+- personal information appears in a QR payload;
+- two active circulations exist for one container;
+- a participant is limited to one container without an approved policy;
+- the Alumno perspective can finalize a return;
+- return immediately makes a dirty container available;
+- a returned container can be delivered before washing completes;
+- unauthorized clients can mutate protected operations;
+- lifecycle state can be changed through a generic status editor;
+- return or washing can be duplicated;
+- history can be silently changed or deleted;
+- client time becomes business-authoritative.
 
-## 6. Decision register
+## 6. Open decisions
 
-### D-001 — Actor/role model
-**Status:** BLOCKING.
-
-Resolve exact roles and permissions.
-
-### D-002 — Borrower identity
-**Status:** BLOCKING.
-
-Resolve how a recipient is identified and whether they authenticate.
-
-### D-003 — Exact pilot return-window value
-**Status:** BLOCKING for pilot configuration, not architecture.
-
-Resolve initial value within 1–3 days.
-
-### D-004 — Exceptional state authority
-**Status:** BLOCKING for lifecycle approval.
-
-Resolve exact permissions and evidence required to mark `DAMAGED`, `LOST`, `RETIRED`, or recover from exceptional states.
+- D-003 exact return window;
+- D-004 exceptional-state evidence details;
+- D-005 final treatment of unused `ASSIGNED`;
+- production institutional account provisioning, recovery and token revocation beyond the approved MVP mechanism;
+- D-008 final key strategy;
+- D-009 time representation;
+- D-010 idempotency mechanism;
+- D-013 concurrency mechanism;
+- D-017 real environmental methodology;
+- D-018 Participant Code recovery/replacement.

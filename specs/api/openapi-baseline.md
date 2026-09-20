@@ -1,102 +1,147 @@
 # REST API Contract Baseline
 
-**Status:** DRAFT / BLOCKING until exact auth model and borrower identity are approved.
+**Status:** DRAFT / BLOCKING until exact key strategy, idempotency, production identity binding and remaining feature contracts are approved. Development/MVP login is approved.
 
 ## 1. Contract principles
 
-- `API-001`: OpenAPI is the source of truth for HTTP request/response semantics.
-- `API-002`: All production endpoints are versioned.
-- `API-003`: Every endpoint documents authentication requirements.
-- `API-004`: Every endpoint documents authorization requirements.
-- `API-005`: Every endpoint documents validation and business failures.
-- `API-006`: Every mutating endpoint defines idempotency/deduplication expectations.
+- `API-001`: OpenAPI is the source of truth for HTTP semantics.
+- `API-002`: Production endpoints are versioned under `/api/v1`.
+- `API-003`: Every endpoint states authentication and authorization.
+- `API-004`: Every endpoint documents validation/business failures.
+- `API-005`: Every mutation defines idempotency/deduplication.
+- `API-006`: Collection endpoints define pagination/filtering.
+- `API-007`: Responses expose only actor-necessary data.
+- `API-008`: No endpoint generically sets container status.
 
-## 2. Proposed versioned resource space
-
-The initial contract may be organized under `/api/v1`.
-
-Candidate resources:
+## 2. Proposed resource space
 
 ```text
-POST   /api/v1/auth/...
-GET    /api/v1/containers/{containerId}
-GET    /api/v1/containers/{containerId}/history
-POST   /api/v1/circulations
-GET    /api/v1/circulations/{circulationId}
-POST   /api/v1/circulations/{circulationId}/return
-GET    /api/v1/operations/...
+POST /api/v1/auth/...
+
+POST /api/v1/participants
+POST /api/v1/participant-code-resolutions
+
+POST /api/v1/container-code-resolutions
+GET  /api/v1/containers/{containerId}
+GET  /api/v1/containers/{containerId}/history
+
+POST /api/v1/circulations
+GET  /api/v1/circulations/{circulationId}
+GET  /api/v1/circulations
+POST /api/v1/circulations/{circulationId}/return
+
+POST /api/v1/containers/{containerId}/wash-completions
+
+GET  /api/v1/operations/containers
+GET  /api/v1/operations/circulations
+GET  /api/v1/operations/events
 ```
 
-These are contract placeholders, not permission to implement endpoints before feature specs exist.
+These are semantic contract targets, not permission to implement before their feature/API specs are approved.
 
-## 3. QR resolution
+## 3. Participant-code resolution
 
-Preferred semantic operation:
+Resolution:
+
+- accepts a type/versioned opaque payload;
+- treats input as untrusted;
+- requires authorized Cafetería/ReVuelta context;
+- returns minimal participant reference and eligibility;
+- performs no business mutation;
+- never treats possession as staff authorization.
+
+## 4. Delivery
+
+Create circulation consumes references resulting from:
+
+- Participant Code resolution;
+- container QR resolution;
+- authorized Cafetería actor context.
+
+Success returns:
+
+- circulation identity;
+- participant reference;
+- container identity/public code;
+- `IN_USE` state;
+- delivered-at;
+- due-at;
+- policy reference/version;
+- trace/correlation reference.
+
+It must not reject merely because the participant has another active circulation.
+
+## 5. Return
+
+Return is initiated by authorized Cafetería using the container/active circulation.
+
+Success returns:
+
+- circulation identity;
+- participant reference;
+- returned-at;
+- punctuality;
+- resulting `RETURNED` state;
+- display label “Pendiente de lavado”;
+- trace/correlation reference.
+
+It does not make the container available.
+
+## 6. Wash completion
+
+The named operation `POST /containers/{containerId}/wash-completions`:
+
+- requires authorized Cafetería actor;
+- accepts no target-state field;
+- requires current `RETURNED` state;
+- uses server time;
+- transitions to `AVAILABLE`;
+- appends a wash event;
+- defines duplicate/concurrent behavior.
+
+## 7. Student queries
+
+Real “my containers/history” endpoints require an explicit trusted association between the authenticated `PARTICIPANT` account and the participant record. The login mechanism is approved for MVP demonstration, but this resource binding remains unimplemented.
+
+The Participant Code MUST NOT be accepted as an unauthenticated bearer credential for unrestricted history queries.
+
+## 8. Error additions
+
+Feature contracts may use:
 
 ```text
-scan payload
-→ validate payload shape
-→ resolve container identity
-→ authorize subsequent operation
+PARTICIPANT_CODE_INVALID
+PARTICIPANT_NOT_FOUND
+PARTICIPANT_INACTIVE
+PARTICIPANT_CODE_RECOVERY_NOT_SUPPORTED
+CONTAINER_NOT_RETURNED
+WASH_ALREADY_COMPLETED
 ```
 
-Do not expose a generic “change state” endpoint.
+All errors follow `specs/api/errors.md`.
 
-## 4. Error contract
-
-Every error response SHOULD conform to a stable problem representation:
-
-```json
-{
-  "type": "https://revuelta.app/problems/container-not-available",
-  "title": "Container is not available",
-  "status": 409,
-  "code": "CONTAINER_NOT_AVAILABLE",
-  "detail": "The container cannot be assigned in its current state.",
-  "instance": "/api/v1/circulations",
-  "traceId": "...",
-  "errors": []
-}
-```
-
-The final public schema belongs in OpenAPI and the error specification.
-
-## 5. HTTP semantic baseline
+## 9. HTTP semantics
 
 ```text
 400 malformed/invalid request
 401 unauthenticated
-403 authenticated but unauthorized
+403 unauthorized
 404 resource absent
 409 domain/resource conflict
-422 semantic validation failure (only if used consistently)
-429 rate limited (if enabled)
-500 unexpected server failure
-503 unavailable dependency/service
+422 semantic validation failure if consistently adopted
+429 rate limited if enabled
+500 safe unexpected failure
+503 unavailable dependency
 ```
 
-## 6. Mutation semantics
+## 10. Contract acceptance
 
-### Create circulation
-Must guarantee no duplicate active circulation.
-
-### Return circulation
-Must guarantee no double finalization.
-
-The exact idempotency key format and persistence strategy are `Decision required` at API/architecture level.
-
-## 7. Pagination/filtering
-
-Any collection endpoint MUST define pagination semantics before implementation. No arbitrary unbounded production list endpoint.
-
-## 8. API acceptance
-
-A contract is accepted only when examples exist for:
+Each endpoint requires examples/tests for:
 
 - success;
 - malformed input;
-- authentication failure;
-- authorization failure;
+- authentication/authorization failure;
 - not found;
-- business conflict;
-- unexpected failure (safe generic response).
+- conflict/duplicate;
+- concurrency outcome;
+- safe unexpected failure.

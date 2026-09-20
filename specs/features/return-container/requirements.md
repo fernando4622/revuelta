@@ -1,49 +1,74 @@
 # Feature Spec — Return Container
 
-**Status:** BLOCKED until D-001, D-005, D-006, D-007, D-008, D-009 and D-010 are resolved.
+**Status:** PRODUCT BEHAVIOR APPROVED. Implementation remains blocked by authentication, idempotency, time and concurrency decisions.
 
 ## Purpose
 
-Record the effective return of a container from an active circulation, classify punctuality, transition lifecycle state, and preserve traceability.
+Record Cafetería's physical receipt of a container, finalize its active circulation, unlink possession from the participant and place the container in the pending-wash state.
 
 ## Actor
-Authorized operational actor defined by the final role matrix.
+
+Authorized Cafetería actor.
+
+Alumno cannot finalize the return.
 
 ## Preconditions
 
-- actor authenticated and authorized;
-- container exists and is active;
-- active circulation exists;
-- return operation is permitted for current state;
-- server time can be obtained;
-- circulation is not already finalized.
+- actor is authenticated and authorized;
+- container resolves from valid QR;
+- container is active and `IN_USE`;
+- exactly one active circulation exists;
+- server time is available;
+- circulation is not finalized.
+
+Participant Code is not required during return.
 
 ## Outputs
 
-Success MUST provide:
-
 - circulation identity;
-- returned-at authoritative timestamp;
-- punctuality classification;
-- resulting container state;
-- trace/correlation identifier as appropriate.
+- participant reference;
+- returned-at server timestamp;
+- punctuality;
+- resulting `RETURNED` state;
+- display meaning “Pendiente de lavado”;
+- trace/correlation reference.
+
+## State changes
+
+```text
+IN_USE → RETURNED
+```
+
+The circulation is completed in the same transaction. The container is no longer in the participant's possession but is not available for another delivery.
 
 ## Business rules
 
 - returned-at cannot precede delivered-at;
-- `ON_TIME`/`LATE` classification is server-authoritative;
-- finalized circulation cannot be finalized again;
-- transition + circulation finalization + trace event are atomic.
+- punctuality is server-authoritative;
+- a finalized circulation cannot be finalized again;
+- return does not perform wash completion;
+- return finalization, lifecycle transition and event are atomic.
 
-## Failures
+## Failure catalog
 
 ```text
 UNAUTHENTICATED
 FORBIDDEN_OPERATION
 INVALID_QR
 CONTAINER_NOT_FOUND
+INACTIVE_CONTAINER
 CIRCULATION_NOT_FOUND
 RETURN_ALREADY_REGISTERED
 INVALID_STATE_TRANSITION
+VALIDATION_ERROR
 CONCURRENCY_CONFLICT
 ```
+
+## Acceptance
+
+- valid return completes one circulation;
+- participant possession is removed;
+- container persists as `RETURNED`;
+- one return event exists;
+- duplicate/concurrent return cannot create another completion/event;
+- only wash completion may later make the container `AVAILABLE`.

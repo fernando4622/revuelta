@@ -6,31 +6,31 @@
 
 ---
 
-## DL-001 — Roles operativos simplificados
+## DL-001 — Perspectivas y responsabilidades del piloto
 
 | Campo | Valor |
 |---|---|
 | **ID** | DL-001 |
-| **Problema** | La matriz exacta de roles y permisos no está definida (D-001). Sin esto no se puede implementar autorización. |
+| **Problema** | El producto necesita separar Alumno, Cafetería y Operación ReVuelta sin convertir la navegación en autorización. |
 | **Spec afectada** | `specs/security/access-control.md`, `specs/product.md` |
-| **Opciones** | (A) Dos roles: OPERATOR y ADMIN. (B) Tres roles: OPERATOR, SUPERVISOR, ADMIN. (C) Roles granulares por permiso individual. |
-| **Decisión temporal** | **(A) Dos roles.** `OPERATOR` puede: escanear, consultar envases, crear circulaciones, registrar devoluciones, ver historial. `ADMIN` puede: todo lo anterior + registrar envases, gestionar usuarios/roles, configurar políticas, marcar estados excepcionales, ver auditoría completa. |
-| **Consecuencia** | Simplifica la implementación. Si el producto necesita un rol intermedio, se deberá agregar con migración y actualizar autorización. |
-| **Revisar para V2** | SÍ — la matriz real puede necesitar más granularidad. |
+| **Opciones** | Mantener dos roles técnicos genéricos o modelar las tres responsabilidades reales del piloto. |
+| **Decisión temporal** | Se reconocen tres experiencias de producto vinculadas a roles autenticados: `PARTICIPANT` para **Alumno/maestro**, `OPERATOR` para **Cafetería** y `ADMIN` para **Operación ReVuelta**. Alumno/maestro consulta su información; Cafetería identifica participantes/recipientes, entrega, recibe y completa lavado; ReVuelta administra inventario, incidencias y trazabilidad. |
+| **Consecuencia** | Navegación y casos de uso quedan separados. La app obtiene el rol de una sesión firmada y nunca de un selector o encabezado controlado por el cliente. Toda operación continúa requiriendo autorización del servidor. |
+| **Revisar para V2** | NO — debe cerrarse antes del piloto mediante la matriz de acceso aprobada. |
 
 ---
 
-## DL-002 — Identidad del prestatario como usuario registrado
+## DL-002 — Identidad del participante mediante Código ReVuelta
 
 | Campo | Valor |
 |---|---|
 | **ID** | DL-002 |
-| **Problema** | No está definido si el prestatario es un usuario autenticado de ReVuelta, un ID institucional, o una referencia libre (D-002). |
+| **Problema** | Se necesita asociar uno o varios recipientes a una persona sin implementar todavía login ni exponer datos personales en el QR. |
 | **Spec afectada** | `specs/product.md`, `specs/domain/circulation.md`, `specs/data/data-model.md` |
-| **Opciones** | (A) Prestatario como usuario autenticado de ReVuelta. (B) Referencia institucional (matrícula/ID empleado) capturada por operador. (C) Nombre libre. |
-| **Decisión temporal** | **(A) Prestatario como usuario registrado.** El campo `borrower_id` en la circulación será un UUID que hace referencia a la tabla de `users`. Los prestatarios deben existir en el sistema. |
-| **Consecuencia** | Mayor trazabilidad e integridad referencial. Requiere un flujo para registrar o importar a los prestatarios al sistema antes de poder entregarles envases. |
-| **Revisar para V2** | SÍ — evaluar si los prestatarios necesitarán autenticarse en la app móvil. |
+| **Opciones** | Cuenta autenticada, matrícula visible, código por pedido o código persistente y opaco por participante. |
+| **Decisión temporal** | Cada participante recibe un **Código ReVuelta persistente**, representable como QR, sin nombre, matrícula, correo ni rol institucional en el payload. Cafetería escanea el Código ReVuelta y el QR del recipiente para efectuar la entrega. Una persona puede tener varias circulaciones activas, pero cada recipiente conserva como máximo una. |
+| **Consecuencia** | Permite trazabilidad y agrupación de historial sin login. El código identifica al participante dentro del piloto, pero no autentica al portador ni autoriza operaciones. La recuperación/reemisión se mantiene bloqueada por D-018. |
+| **Revisar para V2** | SÍ — vincular el participante con identidad institucional cuando se implemente autenticación. |
 
 ---
 
@@ -76,17 +76,17 @@
 
 ---
 
-## DL-006 — RETURNED como estado transitorio
+## DL-006 — RETURNED como estado persistente pendiente de lavado
 
 | Campo | Valor |
 |---|---|
 | **ID** | DL-006 |
-| **Problema** | No está definido si `RETURNED` es un estado persistente (cola de lavado/inspección) o transitorio (D-006). |
+| **Problema** | Debe distinguirse un recipiente recibido físicamente de uno lavado y disponible. |
 | **Spec afectada** | `specs/domain/container-lifecycle.md` |
 | **Opciones** | (A) RETURNED persistente: el envase espera inspección antes de volver a AVAILABLE. (B) RETURNED transitorio: la devolución transiciona directamente a AVAILABLE. |
-| **Decisión temporal** | **(B) Transitorio.** Al registrar una devolución, el envase transiciona de `IN_USE → AVAILABLE` en una sola operación atómica. El estado `RETURNED` no se persiste como estado del envase. La circulación se marca como `COMPLETED` con su timestamp de devolución y clasificación de puntualidad. |
-| **Consecuencia** | Simplifica el flujo. Si el piloto necesita cola de inspección/lavado, se reintroduce RETURNED como estado persistente. |
-| **Revisar para V2** | SÍ — evaluar si se necesita proceso de inspección post-devolución. |
+| **Decisión temporal** | **(A) Persistente.** La confirmación física de Cafetería finaliza la circulación y transiciona `IN_USE → RETURNED`. `RETURNED` significa “Pendiente de lavado” y no es elegible para entrega. Cafetería registra “Lavado completado” para transicionar `RETURNED → AVAILABLE`. |
+| **Consecuencia** | La devolución y la disponibilidad quedan separadas y generan eventos distintos. La UI debe mostrar la cola pendiente de lavado y nunca presentar `RETURNED` como disponible. |
+| **Revisar para V2** | NO — es la semántica aprobada para el piloto. |
 
 ---
 
@@ -98,8 +98,8 @@
 | **Problema** | No está definido el mecanismo de autenticación (D-007). |
 | **Spec afectada** | `specs/security/access-control.md`, `specs/features/authentication/requirements.md` |
 | **Opciones** | (A) JWT stateless. (B) Sesión con cookies HttpOnly. (C) OAuth2 con provider externo. |
-| **Decisión temporal** | **(A) JWT stateless.** Login con username/password → JWT access token (expiración: 4 horas). Sin refresh token en V1. El token incluye: user ID, username, roles. Spring Security valida el token en cada request. Logout es client-side (borrar token). |
-| **Consecuencia** | No hay revocación server-side de tokens individuales en V1. Si un token se compromete, solo es válido por 4 horas. |
+| **Decisión temporal** | **(A) JWT stateless aprobado para desarrollo/MVP demostrable.** Login con username/password → JWT access token (expiración: 4 horas). Sin refresh token en V1. El token incluye user ID, username y un rol reconocido. Spring Security valida el token en cada request. Logout es client-side. Las cuentas semilla son exclusivas de desarrollo. |
+| **Consecuencia** | El login se conserva y el rol autenticado decide la experiencia. No hay revocación server-side de tokens individuales en V1; el aprovisionamiento institucional, recuperación y endurecimiento productivo deben aprobarse antes del piloto real. |
 | **Revisar para V2** | SÍ — evaluar refresh tokens, revocación, y posiblemente OAuth2. |
 
 ---
@@ -185,3 +185,56 @@
 | **Decisión temporal** | **(A) Partial unique index.** PostgreSQL soporta nativamente índices únicos parciales. La constraint se evalúa atómicamente en el commit de la transacción. Si dos transacciones concurrentes intentan crear una circulación activa para el mismo container, la segunda falla con unique violation, que se traduce a `409 ACTIVE_CIRCULATION_EXISTS`. |
 | **Consecuencia** | Mecanismo más simple y confiable. La BD es la última línea de defensa del invariante. No requiere código de locking adicional. Probado bajo concurrencia con integration tests. |
 | **Revisar para V2** | NO — es el mecanismo recomendado por la comunidad PostgreSQL. |
+
+---
+
+## DL-014 — Enrutamiento por rol autenticado; selector descartado
+
+| Campo | Valor |
+|---|---|
+| **ID** | DL-014 |
+| **Problema** | Se necesita revisar y desarrollar las vistas Alumno, Cafetería y Operación ReVuelta sin permitir que el cliente elija privilegios. |
+| **Spec afectada** | `specs/ui/mobile.md`, `specs/ui/perspectives.md`, `specs/security/access-control.md` |
+| **Opciones** | (A) Selector temporal sin login. (B) Login con cuentas de prueba y enrutamiento por rol firmado. (C) Crear tres aplicaciones separadas. |
+| **Decisión temporal** | **(B) Login con cuentas de prueba.** Se descarta el selector. `student1/PARTICIPANT` abre Alumno/maestro, `operator/OPERATOR` abre Cafetería y `admin/ADMIN` abre Operación ReVuelta. Para cambiar de experiencia se cierra sesión y se ingresa con otra cuenta. |
+| **Consecuencia** | El prototipo conserva login y prueba el aislamiento de responsabilidades. La cuenta participante no recibe permisos de Cafetería ni administración. Las cuentas y contraseña semilla no pueden habilitarse en producción. |
+| **Revisar para V2** | SÍ — sustituir o integrar el aprovisionamiento de prueba con el mecanismo institucional aprobado. |
+
+---
+
+## DL-015 — Cafetería confirma la devolución física
+
+| Campo | Valor |
+|---|---|
+| **ID** | DL-015 |
+| **Problema** | Los mockups permiten interpretar que el alumno finaliza la devolución, mientras el contexto operativo asigna la recepción a Cafetería. |
+| **Spec afectada** | `specs/features/return-container/requirements.md`, `specs/ui/student-experience.md`, `specs/ui/cafeteria-experience.md` |
+| **Decisión temporal** | Cafetería escanea el QR del recipiente y confirma la recepción física. En ese momento se finaliza la circulación, se desliga el recipiente del participante y pasa a `RETURNED` —“Pendiente de lavado”—. El alumno solo consulta instrucciones y el resultado confirmado por el servidor. |
+| **Consecuencia** | La devolución requiere un actor operativo autorizado y no puede completarse desde la perspectiva Alumno. |
+| **Revisar para V2** | NO para el piloto actual. |
+
+---
+
+## DL-016 — Activo gráfico oficial del prototipo
+
+| Campo | Valor |
+|---|---|
+| **ID** | DL-016 |
+| **Problema** | Los mockups muestran un símbolo distinto al archivo de marca proporcionado. |
+| **Spec afectada** | `specs/ui/reference-mockups.md` |
+| **Decisión temporal** | Usar `apps/revuelta-mobile/resources/logo.jpeg` como activo oficial del prototipo ReVuelta. No extraer el símbolo alternativo de las imágenes compuestas. |
+| **Consecuencia** | Las pantallas deben adaptar composición, tamaño y contraste al activo aprobado. Una variante transparente puede generarse solo a partir de este archivo y sin rediseñar la marca. |
+| **Revisar para V2** | SÍ, si se entrega un paquete de marca oficial nuevo. |
+
+---
+
+## DL-017 — Impacto y notificaciones como demostración
+
+| Campo | Valor |
+|---|---|
+| **ID** | DL-017 |
+| **Problema** | Los mockups muestran métricas ambientales y notificaciones para las que aún no existe fuente o metodología productiva. |
+| **Spec afectada** | `specs/ui/student-experience.md` |
+| **Decisión temporal** | Mantener ambas vistas en modo mockup/demo, con un indicador visible “Datos de demostración”. No presentar sus valores como resultados reales ni habilitarlas como evidencia del piloto. |
+| **Consecuencia** | Permite revisar el diseño sin inventar información operacional. Producción deberá ocultarlas o conectarlas a datos/metodología aprobados. |
+| **Revisar para V2** | SÍ — antes de habilitarlas con cifras reales. |

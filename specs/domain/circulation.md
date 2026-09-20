@@ -1,132 +1,143 @@
 # Circulation Specification
 
-**Status:** BLOCKED FOR FINAL APPROVAL until borrower identity and exact lifecycle semantics are resolved.
+**Status:** APPROVED FOR PARTICIPANT CARDINALITY AND NORMAL HANDOFF. Policy, authentication, keys, idempotency and concurrency details retain their registered decisions.
 
 ## 1. Concept
 
-A `Circulation` represents the controlled possession of one reusable container by one recipient for a bounded operational interval.
-
-A circulation is a business fact, not merely a row linking two identifiers.
+A `Circulation` represents controlled possession of one reusable container by one participant for a bounded operational interval.
 
 ## 2. Required semantic fields
 
-The final data specification MUST represent at least:
-
 - circulation identity;
 - container identity;
-- recipient identity/reference;
+- participant identity;
 - delivery actor;
-- delivered-at timestamp;
-- due-at timestamp;
-- return actor when returned;
-- returned-at timestamp when returned;
-- punctuality classification;
-- current circulation status;
-- provenance/correlation needed for traceability.
+- delivered-at;
+- due-at;
+- applied return-policy identity/version;
+- return actor;
+- returned-at;
+- punctuality;
+- circulation status;
+- correlation/provenance.
 
-Exact field names and key strategy belong to `specs/data/data-model.md`.
-
-## 3. Circulation invariants
+## 3. Invariants
 
 - `BR-CIR-001`: One container has at most one active circulation.
-- `BR-CIR-002`: A circulation must reference an existing container.
-- `BR-CIR-003`: A circulation must reference a valid recipient representation.
-- `BR-CIR-004`: Delivery must be performed by an authorized actor.
-- `BR-CIR-005`: Delivery time is server-authoritative.
-- `BR-CIR-006`: Due time derives from the policy effective at delivery unless a later approved rule defines another versioned policy behavior.
+- `BR-CIR-002`: One participant may have multiple active circulations.
+- `BR-CIR-003`: A circulation references one existing participant and container.
+- `BR-CIR-004`: Cafetería performs normal delivery and return.
+- `BR-CIR-005`: Delivery and return times are server-authoritative.
+- `BR-CIR-006`: Due-at derives from the policy captured at delivery.
 - `BR-CIR-007`: Returned-at cannot precede delivered-at.
 - `BR-CIR-008`: A finalized circulation cannot be finalized again.
-- `BR-CIR-009`: Returning a container without an active circulation is a business failure, not a successful no-op, unless an explicit reconciliation operation is later introduced.
+- `BR-CIR-009`: Return without active circulation is a business failure.
+- `BR-CIR-010`: Washing never reopens or changes the completed circulation.
 
 ## 4. Delivery use case
 
 ```text
-resolve actor
-→ authorize
-→ validate recipient
-→ resolve container
-→ validate container eligibility
+resolve authenticated Cafetería actor
+→ authorize delivery
+→ resolve Participant Code
+→ validate participant eligibility
+→ resolve container QR
+→ validate AVAILABLE state
 → resolve effective return policy
-→ establish due-at
+→ calculate due-at from server time
 → create circulation
-→ transition container
-→ create trace event
-→ commit transaction
-→ return result
+→ transition AVAILABLE → IN_USE
+→ append delivery event
+→ commit
 ```
 
-The implementation MUST define one transaction boundary around all state changes that must succeed or fail together.
+Scanning a participant QR or container QR alone performs no mutation.
 
 ## 5. Return use case
 
 ```text
-resolve actor
-→ authorize
-→ resolve container
+resolve authenticated Cafetería actor
+→ authorize return
+→ resolve container QR
 → resolve active circulation
-→ validate return eligibility
-→ obtain authoritative server time
+→ validate IN_USE state
+→ obtain server time
 → classify punctuality
 → finalize circulation
-→ transition container
-→ create trace event
-→ commit transaction
-→ return result
+→ remove current participant possession
+→ transition IN_USE → RETURNED
+→ append return event
+→ commit
 ```
 
-## 6. Punctuality classification
+The participant code is not required for return because the active circulation is resolved from the container.
 
-The baseline categories are:
+## 6. Washing use case
 
-- `ON_TIME`: return occurs on or before due-at according to the approved comparison rule.
-- `LATE`: return occurs after due-at according to the approved comparison rule.
+```text
+resolve authenticated Cafetería actor
+→ authorize wash completion
+→ resolve returned container
+→ validate RETURNED state
+→ transition RETURNED → AVAILABLE
+→ append wash-completed event
+→ commit
+```
 
-**Decision required:** whether equality at the exact due timestamp is `ON_TIME` (recommended default), and whether calendar-day or instant comparison is authoritative.
+## 7. Punctuality and policy
 
-## 7. Return-window policy
+- `ON_TIME`: returned-at is equal to or before due-at.
+- `LATE`: returned-at is after due-at.
+- Policy version and resulting due-at are preserved on the circulation.
+- Later policy changes do not recompute active circulation deadlines.
 
-The pilot supports a configurable return window of 1–3 days.
+Exact pilot window remains D-003.
 
-The final policy MUST define:
+## 8. Idempotency and concurrency
 
-- policy identifier/version;
-- duration representation;
-- effective time zone or UTC interpretation;
-- rounding/boundary behavior;
-- effective date/time;
-- whether policy changes affect only new circulations or existing open ones.
-
-The system MUST NOT recompute an already active circulation's due date from a later policy version unless explicitly specified.
-
-## 8. Idempotency
-
-### Delivery
-Delivery is a mutating operation. The final API spec MUST define the deduplication mechanism for repeated submissions.
-
-### Return
-Return MUST be protected against duplicate submissions, network retry after timeout, and double-tap.
-
-A repeated return request for an already finalized circulation MUST produce a deterministic response, ideally an explicit duplicate/conflict outcome, according to the final contract.
+- Duplicate/concurrent delivery cannot create two active circulations for one container.
+- Multiple different containers may be delivered to the same participant.
+- Duplicate/concurrent return finalizes once.
+- Duplicate/concurrent washing transitions once.
+- A retry after an uncertain result must query current server state or follow the approved idempotency contract.
 
 ## 9. Acceptance scenarios
 
-### SC-CIR-001 Valid delivery
-Given an eligible container and authorized operator, when delivery is created, then exactly one active circulation exists, the container reaches the defined delivery state, due-at is derived from the effective policy, and one trace event exists.
+### SC-CIR-001 — First delivery
 
-### SC-CIR-002 Ineligible container
-Given a container in a non-eligible state, when delivery is requested, then no circulation is created and state is unchanged.
+Given an eligible participant and available container,
+when Cafetería confirms delivery,
+then one active circulation exists and the container becomes `IN_USE`.
 
-### SC-CIR-003 Duplicate delivery
-Given an already active circulation for the container, when another delivery is requested, then the second request does not create another active circulation.
+### SC-CIR-002 — Additional delivery
 
-### SC-CIR-004 On-time return
-Given an active circulation with a due-at in the future or equal to authoritative return time, when return is registered, then the circulation is finalized as `ON_TIME` and the container transitions to the defined post-return state.
+Given the participant already holds another container,
+when a different available container is delivered,
+then another active circulation may be created.
 
-### SC-CIR-005 Late return
-Given an active circulation whose due-at is before authoritative return time, when return is registered, then the circulation is finalized as `LATE`.
+### SC-CIR-003 — Duplicate container delivery
 
-### SC-CIR-006 Return without active circulation
-Given no active circulation for the container, when return is requested, then the operation fails and does not fabricate a circulation.
+Given a container has an active circulation,
+when another delivery is attempted for that container,
+then no additional active circulation is created.
 
-### SC-CIR-007 Concurrent return
-Given one active circulation and two near-simultaneous return attempts, when both complete, then one business result finalizes the circulation and the system remains consistent; the second is deterministic and non-destructive.
+### SC-CIR-004 — Return
+
+Given an active circulation,
+when Cafetería confirms physical return,
+then the circulation is finalized,
+the participant no longer holds the container,
+and the container becomes `RETURNED`.
+
+### SC-CIR-005 — Wash completion
+
+Given a returned container,
+when Cafetería confirms washing,
+then the container becomes `AVAILABLE`,
+without modifying the completed circulation.
+
+### SC-CIR-006 — Concurrent return
+
+Given one active circulation,
+when two return commands race,
+then only one finalizes it and data remains consistent.

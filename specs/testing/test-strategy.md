@@ -43,10 +43,12 @@ Only critical journeys:
 
 ```text
 login
-→ scan
+→ scan Participant Code
+→ scan container
 → inspect
-→ deliver
-→ return
+→ deliver additional containers to the same participant
+→ cafeteria return
+→ complete washing
 → inspect history
 ```
 
@@ -68,6 +70,8 @@ At minimum:
 
 - two simultaneous delivery attempts for one container;
 - two simultaneous return attempts;
+- two simultaneous wash-completion attempts;
+- delivery of two different containers to one participant;
 - retry after client timeout;
 - duplicate submission with same idempotency key when adopted.
 

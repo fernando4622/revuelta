@@ -1,63 +1,74 @@
 # Feature Spec — Deliver Container
 
-**Status:** BLOCKED until D-001, D-002, D-005, D-007, D-008, D-010 and D-013 are resolved.
+**Status:** PRODUCT BEHAVIOR APPROVED. Implementation remains blocked by authentication, key, idempotency and concurrency decisions.
 
 ## Purpose
 
-Record the delivery of one eligible reusable container to one recipient as one atomic business operation.
+Record the physical delivery of one available reusable container to one participant as one atomic operation.
 
 ## Actor
-Authorized operational actor defined by the final role matrix.
+
+Authorized Cafetería actor.
 
 ## Preconditions
 
-- actor is authenticated;
-- actor is authorized;
-- container resolves from valid QR/identifier;
-- container is active and eligible;
-- recipient identity is valid;
+- actor is authenticated and authorized;
+- Participant Code was resolved and participant is active;
+- container QR was resolved;
+- container is active and `AVAILABLE`;
 - effective return policy exists;
-- no active circulation exists for container.
+- container has no active circulation.
+
+The participant MAY already have other active circulations.
 
 ## Inputs
 
-- container identifier resolved from QR;
-- recipient reference;
-- client request/idempotency metadata as defined by API contract.
+- participant reference from Participant Code resolution;
+- container reference from container QR resolution;
+- idempotency/request metadata defined by API contract.
 
-Client-provided timestamps are not authoritative.
+QR payloads and client timestamps are not authoritative.
 
 ## Outputs
 
-Success MUST provide enough data for client to render:
-
 - circulation identity;
-- container identity;
-- effective state;
-- delivered-at authoritative timestamp;
-- due-at timestamp;
-- trace identifier/correlation reference where appropriate.
+- participant reference;
+- container identity/public code;
+- effective `IN_USE` state;
+- delivered-at server timestamp;
+- due-at;
+- policy identity/version;
+- trace/correlation reference.
+
+## State changes
+
+```text
+AVAILABLE → IN_USE
+```
+
+One transaction creates the circulation, transitions the container and appends one delivery event.
 
 ## Business rules
 
-- no duplicate active circulation;
-- due-at derives from effective policy;
-- one transaction covers circulation creation, lifecycle transition, and trace event;
-- failure means no partial mutation.
+- one active circulation per container;
+- multiple active circulations per participant are allowed;
+- possession of Participant Code never authorizes delivery;
+- due-at derives from captured effective policy;
+- failure produces no partial mutation.
 
 ## Failure catalog
-
-At minimum:
 
 ```text
 UNAUTHENTICATED
 FORBIDDEN_OPERATION
+PARTICIPANT_CODE_INVALID
+PARTICIPANT_NOT_FOUND
+PARTICIPANT_INACTIVE
 INVALID_QR
 CONTAINER_NOT_FOUND
 INACTIVE_CONTAINER
 CONTAINER_NOT_AVAILABLE
 ACTIVE_CIRCULATION_EXISTS
-RECIPIENT_INVALID
 POLICY_NOT_FOUND
 VALIDATION_ERROR
 CONCURRENCY_CONFLICT
@@ -65,8 +76,9 @@ CONCURRENCY_CONFLICT
 
 ## Acceptance
 
-- valid delivery creates exactly one active circulation;
-- container reaches defined delivery state;
-- due-at is reproducible from policy/version;
-- trace event exists;
-- duplicate/concurrent requests cannot create two active circulations.
+- valid delivery creates one active circulation;
+- a participant with another container may receive an additional eligible container;
+- the delivered container becomes `IN_USE`;
+- due-at and policy provenance are stored;
+- exactly one delivery event exists;
+- duplicate/concurrent requests cannot create two active circulations for the same container.

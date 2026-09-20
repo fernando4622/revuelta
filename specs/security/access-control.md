@@ -1,87 +1,114 @@
 # Identity and Access Control Specification
 
-**Status:** BLOCKED FOR FINAL APPROVAL until the exact role matrix is approved.
+**Status:** PRODUCT PERMISSIONS AND MVP ROLE BINDING APPROVED. Production institutional provisioning and Participant Code recovery remain blocked.
 
 ## 1. Security principles
 
-- `SEC-001`: Every protected mutation is authenticated.
+- `SEC-001`: Every protected mutation is authenticated before real-pilot use.
 - `SEC-002`: Every sensitive operation is authorized server-side.
-- `SEC-003`: UI visibility is never authorization.
+- `SEC-003`: UI visibility is never authorization; the server-issued role is the only role claim accepted by the application.
 - `SEC-004`: Default authorization posture is deny-by-default.
-- `SEC-005`: QR data never grants authorization.
-- `SEC-006`: Tokens/secrets/passwords MUST NOT be logged.
-- `SEC-007`: Security failures MUST be safe to expose and diagnostically useful through correlation identifiers.
+- `SEC-005`: Participant and container QR data never grant staff authorization.
+- `SEC-006`: Tokens, QR payloads, secrets and passwords MUST NOT be logged.
+- `SEC-007`: Responses expose only the minimum data required by the actor.
 
-## 2. Authentication
+## 2. Identity types
 
-The exact authentication mechanism is an ADR decision. The product only requires that protected actors have a verifiable authenticated identity and that the backend can determine session/token validity.
+### Participant
 
-**Decision required:** selected authentication mechanism, token/session lifecycle, refresh/revocation semantics, and credential provisioning.
+The authenticated `PARTICIPANT` account opens the Alumno/maestro experience. Its access to personal data requires an explicit server-side association with the participant record.
 
-## 3. Authorization model
+The opaque persistent Participant Code remains the handoff identifier used by Cafetería. It is not a login credential, staff session or proof of institutional status.
 
-Authorization is evaluated against:
+### Cafetería actor
 
-```text
-actor identity
-+ actor role(s)
-+ requested operation
-+ target resource
-+ current resource/domain state
-+ relevant context
-```
+An authenticated staff identity authorized for physical handoff operations.
 
-Having a role is not sufficient if the domain state makes the operation invalid.
+### ReVuelta operations actor
 
-## 4. Permission categories
+An authenticated privileged identity authorized for pilot administration.
 
-The final matrix MUST include at least:
+## 3. Authenticated role routing
 
-- read container;
-- scan/resolve container;
-- create circulation;
-- register return;
-- inspect circulation/history;
-- create/update/deactivate container;
-- manage users/roles;
-- manage return policy;
-- perform exceptional lifecycle transitions;
-- view audit records.
+The development/MVP application uses provisioned accounts and signed server tokens:
 
-Exact role → permission mapping is `Decision required`.
+- `PARTICIPANT` routes to Alumno/maestro;
+- `OPERATOR` routes to Cafetería;
+- `ADMIN` routes to Operación ReVuelta.
+
+There is no unrestricted selector or trusted client-supplied role. Missing or unknown roles fail closed. Development seed credentials are forbidden in production.
+
+## 4. Permission matrix
+
+| Permission | Alumno | Cafetería | Operación ReVuelta |
+|---|:---:|:---:|:---:|
+| View own active containers/history | Yes, after trusted identity binding | No | Yes, for operational purpose |
+| Resolve Participant Code | No | Yes | Yes |
+| Resolve container QR | Own informational flow only | Yes | Yes |
+| Create circulation/deliver | No | Yes | No |
+| Register physical return | No | Yes | No |
+| Complete washing | No | Yes | No normal flow |
+| View recent own operational actions | No | Yes | Yes |
+| Register/activate container | No | No | Yes |
+| Reprint/replace container QR | No | No | Yes |
+| Search all containers/circulations | No | Limited to active handoff | Yes |
+| Mark damaged/lost/retired/recovered | No | No | Yes, with reason and approved evidence |
+| Resolve incidents/corrections | No | Escalate only | Yes, through explicit use case with reason |
+| Manage return policy | No | No | Yes, when separately authorized |
+| View full audit | No | No | Yes |
+| Edit/delete audit history | No | No | No |
 
 ## 5. Resource authorization
 
-The backend MUST check authorization independently of mobile UI state. An attacker who directly calls the REST API must receive the same authorization decision as a legitimate UI flow.
+Authorization evaluates:
 
-## 6. Least privilege
+```text
+authenticated actor
++ permission
++ target resource
++ current domain state
++ operation context
+```
 
-A role SHOULD receive only the permissions necessary for its operational responsibility.
+A permitted role cannot bypass domain state. Direct API calls receive the same decision as UI calls.
 
-## 7. QR threat model
+## 6. Participant Code controls
 
-A QR payload is untrusted input and can be:
+- QR contains an opaque identifier and format/version discriminator only.
+- Cafetería may resolve only the data needed to complete the handoff.
+- Resolution MUST NOT return unnecessary personal data.
+- A copied Participant Code cannot authorize a staff operation.
+- Reissue/recovery is disabled until D-018 defines identity verification, old-code invalidation and active-circulation reassociation.
 
-- malformed;
-- forged;
-- stale;
-- copied;
-- replayed as part of a request;
-- associated with an inactive container.
+## 7. Security acceptance scenarios
 
-Scanning MUST resolve identity, then pass through the normal authorization and business-rule pipeline.
+### SC-SEC-001 — Role bypass
 
-## 8. Data exposure
+Given a participant modifies the client to display a Cafetería screen,
+when they call a protected Cafetería endpoint with a `PARTICIPANT` token,
+then the server rejects the request without mutation.
 
-API responses MUST expose only fields necessary for the current actor and use case. Personal information must not be included merely because it exists in the database.
+### SC-SEC-002 — Participant QR is not authorization
 
-## 9. Security acceptance scenarios
+Given a valid Participant Code,
+when an unauthenticated client submits a delivery,
+then the request is rejected.
 
-### SC-SEC-001 API bypass
-Given an authenticated actor lacking permission, when they call a protected mutation directly, then the API rejects the request regardless of client UI behavior.
+### SC-SEC-003 — Minimum participant exposure
 
-### SC-SEC-002 QR does not authorize
-Given a valid QR for a container, when an unauthorized actor scans it, then scanning may identify the container if permitted but cannot grant mutation permission.
+Given Cafetería resolves a Participant Code,
+when the response is returned,
+then it contains the participant reference and operational eligibility only,
+without name, email or matrícula unless a later approved spec requires them.
 
-### SC-SEC-003 Invalid token
-Given an invalid/expired session, when a protected operation is attempted, then the API rejects it without performing a business mutation.
+### SC-SEC-004 — Student isolation
+
+Given a trusted participant session is explicitly associated with one participant,
+when it queries active containers/history,
+then only records for that participant are returned.
+
+### SC-SEC-005 — Correction requires reason
+
+Given Operación ReVuelta performs an approved correction,
+when it is submitted,
+then a non-empty reason and actor are recorded in append-oriented history.

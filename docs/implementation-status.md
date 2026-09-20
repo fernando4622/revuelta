@@ -1,7 +1,9 @@
 # ReVuelta — Implementation Status
 
-> **Última actualización:** 2026-09-16
-> **Estado general:** MVP Implementado. Backend Spring Boot (Clean Architecture + DDD) y cliente móvil Flutter (Clean Architecture + Riverpod AsyncNotifier) completados y alineados con las especificaciones.
+> **Última actualización:** 2026-09-20
+> **Estado general:** PROTOTIPO PARCIAL. Existe implementación backend/Flutter, pero no está verificada como MVP completo ni alineada todavía con todas las especificaciones.
+>
+> **Nota de auditoría:** las afirmaciones históricas de “completado” incluidas más abajo deben interpretarse junto con la revisión de UI de la sección 10 y el estado `NO-GO` de `ROADMAP.md`.
 
 ---
 
@@ -29,7 +31,7 @@
 │   │   ├── infrastructure/      ✅ JPA Entities, Repositories, Security (JWT 4h), Web Exception Handler
 │   │   └── interfaces/rest/     ✅ AuthController, ContainerController, CirculationController
 │   ├── src/main/resources/
-│   │   ├── db/migration/        ✅ V1 (schema + partial unique index), V2 (roles), V3 (users), V4 (policy)
+│   │   ├── db/migration/        ✅ V1–V6; V6 agrega `PARTICIPANT` a `student1`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
 │   └── src/test/java/           ✅ Unit tests (ContainerTest, CirculationTest, Deliver/Return UseCases)
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
@@ -72,8 +74,13 @@ El código del proyecto está completamente estructurado y funcional:
 | `specs/features/*/` | Blocked/Draft | Requisitos y escenarios por feature |
 | `specs/testing/test-strategy.md` | Approved Baseline | Estrategia de testing |
 | `specs/risks/threat-model.md` | Approved Baseline | Modelo de amenazas |
-| `specs/ui/mobile.md` | Blocked | Pantallas, flujo Flutter |
-| `specs/ui/state-machines.md` | Baseline | Máquinas de estado UI |
+| `specs/ui/mobile.md` | Partially approved | Índice, reglas globales y navegación por rol autenticado |
+| `specs/ui/state-machines.md` | Approved baseline | Máquinas de estado UI |
+| `specs/ui/reference-mockups.md` | Visual baseline | Interpretación de imágenes y sistema visual |
+| `specs/ui/perspectives.md` | Approved for MVP | Responsabilidades y navegación por rol autenticado |
+| `specs/ui/student-experience.md` | Draft | Pantallas del alumno basadas en los mockups |
+| `specs/ui/cafeteria-experience.md` | Draft | Herramienta operativa de cafetería |
+| `specs/ui/revuelta-operations-experience.md` | Draft | Administración del piloto ITVer |
 | `specs/ops/observability.md` | Approved Baseline | Logging, métricas |
 | ADR-001 a ADR-006 | Accepted Baseline | Decisiones arquitectónicas |
 
@@ -81,7 +88,7 @@ El código del proyecto está completamente estructurado y funcional:
 
 ## 3. Features implementadas
 
-**Ninguna.** El repositorio no contiene código ejecutable.
+Existe código ejecutable backend y Flutter, pero ninguna feature se considera verificada contra las specs actualizadas del 2026-09-19. En particular, la implementación existente no modela todavía Código ReVuelta persistente ni `RETURNED/Pendiente de lavado`.
 
 ---
 
@@ -94,68 +101,64 @@ Ordenadas por dependencia y prioridad operativa:
 | 1 | Skeleton arquitectónico backend | ADR-001, ADR-002 | Ninguna |
 | 2 | Skeleton arquitectónico Flutter | ADR-001, ui/mobile.md | D-011 |
 | 3 | Base de datos + migraciones iniciales | data/data-model.md | D-008, D-009, D-013 |
-| 4 | Dominio: Container entity + state machine | container-lifecycle.md | D-005, D-006 |
-| 5 | Dominio: Circulation entity | circulation.md | D-002 |
-| 6 | Autenticación | authentication/requirements.md, access-control.md | D-007 |
-| 7 | Autorización (roles/permisos) | access-control.md | D-001 |
-| 8 | Container registry (alta, consulta) | product.md FR-010..FR-013 | D-008 |
-| 9 | QR scan + resolución | scan-container/requirements.md | — |
-| 10 | Entrega (crear circulación) | deliver-container/requirements.md | D-001..D-013 |
-| 11 | Devolución | return-container/requirements.md | D-001..D-010 |
-| 12 | Historial/trazabilidad | traceability.md, FR-050..FR-052 | — |
-| 13 | Error handling uniforme | errors.md | — |
-| 14 | Observabilidad básica | observability.md | — |
-| 15 | Flutter: Login | ui/mobile.md | D-007, D-011 |
-| 16 | Flutter: Scan + Inspect | ui/mobile.md, state-machines.md | D-011 |
-| 17 | Flutter: Delivery flow | ui/mobile.md | D-011 |
-| 18 | Flutter: Return flow | ui/mobile.md | D-011 |
-| 19 | Flutter: History view | ui/mobile.md | D-011 |
-| 20 | E2E journey completo | test-strategy.md | Todas anteriores |
+| 4 | Dominio: Container entity + state machine | container-lifecycle.md | D-005 |
+| 5 | Dominio: Participant + Participant Code | participant.md, identify-participant/* | D-008, D-018 para recuperación |
+| 6 | Dominio: Circulation entity | circulation.md | D-008, D-009, D-013 |
+| 7 | Autenticación MVP/demo | authentication/requirements.md, access-control.md | Aprobada; falta hardening productivo |
+| 8 | Autorización (roles/permisos) | access-control.md | Matriz aprobada; falta verificación integral |
+| 9 | Container registry (alta, consulta) | product.md FR-010..FR-014 | D-008 |
+| 10 | QR de participante y recipiente | identify-participant/*, scan-container/* | D-008 |
+| 11 | Entrega (crear circulación) | deliver-container/* | D-007..D-013 |
+| 12 | Devolución a pendiente de lavado | return-container/* | D-007..D-013 |
+| 13 | Lavado completado | complete-wash/* | D-007, D-010, D-013 |
+| 14 | Historial/trazabilidad | traceability.md, FR-050..FR-052 | — |
+| 15 | Error handling uniforme | errors.md | — |
+| 16 | Observabilidad básica | observability.md | — |
+| 17 | Flutter: enrutamiento por rol y shells | ui/mobile.md, ui/perspectives.md | Enrutamiento/shells todavía incompletos |
+| 18 | Flutter: Scan + Inspect | ui/mobile.md, state-machines.md | — para demo |
+| 19 | Flutter: Delivery/Return/Wash | specs UI por feature | D-007, D-010, D-013 |
+| 20 | Flutter: alumno/historial | student-experience.md | D-007 para datos reales |
+| 21 | E2E journey completo | test-strategy.md | Todas anteriores |
 
 ---
 
-## 5. Ambigüedades bloqueantes
+## 5. Decisiones bloqueantes actuales
 
-Las siguientes decisiones del `specs/decision-register.md` están sin resolver y bloquean implementación:
-
-### Críticas para el primer vertical slice
+Las decisiones de identidad del participante, actor de devolución y estado pendiente de lavado ya fueron resueltas. Permanecen:
 
 | ID | Decisión | Impacto |
 |---|---|---|
-| **D-005** | ¿`ASSIGNED` es materialmente diferente de `IN_USE`? | Define la máquina de estados. Sin esto no se puede implementar el dominio del envase. |
-| **D-006** | ¿`RETURNED` es estado persistente o transitorio? | Define si el envase pasa por inspección/lavado antes de volver a `AVAILABLE`. |
-| **D-002** | Modelo de identidad del prestatario | Define si el receptor es un usuario autenticado, un ID institucional, o una referencia libre. |
-| **D-007** | Mecanismo de autenticación | JWT vs sesión. Define toda la infraestructura de seguridad. |
-| **D-008** | Estrategia de identificadores (PKs) | UUIDv4, UUIDv7, secuencial, natural. Afecta toda la persistencia y API. |
-| **D-009** | Representación de tiempo/zona horaria | UTC instants vs offsets. Afecta toda comparación temporal. |
-| **D-013** | Mecanismo de concurrencia en BD | Partial unique index vs locks. Afecta integridad de circulaciones. |
-
-### Importantes pero no bloqueantes para el skeleton
-
-| ID | Decisión | Impacto |
-|---|---|---|
-| **D-001** | Matriz de roles/permisos | Necesaria antes de implementar autorización. |
-| **D-003** | Ventana de devolución del piloto (1-3 días) | Necesaria antes de configurar el piloto, no para la arquitectura. |
-| **D-004** | Permisos de estados excepcionales | Necesaria para DAMAGED/LOST/RETIRED, no para el happy path. |
-| **D-010** | Mecanismo de idempotencia API | Necesaria antes de endpoints mutativos en producción. |
-| **D-011** | Librería de state management Flutter | Necesaria antes de escribir código Flutter. |
+| **D-003** | Ventana exacta de devolución | Configuración del piloto |
+| **D-004** | Evidencia para daño/pérdida/retiro | Flujos excepcionales |
+| **D-005** | Tratamiento final de `ASSIGNED` | Limpieza de contrato/modelo |
+| **D-007** | Aprovisionamiento, recuperación y revocación productivos; el JWT MVP/demo ya está aprobado | Piloto real |
+| **D-008** | Estrategia final de identificadores | Persistencia/API |
+| **D-009** | Tiempo/zona horaria | Fechas límite y puntualidad |
+| **D-010** | Idempotencia | Reintentos de mutaciones |
+| **D-013** | Control de concurrencia final | Entrega, devolución y lavado |
+| **D-017** | Metodología ambiental real | Impacto productivo |
+| **D-018** | Recuperación/reemisión del Código ReVuelta | Operación con participantes reales |
 
 ---
 
-## 6. Supuestos adoptados
+## 6. Decisiones de producto vigentes
 
-Ver `/docs/decision-log.md` para la documentación completa de cada decisión temporal. Resumen:
+Ver `/docs/decision-log.md`. Resumen:
 
-1. **D-005/D-006:** Se unifica `ASSIGNED`/`IN_USE` en `IN_USE` y `RETURNED` se trata como transitorio (auto-transición a `AVAILABLE`). Razón: el piloto no requiere confirmación de entrega física separada ni cola de lavado/inspección.
-2. **D-002:** El prestatario se modela como string de referencia institucional (ej. matrícula) capturada por el operador, sin requerir cuenta de usuario en ReVuelta. Razón: simplifica el MVP; los prestatarios no usan la app.
-3. **D-007:** JWT stateless con Spring Security. Razón: estándar para REST APIs móviles, sin necesidad de almacenar sesiones.
-4. **D-008:** UUIDs (v4) para todas las entidades. PKs internas = IDs de API. Razón: evita enumeración, simple, sin ambigüedad.
-5. **D-009:** Timestamps UTC (Instant) en BD y API. Zona horaria del negocio configurable para interpretación de políticas. Razón: recomendación explícita del spec de datos.
-6. **D-013:** Partial unique index en PostgreSQL (`container_id WHERE status = 'ACTIVE'`) para garantizar una circulación activa por envase. Razón: mínimo mecanismo, probado bajo concurrencia.
-7. **D-001:** Dos roles: `OPERATOR` (entrega/devolución/consulta) y `ADMIN` (todo lo anterior + gestión de envases, usuarios, políticas). Razón: mínimo viable para el piloto.
-8. **D-003:** Ventana de devolución por defecto: 2 días. Configurable. Razón: punto medio del rango 1-3 días.
-9. **D-010:** Idempotencia por unique constraint en BD + respuesta determinista en duplicado. Sin header `Idempotency-Key` en V1. Razón: simplicidad; la BD garantiza el invariante.
-10. **D-011:** Riverpod como state management Flutter. Razón: type-safe, testable, sin boilerplate excesivo.
+1. Tres perspectivas: Alumno, Cafetería y Operación ReVuelta.
+2. No hay selector de perspectiva: el rol autenticado decide la experiencia (`PARTICIPANT`, `OPERATOR`, `ADMIN`).
+3. Participante identificado por Código ReVuelta persistente, opaco y sin PII.
+4. Cafetería escanea Código ReVuelta + recipiente para entregar.
+5. Un participante puede tener múltiples circulaciones activas; cada recipiente solo una.
+6. Cafetería confirma la devolución escaneando el recipiente.
+7. La devolución finaliza la circulación y deja el recipiente en `RETURNED/Pendiente de lavado`.
+8. Cafetería confirma lavado para transicionar `RETURNED → AVAILABLE`.
+9. Operación ReVuelta administra códigos, inventario, incidencias, excepciones y auditoría mediante operaciones explícitas.
+10. El punto se denomina “Punto ReVuelta — Cafetería del Instituto”.
+11. El activo gráfico aprobado es `apps/revuelta-mobile/resources/logo.jpeg`.
+12. Impacto y notificaciones son mockup con “Datos de demostración” hasta contar con fuentes reales.
+
+Las decisiones técnicas temporales existentes —JWT, UUID, UTC, índice parcial, Riverpod— no se consideran aprobación final mientras su registro gobernante permanezca abierto.
 
 ---
 
@@ -241,3 +244,52 @@ Ver `/docs/decision-log.md` para la documentación completa de cada decisión te
 | Fase 7 — Observabilidad | 🔜 Día 7 | Básica para MVP |
 | Fase 8 — Hardening | ⏳ Post-MVP | Seguridad avanzada, performance |
 | Fase 9 — Pilot release | ⏳ Post-MVP | Deployment, seed, rollback |
+
+---
+
+## 10. Revisión de especificaciones UI — 2026-09-18
+
+### Especificado
+
+- Login con cuentas de desarrollo para Alumno/maestro, Cafetería y Operación ReVuelta.
+- Navegación y límites de responsabilidad gobernados por el rol autenticado.
+- Contratos de pantalla del alumno derivados de `ejemplo1.png`, `ejemplo2.png` y `ejemplo3.png`.
+- Contratos operativos mínimos para Cafetería y Operación ReVuelta derivados de `context.md`.
+- Estados de escaneo, carga, mutación, resultado incierto e información no disponible.
+- Contratos UI específicos para escaneo, entrega y devolución.
+- Regla de no mostrar datos o métricas de demostración como información real.
+
+### Pendiente de decisión
+
+- D-017: fuente y metodología de métricas ambientales reales; el mockup demo sí está aprobado.
+- D-018: recuperación/reemisión del Código ReVuelta.
+- Aprovisionamiento institucional, recuperación y revocación antes del piloto real.
+- Vinculación explícita entre cuenta `PARTICIPANT` y el participante de dominio para datos personales reales.
+- Mockups específicos para Cafetería y Operación ReVuelta.
+
+### Implicación
+
+Las specs permiten comenzar la separación de shells y estados visuales mediante cuentas autenticadas de desarrollo. La devolución física por Cafetería, `RETURNED/Pendiente de lavado`, la operación separada “Lavado completado”, los múltiples recipientes por participante, el Código ReVuelta persistente y las responsabilidades de Operación ReVuelta ya están definidos a nivel de producto. El piloto real sigue bloqueado por aprovisionamiento institucional, contratos pendientes y verificación.
+
+### Decisiones aprobadas el 2026-09-19
+
+- Código ReVuelta persistente, opaco y sin PII para identificar al participante.
+- Cafetería escanea Código ReVuelta + recipiente para entregar.
+- Un participante puede tener múltiples recipientes activos.
+- Cafetería confirma la devolución escaneando el recipiente.
+- La devolución finaliza la circulación y deja el recipiente en `RETURNED`, “Pendiente de lavado”.
+- Cafetería confirma el lavado para transicionar a `AVAILABLE`.
+- Nombre: “Punto ReVuelta — Cafetería del Instituto”.
+- Logo: `apps/revuelta-mobile/resources/logo.jpeg`.
+- Impacto y notificaciones pueden mostrarse como mockup con “Datos de demostración”.
+- Se conserva login y se descarta el selector libre de perspectiva.
+- `student1` usa `PARTICIPANT`; `operator` usa `OPERATOR`; `admin` usa `ADMIN`.
+
+## 11. Verificación de autenticación por rol — 2026-09-20
+
+- Compilación backend ejecutada con Java 17.
+- `mvn test`: 24 pruebas ejecutadas, 0 fallos, 0 errores.
+- Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
+- `git diff --check`: sin errores de espacios en el diff.
+- La migración V6 no se validó todavía contra PostgreSQL porque Docker Desktop no estaba iniciado durante esta revisión.
+- El enrutamiento Flutter hacia shells distintos por rol continúa pendiente; el login y el rol backend no deben confundirse con esa UI todavía no implementada.
