@@ -70,11 +70,11 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 
 ### 1.3 Evidencia técnica actual
 
-- El backend compila con el Maven Wrapper real y JDK 17; 29 pruebas pasan, incluidas migraciones sobre PostgreSQL 16 y límites arquitectónicos del dominio.
+- El backend compila con el Maven Wrapper real y JDK 17; 32 pruebas pasan, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites arquitectónicos del dominio.
 - Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
 - Flutter 3.41.9/Dart 3.11.5 ejecuta 8 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
 - Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
-- La definición de CI existe; su primera ejecución remota sigue pendiente de confirmación después del push.
+- GitHub Actions completó correctamente el primer CI remoto sobre un checkout limpio del commit `cce83b7`.
 - No hay evidencia suficiente para autorizar despliegue productivo.
 
 **Decisión de estado:** `NO-GO` para piloto operativo hasta completar los gates P0 de este roadmap.
@@ -371,7 +371,7 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - `student1` recibe `PARTICIPANT` mediante la migración V6.
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
-- La suite backend compila con Java 17: 29 pruebas, 0 fallos y 0 errores.
+- La suite backend compila con Java 17: 32 pruebas, 0 fallos y 0 errores.
 - Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
 - Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
 - La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
@@ -415,13 +415,13 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 
 ### Gate F1
 
-- [ ] Un clon limpio compila con versiones documentadas.
-- [ ] CI reproduce los checks obligatorios.
+- [x] Un checkout limpio compila con versiones documentadas en GitHub Actions.
+- [x] CI reproduce los checks obligatorios.
 - [x] Ningún secreto real fue detectado por el gate local automatizado.
 - [x] Las migraciones comunes no dejan usuarios demo; existe prueba PostgreSQL ejecutable.
 - [x] La URL del API móvil es configurable con `API_BASE_URL`.
 
-**Estado 2026-09-20:** implementación local completa. El cierre formal de F1 espera la primera ejecución remota exitosa de CI sobre un commit limpio.
+**Estado 2026-09-20:** F1 cerrada. La ejecución remota `35519801008` terminó correctamente sobre `cce83b7`.
 
 ---
 
@@ -491,13 +491,13 @@ Completado y verificado en backend:
 - rol `PARTICIPANT` para `student1`;
 - rechazo seguro de roles ausentes, múltiples o desconocidos;
 - respuesta `401 INVALID_CREDENTIALS`;
+- contrato `application/problem+json` para token ausente, inválido o expirado (`401 UNAUTHENTICATED`);
+- rechazo `403 FORBIDDEN_OPERATION` probado al intentar saltar la UI con un rol `PARTICIPANT`;
 - pruebas unitarias de autenticación y resolución de rol.
 
 Pendiente para cerrar F3:
 
-- probar token ausente, alterado y expirado con el contrato JSON común;
 - probar `403` por rol en cada endpoint sensible;
-- separar credenciales semilla del ambiente productivo;
 - definir aprovisionamiento, baja, recuperación y revocación para el piloto real.
 
 ### Trabajo
@@ -526,7 +526,7 @@ Pendiente para cerrar F3:
 ### Gate F3
 
 - [ ] Cada endpoint sensible tiene prueba de autorización.
-- [ ] El servidor niega por defecto.
+- [x] El servidor niega por defecto solicitudes sin una sesión válida y usa el contrato de error común.
 - [ ] No existen credenciales o flujos demo en producción.
 - [ ] La experiencia móvil representa correctamente sesión vencida y acceso denegado.
 
@@ -1011,9 +1011,9 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-F1 quedó implementada y validada localmente el 2026-09-20; falta observar su primera ejecución remota tras el push. El siguiente incremento funcional es **escaneo y resolución QR real de solo lectura**:
+F1 quedó implementada y validada local y remotamente el 2026-09-20. El siguiente incremento funcional es **escaneo y resolución QR real de solo lectura**:
 
-1. Confirmar en GitHub la ejecución remota de los gates de F1.
+1. [x] Confirmar en GitHub la ejecución remota de los gates de F1.
 2. Implementar el siguiente vertical operativo:
 
 ```text

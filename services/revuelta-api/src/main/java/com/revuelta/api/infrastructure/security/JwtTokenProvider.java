@@ -22,7 +22,7 @@ public class JwtTokenProvider {
     private final Duration expiration;
 
     public JwtTokenProvider(
-            @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}") String secretHex,
+            @Value("${jwt.secret}") String secretHex,
             @Value("${jwt.expiration-hours:4}") int expirationHours
     ) {
         byte[] keyBytes = Decoders.BASE64.decode(secretHex);

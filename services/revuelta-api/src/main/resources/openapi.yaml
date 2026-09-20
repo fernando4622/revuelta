@@ -65,6 +65,10 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/ContainerResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
         '409':
           $ref: '#/components/responses/409Conflict'
     get:
@@ -87,6 +91,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Container'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
 
   /containers/{containerId}:
     get:
@@ -101,6 +109,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ContainerResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
 
@@ -117,6 +129,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/ContainerResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
 
   /circulations:
     post:
@@ -136,6 +152,10 @@ paths:
       responses:
         '201':
           $ref: '#/components/responses/CirculationResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
         '409':
           $ref: '#/components/responses/409Conflict'
 
@@ -152,6 +172,10 @@ paths:
       responses:
         '200':
           $ref: '#/components/responses/CirculationResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
         '404':
           $ref: '#/components/responses/404NotFound'
 
@@ -174,6 +198,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ContainerEvent'
+        '401':
+          $ref: '#/components/responses/401Unauthenticated'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
 
 components:
   securitySchemes:
@@ -236,6 +264,38 @@ components:
         reason: { type: string }
 
   responses:
+    401Unauthenticated:
+      description: Authentication is missing, invalid or expired
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+          example:
+            type: https://revuelta.app/problems/unauthenticated
+            title: Unauthorized
+            status: 401
+            code: UNAUTHENTICATED
+            detail: Authentication is required or the supplied token is invalid
+            instance: /api/v1/containers
+            traceId: 3a06ba13-6a4c-49c1-92c7-13281f51d757
+            timestamp: '2026-09-20T15:38:50Z'
+            errors: []
+    403Forbidden:
+      description: The authenticated role is not authorized for the operation
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+          example:
+            type: https://revuelta.app/problems/forbidden-operation
+            title: Forbidden
+            status: 403
+            code: FORBIDDEN_OPERATION
+            detail: You are not authorized to perform this operation
+            instance: /api/v1/containers
+            traceId: ad0147fa-b2e0-4ad4-a751-dfadf4384a23
+            timestamp: '2026-09-20T15:38:50Z'
+            errors: []
     ContainerResponse:
       description: Container object
       content:

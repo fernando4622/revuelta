@@ -5,7 +5,9 @@ import com.revuelta.api.domain.container.ContainerTransitionException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,6 +21,19 @@ import java.util.UUID;
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ProblemDetail> handleAuthenticationRequired(
+            AuthenticationException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.UNAUTHORIZED,
+                "UNAUTHENTICATED",
+                "Authentication is required or the supplied token is invalid",
+                request.getRequestURI()
+        );
+    }
 
     @ExceptionHandler(AuthenticationFailureException.class)
     public ResponseEntity<ProblemDetail> handleAuthenticationFailure(
@@ -59,7 +74,9 @@ public class GlobalExceptionHandler {
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .toList();
 
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ProblemDetail(
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(new ProblemDetail(
                 "https://revuelta.app/problems/validation-error",
                 "Validation Error",
                 HttpStatus.BAD_REQUEST.value(),
@@ -115,7 +132,9 @@ public class GlobalExceptionHandler {
                 Instant.now(),
                 List.of()
         );
-        return ResponseEntity.status(status).body(problem);
+        return ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+                .body(problem);
     }
 
     public record ProblemDetail(

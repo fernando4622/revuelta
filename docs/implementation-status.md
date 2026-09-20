@@ -33,7 +33,7 @@
 │   ├── src/main/resources/
 │   │   ├── db/migration/        ✅ V1–V7 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 29 pruebas de dominio, aplicación, migración, adaptación y arquitectura
+│   └── src/test/java/           ✅ 32 pruebas de dominio, aplicación, migración, seguridad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -52,7 +52,7 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 - Migraciones Flyway comunes (`V1` a `V7`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de 29 pruebas, incluidas migraciones sobre PostgreSQL 16 y límites de dependencia del dominio.
+- Suite de 32 pruebas, incluidas migraciones sobre PostgreSQL 16, seguridad HTTP y límites de dependencia del dominio.
 
 
 ---
@@ -235,7 +235,7 @@ Las decisiones técnicas temporales existentes —JWT, UUID, UTC, índice parcia
 | Fase | Estado | Notas |
 |---|---|---|
 | Fase 0 — Constitución | ✅ ~Completa | Docs existentes; decisiones pendientes resueltas temporalmente |
-| Fase 1 — Skeleton / F1 build | 🟡 Local verificado | Backend, Flutter, Docker, wrapper y CI definidos; ejecución remota pendiente |
+| Fase 1 — Skeleton / F1 build | ✅ Completa | Backend, Flutter, Docker, wrapper y CI verificados local y remotamente |
 | Fase 2 — Identity & Access | 🔜 Día 3 | JWT + roles |
 | Fase 3 — Container Registry | 🔜 Día 3 | CRUD básico |
 | Fase 4 — Circulation: Entrega | 🔜 Día 4 | Primer vertical completo |
@@ -288,7 +288,7 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 ## 11. Verificación de autenticación por rol — 2026-09-20
 
 - Compilación backend ejecutada con Java 17.
-- `mvn verify`: 29 pruebas ejecutadas, 0 fallos, 0 errores.
+- `mvn verify`: 32 pruebas ejecutadas, 0 fallos, 0 errores.
 - Incluye pruebas nuevas para login `PARTICIPANT` y rechazo de cuentas sin rol, con rol desconocido o con múltiples roles.
 - `git diff --check`: sin errores de espacios en el diff.
 - Flyway aplicó V6 contra PostgreSQL real y la tabla de roles confirmó `student1:PARTICIPANT`, `operator:OPERATOR` y `admin:ADMIN`.
@@ -309,4 +309,14 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - Flutter recibe el API mediante `API_BASE_URL`; `localhost` queda como fallback explícito de desarrollo.
 - ArchUnit protege al dominio de dependencias hacia aplicación, infraestructura, interfaces, Spring, JPA y Jackson.
 - Redocly valida el OpenAPI; Trivy 0.74.0 reporta 0 vulnerabilidades `HIGH/CRITICAL` corregibles en `pom.xml` y `pubspec.lock` y no detectó secretos.
-- `.github/workflows/ci.yml` reproduce build/pruebas backend, migraciones, arquitectura, OpenAPI, seguridad y checks Flutter. Falta observar el primer run remoto exitoso.
+- `.github/workflows/ci.yml` reproduce build/pruebas backend, migraciones, arquitectura, OpenAPI, seguridad y checks Flutter.
+- GitHub Actions run `35519801008` terminó correctamente sobre el checkout limpio del commit `cce83b7`.
+
+## 13. Contrato de seguridad HTTP y arranque limpio — 2026-09-20
+
+- El starter oficial de Flyway ejecuta migraciones antes de la validación JPA en una base PostgreSQL vacía.
+- Token ausente, inválido o expirado devuelve `401 UNAUTHENTICATED` con `application/problem+json`.
+- Un `PARTICIPANT` que llama directamente un endpoint de Cafetería/Operación recibe `403 FORBIDDEN_OPERATION`.
+- Las respuestas incluyen código estable, instancia, timestamp y referencia de trazabilidad sin exponer el token.
+- La configuración común ya no contiene un secreto JWT por defecto; solo el perfil local `dev` aporta la credencial de demostración.
+- La verificación de autorización todavía debe extenderse a cada endpoint sensible antes de cerrar F3.
