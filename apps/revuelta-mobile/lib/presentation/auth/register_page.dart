@@ -75,7 +75,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 // Nombre completo
                 const Text(
                   'Nombre completo',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -83,14 +86,18 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(
                     hintText: 'Ej. Valeria Torres',
                   ),
-                  validator: (val) => val == null || val.isEmpty ? 'Ingresa tu nombre' : null,
+                  validator: (val) =>
+                      val == null || val.isEmpty ? 'Ingresa tu nombre' : null,
                 ),
                 const SizedBox(height: 16),
 
                 // Correo institucional
                 const Text(
                   'Correo institucional',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -99,14 +106,19 @@ class _RegisterPageState extends State<RegisterPage> {
                   decoration: const InputDecoration(
                     hintText: 'tu.correo@itver.edu.mx',
                   ),
-                  validator: (val) => val == null || val.isEmpty ? 'Ingresa tu correo institucional' : null,
+                  validator: (val) => val == null || val.isEmpty
+                      ? 'Ingresa tu correo institucional'
+                      : null,
                 ),
                 const SizedBox(height: 16),
 
                 // Contraseña
                 const Text(
                   'Contraseña',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -116,13 +128,18 @@ class _RegisterPageState extends State<RegisterPage> {
                     hintText: 'Min. 8 caracteres',
                     suffixIcon: IconButton(
                       icon: Icon(
-                        _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                        _obscurePassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
                         color: AppColors.textSecondary,
                       ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
                   ),
-                  validator: (val) => val == null || val.length < 8 ? 'Mínimo 8 caracteres' : null,
+                  validator: (val) => val == null || val.length < 8
+                      ? 'Mínimo 8 caracteres'
+                      : null,
                 ),
                 const SizedBox(height: 28),
 

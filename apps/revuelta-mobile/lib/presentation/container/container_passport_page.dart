@@ -57,7 +57,8 @@ class ContainerPassportPage extends StatelessWidget {
                       value: (completedCycles % 100) / 100.0,
                       strokeWidth: 6,
                       backgroundColor: AppColors.cardBorder,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primaryGreen),
+                      valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primaryGreen),
                     ),
                   ),
                   // Center Content (Cup icon & Cycle Count)
@@ -186,11 +187,13 @@ class ContainerPassportPage extends StatelessWidget {
                   children: const [
                     Text(
                       'Material: Polipropileno (PP)',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary),
                     ),
                     Text(
                       'Vida útil: ~200 ciclos',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: TextStyle(
+                          fontSize: 13, color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -229,14 +232,17 @@ class _TimelineItem extends StatelessWidget {
               height: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: isCompleted ? AppColors.primaryGreen : AppColors.cardBorder,
+                color:
+                    isCompleted ? AppColors.primaryGreen : AppColors.cardBorder,
               ),
             ),
             if (!isLast)
               Container(
                 width: 2,
                 height: 32,
-                color: isCompleted ? AppColors.primaryGreen.withOpacity(0.5) : AppColors.cardBorder,
+                color: isCompleted
+                    ? AppColors.primaryGreen.withOpacity(0.5)
+                    : AppColors.cardBorder,
               ),
           ],
         ),

@@ -96,7 +96,8 @@ class _HistoryPageState extends State<HistoryPage> {
             // History items list
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 itemCount: filteredItems.length,
                 separatorBuilder: (_, __) => const SizedBox(height: 8),
                 itemBuilder: (context, index) {
@@ -111,12 +112,16 @@ class _HistoryPageState extends State<HistoryPage> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: isInUse ? AppColors.mintGreen : AppColors.surfaceMuted,
+                              color: isInUse
+                                  ? AppColors.mintGreen
+                                  : AppColors.surfaceMuted,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Icon(
                               Icons.lunch_dining,
-                              color: isInUse ? AppColors.forestGreen : AppColors.textSecondary,
+                              color: isInUse
+                                  ? AppColors.forestGreen
+                                  : AppColors.textSecondary,
                               size: 24,
                             ),
                           ),
@@ -139,13 +144,16 @@ class _HistoryPageState extends State<HistoryPage> {
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
-                                    color: isInUse ? AppColors.forestGreen : AppColors.textSecondary,
+                                    color: isInUse
+                                        ? AppColors.forestGreen
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const Icon(Icons.chevron_right, color: AppColors.textHint),
+                          const Icon(Icons.chevron_right,
+                              color: AppColors.textHint),
                         ],
                       ),
                     ),

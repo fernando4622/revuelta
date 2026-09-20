@@ -37,7 +37,8 @@ class ImpactPage extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                           ),
-                          Icon(Icons.eco, color: AppColors.forestGreen, size: 20),
+                          Icon(Icons.eco,
+                              color: AppColors.forestGreen, size: 20),
                         ],
                       ),
                       const SizedBox(height: 16),
@@ -178,7 +179,8 @@ class ImpactPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.mintGreen.withOpacity(0.6),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.forestGreen.withOpacity(0.2)),
+                  border:
+                      Border.all(color: AppColors.forestGreen.withOpacity(0.2)),
                 ),
                 child: Row(
                   children: [
@@ -188,7 +190,8 @@ class ImpactPage extends StatelessWidget {
                         color: AppColors.surfaceWhite,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.favorite, color: AppColors.forestGreen, size: 24),
+                      child: const Icon(Icons.favorite,
+                          color: AppColors.forestGreen, size: 24),
                     ),
                     const SizedBox(width: 14),
                     const Expanded(

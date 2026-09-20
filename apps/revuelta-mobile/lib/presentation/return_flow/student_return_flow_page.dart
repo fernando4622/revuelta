@@ -123,7 +123,8 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.forestGreen),
+                  Icon(Icons.inventory_2_outlined,
+                      size: 14, color: AppColors.forestGreen),
                   SizedBox(width: 6),
                   Text(
                     'En uso \u2022 Hace 42 min',
@@ -148,12 +149,14 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                 children: [
                   const Text(
                     'Ubicación actual',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: const [
-                      Icon(Icons.location_on, color: AppColors.forestGreen, size: 20),
+                      Icon(Icons.location_on,
+                          color: AppColors.forestGreen, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                         child: Column(
@@ -169,12 +172,14 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                             ),
                             Text(
                               'A 2 min de ti',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: 12, color: AppColors.textSecondary),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+                      Icon(Icons.arrow_forward_ios,
+                          size: 14, color: AppColors.textSecondary),
                     ],
                   ),
                 ],
@@ -231,11 +236,15 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                                   children: [
                                     Text(
                                       'Punto de retorno',
-                                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          color: AppColors.textSecondary),
                                     ),
                                     Text(
                                       'Módulo de reciclaje - Cafetería',
-                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold),
                                     ),
                                   ],
                                 ),
@@ -277,7 +286,8 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                       color: AppColors.mintGreen,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.directions_walk, color: AppColors.forestGreen, size: 20),
+                    child: const Icon(Icons.directions_walk,
+                        color: AppColors.forestGreen, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -286,11 +296,13 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                       children: [
                         Text(
                           'En camino a la zona de retorno',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w700),
                         ),
                         Text(
                           'Tu contenedor será validado en cuanto llegue.',
-                          style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          style: TextStyle(
+                              fontSize: 11, color: AppColors.textSecondary),
                         ),
                       ],
                     ),
@@ -347,7 +359,8 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
                       color: AppColors.forestGreen,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check, color: Colors.white, size: 20),
+                    child:
+                        const Icon(Icons.check, color: Colors.white, size: 20),
                   ),
                 ),
               ],
@@ -379,9 +392,12 @@ class _StudentReturnFlowPageState extends State<StudentReturnFlowPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: const [
-              _ValidationStageNode(label: 'Recibido', isActive: true, isDone: true),
-              _ValidationStageNode(label: 'Validando', isActive: true, isDone: false),
-              _ValidationStageNode(label: 'Disponible', isActive: false, isDone: false),
+              _ValidationStageNode(
+                  label: 'Recibido', isActive: true, isDone: true),
+              _ValidationStageNode(
+                  label: 'Validando', isActive: true, isDone: false),
+              _ValidationStageNode(
+                  label: 'Disponible', isActive: false, isDone: false),
             ],
           ),
           const SizedBox(height: 48),
@@ -618,7 +634,8 @@ class _RouteMapPainter extends CustomPainter {
     // Draw route path
     final path = Path();
     path.moveTo(start.dx, start.dy);
-    path.quadraticBezierTo(size.width * 0.45, size.height * 0.4, end.dx, end.dy);
+    path.quadraticBezierTo(
+        size.width * 0.45, size.height * 0.4, end.dx, end.dy);
 
     canvas.drawPath(path, routePaint);
 

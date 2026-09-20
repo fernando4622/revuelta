@@ -57,10 +57,13 @@ class LoginOptionsPage extends StatelessWidget {
 
               // Button: Continuar con Google
               OutlinedButton.icon(
-                icon: const Icon(Icons.g_mobiledata, size: 28, color: Colors.red),
+                icon:
+                    const Icon(Icons.g_mobiledata, size: 28, color: Colors.red),
                 label: const Text(
                   'Continuar con Google',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -68,7 +71,8 @@ class LoginOptionsPage extends StatelessWidget {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Inicio de sesión con Google (Demo UI)')),
+                    const SnackBar(
+                        content: Text('Inicio de sesión con Google (Demo UI)')),
                   );
                 },
               ),
@@ -79,7 +83,9 @@ class LoginOptionsPage extends StatelessWidget {
                 icon: const Icon(Icons.window, size: 20, color: Colors.blue),
                 label: const Text(
                   'Continuar con Microsoft',
-                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -87,7 +93,9 @@ class LoginOptionsPage extends StatelessWidget {
                 ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Inicio de sesión con Microsoft (Demo UI)')),
+                    const SnackBar(
+                        content:
+                            Text('Inicio de sesión con Microsoft (Demo UI)')),
                   );
                 },
               ),
@@ -99,7 +107,8 @@ class LoginOptionsPage extends StatelessWidget {
                 children: [
                   const Text(
                     '¿No tienes cuenta? ',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style:
+                        TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
                   GestureDetector(
                     onTap: () {

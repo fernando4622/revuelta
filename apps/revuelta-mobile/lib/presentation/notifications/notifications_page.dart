@@ -39,7 +39,8 @@ class NotificationsPage extends StatelessWidget {
               icon: Icons.eco_outlined,
               iconColor: AppColors.forestGreen,
               title: 'Impacto semanal',
-              subtitle: '\u00A1Gracias por devolver 3 contenedores! Hace 1 d\u00EDa',
+              subtitle:
+                  '\u00A1Gracias por devolver 3 contenedores! Hace 1 d\u00EDa',
             ),
           ],
         ),

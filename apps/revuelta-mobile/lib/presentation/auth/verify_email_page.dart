@@ -17,7 +17,8 @@ class VerifyEmailPage extends StatefulWidget {
 }
 
 class _VerifyEmailPageState extends State<VerifyEmailPage> {
-  final List<TextEditingController> _otpControllers = List.generate(6, (_) => TextEditingController());
+  final List<TextEditingController> _otpControllers =
+      List.generate(6, (_) => TextEditingController());
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
 
   @override
@@ -106,11 +107,13 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
                       maxLength: 1,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          fontSize: 18, fontWeight: FontWeight.bold),
                       decoration: InputDecoration(
                         counterText: '',
                         contentPadding: EdgeInsets.zero,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                       onChanged: (val) {
                         if (val.isNotEmpty && index < 5) {
@@ -133,7 +136,8 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
                 child: TextButton(
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Código reenviado con éxito')),
+                      const SnackBar(
+                          content: Text('Código reenviado con éxito')),
                     );
                   },
                   child: const Text(

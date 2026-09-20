@@ -108,7 +108,8 @@ class _MapLayerPageState extends State<MapLayerPage> {
             bottom: 16,
             child: Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -153,13 +154,17 @@ class _MapLayerPageState extends State<MapLayerPage> {
                             ],
                           ),
                         ),
-                        const Icon(Icons.arrow_forward_ios, size: 14, color: AppColors.textSecondary),
+                        const Icon(Icons.arrow_forward_ios,
+                            size: 14, color: AppColors.textSecondary),
                       ],
                     ),
                     const SizedBox(height: 12),
                     const Text(
                       'Punto de retorno habilitado \u2022 Acepta vasos y recipientes',
-                      style: TextStyle(fontSize: 12, color: AppColors.darkGreen, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.darkGreen,
+                          fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(height: 12),
                     ElevatedButton(
@@ -168,7 +173,9 @@ class _MapLayerPageState extends State<MapLayerPage> {
                       ),
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Ruta hacia Café Central iniciada')),
+                          const SnackBar(
+                              content:
+                                  Text('Ruta hacia Café Central iniciada')),
                         );
                       },
                       child: const Text('Ir al punto de devolución'),

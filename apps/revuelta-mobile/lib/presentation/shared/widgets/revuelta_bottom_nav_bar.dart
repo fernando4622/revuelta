@@ -44,7 +44,9 @@ class RevueltaBottomNavBar extends StatelessWidget {
 
               // [1] Historial
               _NavBarItem(
-                icon: currentIndex == 1 ? Icons.access_time_filled : Icons.access_time,
+                icon: currentIndex == 1
+                    ? Icons.access_time_filled
+                    : Icons.access_time,
                 label: 'Historial',
                 isSelected: currentIndex == 1,
                 onTap: () => onTap(1),

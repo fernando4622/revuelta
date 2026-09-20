@@ -36,7 +36,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     const _OnboardingItem(
       stepTag: '2 / 3',
       title: 'Tu acción\nhace la diferencia.',
-      subtitle: 'Cada contenedor devuelto reduce residuos y cuida nuestro campus.',
+      subtitle:
+          'Cada contenedor devuelto reduce residuos y cuida nuestro campus.',
       icon: Icons.location_city,
     ),
     const _OnboardingItem(
@@ -83,10 +84,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 itemBuilder: (context, index) {
                   final slide = _slides[index];
                   if (slide.isSplash) {
-                    return SplashWelcomePage(onStart: () => _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    ));
+                    return SplashWelcomePage(
+                        onStart: () => _pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            ));
                   }
                   return _buildOnboardingSlide(slide);
                 },
@@ -123,7 +125,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           width: _currentPage == dotIndex ? 18 : 6,
                           height: 6,
                           decoration: BoxDecoration(
-                            color: _currentPage == dotIndex ? AppColors.forestGreen : AppColors.cardBorder,
+                            color: _currentPage == dotIndex
+                                ? AppColors.forestGreen
+                                : AppColors.cardBorder,
                             borderRadius: BorderRadius.circular(3),
                           ),
                         );
@@ -135,7 +139,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.forestGreen,
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 22, vertical: 12),
                     ),
                     onPressed: () {
                       if (isLastPage) {

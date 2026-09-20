@@ -22,7 +22,8 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
   @override
   void initState() {
     super.initState();
-    _containerIdController = TextEditingController(text: widget.initialContainerId ?? '');
+    _containerIdController =
+        TextEditingController(text: widget.initialContainerId ?? '');
   }
 
   @override
@@ -42,7 +43,8 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
       try {
         final client = ref.read(apiClientProvider);
         final containerId = _containerIdController.text.trim();
-        final res = await client.post('/circulations/containers/$containerId/return');
+        final res =
+            await client.post('/circulations/containers/$containerId/return');
 
         setState(() {
           _successResult = res;
@@ -92,13 +94,16 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                           labelText: 'ID del Envase a Devolver (UUID)',
                           prefixIcon: Icon(Icons.qr_code_scanner),
                         ),
-                        validator: (val) => val == null || val.isEmpty ? 'Ingrese ID del envase' : null,
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Ingrese ID del envase'
+                            : null,
                       ),
                       const SizedBox(height: 24),
                       _submitting
                           ? const Center(child: CircularProgressIndicator())
                           : ElevatedButton.icon(
-                              icon: const Icon(Icons.assignment_turned_in_outlined),
+                              icon: const Icon(
+                                  Icons.assignment_turned_in_outlined),
                               label: const Text('REGISTRAR DEVOLUCIÓN'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.darkGreen,
@@ -109,7 +114,6 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                   ),
                 ),
               ),
-
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -117,23 +121,26 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                   decoration: BoxDecoration(
                     color: AppColors.errorRed.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.errorRed.withOpacity(0.3)),
+                    border:
+                        Border.all(color: AppColors.errorRed.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.errorRed, size: 24),
+                      const Icon(Icons.error_outline,
+                          color: AppColors.errorRed, size: 24),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Error al devolver: $_error',
-                          style: const TextStyle(color: AppColors.errorRed, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: AppColors.errorRed,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-
               if (_successResult != null) ...[
                 const SizedBox(height: 16),
                 Card(
@@ -142,7 +149,8 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                     decoration: BoxDecoration(
                       color: AppColors.lightGreen.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.primaryGreen.withOpacity(0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,7 +164,8 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                                 color: AppColors.primaryGreen,
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check, color: Colors.white, size: 28),
+                              child: const Icon(Icons.check,
+                                  color: Colors.white, size: 28),
                             ),
                             const SizedBox(width: 14),
                             const Column(
@@ -184,30 +193,37 @@ class _ReturnPageState extends ConsumerState<ReturnPage> {
                         const Divider(height: 24),
                         Text(
                           'ID Circulación: ${_successResult!['id']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Devuelto en: ${_successResult!['returnedAt']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 12),
                         Row(
                           children: [
                             const Text(
                               'Puntualidad: ',
-                              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              style: TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13),
                             ),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: _successResult!['punctuality'] == 'ON_TIME'
-                                    ? AppColors.primaryGreen
-                                    : AppColors.errorRed,
+                                color:
+                                    _successResult!['punctuality'] == 'ON_TIME'
+                                        ? AppColors.primaryGreen
+                                        : AppColors.errorRed,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                _successResult!['punctuality'] == 'ON_TIME' ? 'A TIEMPO' : 'TARDE',
+                                _successResult!['punctuality'] == 'ON_TIME'
+                                    ? 'A TIEMPO'
+                                    : 'TARDE',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,

@@ -73,7 +73,8 @@ class _CyclePulsePainter extends CustomPainter {
     }
   }
 
-  void _drawDottedCircle(Canvas canvas, Offset center, double radius, Color color) {
+  void _drawDottedCircle(
+      Canvas canvas, Offset center, double radius, Color color) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
@@ -89,7 +90,8 @@ class _CyclePulsePainter extends CustomPainter {
     }
   }
 
-  void _drawDashedCircle(Canvas canvas, Offset center, double radius, Color color) {
+  void _drawDashedCircle(
+      Canvas canvas, Offset center, double radius, Color color) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -136,7 +138,8 @@ class _CyclePulsePainter extends CustomPainter {
     );
   }
 
-  void _drawHalfFilledCircle(Canvas canvas, Offset center, double radius, Color color) {
+  void _drawHalfFilledCircle(
+      Canvas canvas, Offset center, double radius, Color color) {
     // Outline
     final outlinePaint = Paint()
       ..color = color
@@ -160,14 +163,16 @@ class _CyclePulsePainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _drawFilledCircle(Canvas canvas, Offset center, double radius, Color color) {
+  void _drawFilledCircle(
+      Canvas canvas, Offset center, double radius, Color color) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, paint);
   }
 
-  void _drawOutlineCircle(Canvas canvas, Offset center, double radius, Color color) {
+  void _drawOutlineCircle(
+      Canvas canvas, Offset center, double radius, Color color) {
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
@@ -186,7 +191,8 @@ class _CyclePulsePainter extends CustomPainter {
     );
     final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
     tp.layout();
-    tp.paint(canvas, Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
+    tp.paint(
+        canvas, Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
   }
 
   void _drawQuestion(Canvas canvas, Offset center, double radius) {
@@ -200,7 +206,8 @@ class _CyclePulsePainter extends CustomPainter {
     );
     final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
     tp.layout();
-    tp.paint(canvas, Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
+    tp.paint(
+        canvas, Offset(center.dx - tp.width / 2, center.dy - tp.height / 2));
   }
 
   @override

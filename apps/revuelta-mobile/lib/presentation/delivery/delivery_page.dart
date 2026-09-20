@@ -23,7 +23,8 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
   @override
   void initState() {
     super.initState();
-    _containerIdController = TextEditingController(text: widget.initialContainerId ?? '');
+    _containerIdController =
+        TextEditingController(text: widget.initialContainerId ?? '');
   }
 
   @override
@@ -96,7 +97,9 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                           labelText: 'ID del Envase (UUID)',
                           prefixIcon: Icon(Icons.qr_code_2),
                         ),
-                        validator: (val) => val == null || val.isEmpty ? 'Ingrese ID del envase' : null,
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Ingrese ID del envase'
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -106,7 +109,9 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                           hintText: 'Ej. a0000000-0000-0000-0000-000000000003',
                           prefixIcon: Icon(Icons.person_pin_outlined),
                         ),
-                        validator: (val) => val == null || val.isEmpty ? 'Ingrese ID del alumno' : null,
+                        validator: (val) => val == null || val.isEmpty
+                            ? 'Ingrese ID del alumno'
+                            : null,
                       ),
                       const SizedBox(height: 24),
                       _submitting
@@ -120,7 +125,6 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                   ),
                 ),
               ),
-
               if (_error != null) ...[
                 const SizedBox(height: 16),
                 Container(
@@ -128,23 +132,26 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                   decoration: BoxDecoration(
                     color: AppColors.errorRed.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.errorRed.withOpacity(0.3)),
+                    border:
+                        Border.all(color: AppColors.errorRed.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.errorRed, size: 24),
+                      const Icon(Icons.error_outline,
+                          color: AppColors.errorRed, size: 24),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Error al entregar: $_error',
-                          style: const TextStyle(color: AppColors.errorRed, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              color: AppColors.errorRed,
+                              fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
                   ),
                 ),
               ],
-
               if (_successResult != null) ...[
                 const SizedBox(height: 16),
                 Card(
@@ -153,14 +160,16 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                     decoration: BoxDecoration(
                       color: AppColors.lightGreen.withOpacity(0.5),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primaryGreen.withOpacity(0.3)),
+                      border: Border.all(
+                          color: AppColors.primaryGreen.withOpacity(0.3)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Row(
                           children: [
-                            Icon(Icons.check_circle, color: AppColors.primaryGreen, size: 28),
+                            Icon(Icons.check_circle,
+                                color: AppColors.primaryGreen, size: 28),
                             SizedBox(width: 10),
                             Text(
                               '\u00A1Entrega confirmada!',
@@ -175,17 +184,24 @@ class _DeliveryPageState extends ConsumerState<DeliveryPage> {
                         const Divider(height: 24),
                         Text(
                           'ID Circulación: ${_successResult!['id']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                              fontSize: 13, color: AppColors.textPrimary),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Fecha Límite: ${_successResult!['dueAt']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Estado: ${_successResult!['status']}',
-                          style: const TextStyle(fontSize: 13, color: AppColors.darkGreen, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.darkGreen,
+                              fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),

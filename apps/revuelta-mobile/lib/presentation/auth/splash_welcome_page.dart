@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'login_page.dart';
 
-
 /// Pixel-perfect 100% faithful replication of the ReVuelta Welcome / Splash screen.
 /// Features:
 /// - Organic fluid sage-green background waves and botanical leaves
@@ -266,15 +265,20 @@ class _OrganicBackgroundPainter extends CustomPainter {
     canvas.drawPath(stem, stemPaint);
 
     // Leaves along stem
-    _drawLeaf(canvas, Offset(0, -30 * scale), 26 * scale, 14 * scale, -0.6, leafPaint);
-    _drawLeaf(canvas, Offset(8 * scale, -50 * scale), 32 * scale, 16 * scale, 0.7, leafPaint);
-    _drawLeaf(canvas, Offset(2 * scale, -70 * scale), 28 * scale, 14 * scale, -0.5, leafPaint);
-    _drawLeaf(canvas, Offset(5 * scale, -95 * scale), 34 * scale, 15 * scale, 0.0, leafPaint);
+    _drawLeaf(canvas, Offset(0, -30 * scale), 26 * scale, 14 * scale, -0.6,
+        leafPaint);
+    _drawLeaf(canvas, Offset(8 * scale, -50 * scale), 32 * scale, 16 * scale,
+        0.7, leafPaint);
+    _drawLeaf(canvas, Offset(2 * scale, -70 * scale), 28 * scale, 14 * scale,
+        -0.5, leafPaint);
+    _drawLeaf(canvas, Offset(5 * scale, -95 * scale), 34 * scale, 15 * scale,
+        0.0, leafPaint);
 
     canvas.restore();
   }
 
-  void _drawLeaf(Canvas canvas, Offset center, double length, double width, double rot, Paint paint) {
+  void _drawLeaf(Canvas canvas, Offset center, double length, double width,
+      double rot, Paint paint) {
     canvas.save();
     canvas.translate(center.dx, center.dy);
     canvas.rotate(rot);
@@ -298,7 +302,6 @@ class _RevueltaLeafIconPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final primaryColor = const Color(0xFF163A2E);
-
 
     final paint = Paint()
       ..color = primaryColor
@@ -365,7 +368,8 @@ class _ContainerCyclePainter extends CustomPainter {
     _drawBentoContainer(canvas, center);
   }
 
-  void _drawOrbitingCycle(Canvas canvas, Offset center, {required double radius}) {
+  void _drawOrbitingCycle(Canvas canvas, Offset center,
+      {required double radius}) {
     final arrowPaint = Paint()
       ..color = const Color(0xFFB5D3C1)
       ..strokeWidth = 3.5
@@ -489,7 +493,8 @@ class _ContainerCyclePainter extends CustomPainter {
     contourPath.lineTo(bodyRect.left, bodyRect.bottom);
     contourPath.lineTo(bodyRect.right, bodyRect.bottom);
     contourPath.lineTo(bodyRect.right, bodyRect.top + 20);
-    contourPath.quadraticBezierTo(center.dx, bodyRect.top + 26, bodyRect.left, bodyRect.top + 20);
+    contourPath.quadraticBezierTo(
+        center.dx, bodyRect.top + 26, bodyRect.left, bodyRect.top + 20);
     contourPath.close();
     canvas.drawPath(contourPath, contourPaint);
 
@@ -522,7 +527,10 @@ class _ContainerCyclePainter extends CustomPainter {
     // Left Clip
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(bodyRect.left + 8, center.dy - 12), width: 14, height: 20),
+        Rect.fromCenter(
+            center: Offset(bodyRect.left + 8, center.dy - 12),
+            width: 14,
+            height: 20),
         const Radius.circular(4),
       ),
       clipPaint,
@@ -530,7 +538,10 @@ class _ContainerCyclePainter extends CustomPainter {
     // Right Clip
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromCenter(center: Offset(bodyRect.right - 8, center.dy - 12), width: 14, height: 20),
+        Rect.fromCenter(
+            center: Offset(bodyRect.right - 8, center.dy - 12),
+            width: 14,
+            height: 20),
         const Radius.circular(4),
       ),
       clipPaint,

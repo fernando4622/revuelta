@@ -42,7 +42,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.fullName ?? 'Valeria Torres');
+    _nameController =
+        TextEditingController(text: widget.fullName ?? 'Valeria Torres');
   }
 
   @override
@@ -102,7 +103,8 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
                       decoration: BoxDecoration(
                         color: AppColors.mintGreen.withOpacity(0.5),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.forestGreen, width: 2),
+                        border:
+                            Border.all(color: AppColors.forestGreen, width: 2),
                       ),
                       child: const Icon(
                         Icons.camera_alt_outlined,
@@ -127,7 +129,10 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
               // Form fields
               const Text(
                 'Nombre completo',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary),
               ),
               const SizedBox(height: 6),
               TextField(
@@ -140,28 +145,42 @@ class _CompleteProfilePageState extends State<CompleteProfilePage> {
 
               const Text(
                 'Carrera',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary),
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedCareer,
                 hint: const Text('Selecciona tu carrera'),
                 decoration: const InputDecoration(),
-                items: _careers.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 13)))).toList(),
+                items: _careers
+                    .map((c) => DropdownMenuItem(
+                        value: c,
+                        child: Text(c, style: const TextStyle(fontSize: 13))))
+                    .toList(),
                 onChanged: (val) => setState(() => _selectedCareer = val),
               ),
               const SizedBox(height: 16),
 
               const Text(
                 'Semestre',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary),
               ),
               const SizedBox(height: 6),
               DropdownButtonFormField<String>(
                 value: _selectedSemester,
                 hint: const Text('Selecciona tu semestre'),
                 decoration: const InputDecoration(),
-                items: _semesters.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 13)))).toList(),
+                items: _semesters
+                    .map((s) => DropdownMenuItem(
+                        value: s,
+                        child: Text(s, style: const TextStyle(fontSize: 13))))
+                    .toList(),
                 onChanged: (val) => setState(() => _selectedSemester = val),
               ),
               const SizedBox(height: 36),
