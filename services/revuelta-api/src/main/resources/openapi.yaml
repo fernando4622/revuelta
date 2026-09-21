@@ -87,7 +87,7 @@ paths:
     get:
       summary: List containers (paginated)
       operationId: listContainers
-      x-required-roles: [OPERATOR, ADMIN]
+      x-required-roles: [ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: page
@@ -182,7 +182,7 @@ paths:
       summary: Register container delivery (create active circulation)
       description: A replay after a committed delivery returns `409 ACTIVE_CIRCULATION_EXISTS`. No client idempotency key is accepted in the MVP.
       operationId: deliverContainer
-      x-required-roles: [OPERATOR, ADMIN]
+      x-required-roles: [OPERATOR]
       security: [{ bearerAuth: [] }]
       requestBody:
         required: true
@@ -215,7 +215,7 @@ paths:
       summary: Register container return and finalize active circulation
       description: A replay after a committed return receives `409 RETURN_ALREADY_REGISTERED`. The successful transition leaves the container in `RETURNED` pending wash.
       operationId: returnCirculation
-      x-required-roles: [OPERATOR, ADMIN]
+      x-required-roles: [OPERATOR]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: circulationId
@@ -242,7 +242,7 @@ paths:
     get:
       summary: Get container audit history events
       operationId: getContainerEvents
-      x-required-roles: [OPERATOR, ADMIN]
+      x-required-roles: [ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
         - name: containerId

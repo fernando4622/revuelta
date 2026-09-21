@@ -10,8 +10,13 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.server.LocalServerPort;
@@ -132,6 +137,97 @@ class SecurityErrorContractIntegrationTest {
         assertProblem(response, 400, "VALIDATION_ERROR", path);
     }
 
+    @ParameterizedTest(name = "{0} authenticates as {1}")
+    @MethodSource("developmentAccounts")
+    void shouldAuthenticateEveryApprovedDevelopmentRole(String username, String role) throws Exception {
+        HttpResponse<String> response = login(username, "password123");
+
+        assertEquals(200, response.statusCode());
+        JsonNode body = objectMapper.readTree(response.body());
+        assertEquals(username, body.get("username").stringValue());
+        assertEquals(role, body.get("role").stringValue());
+        assertFalse(body.get("token").stringValue().isBlank());
+    }
+
+    @Test
+    void shouldNotRevealWhetherUsernameOrPasswordWasInvalid() throws Exception {
+        HttpResponse<String> unknownUsername = login("missing-account", "password123");
+        HttpResponse<String> wrongPassword = login("student1", "wrong-password");
+
+        assertProblem(unknownUsername, 401, "INVALID_CREDENTIALS", "/api/v1/auth/login");
+        assertProblem(wrongPassword, 401, "INVALID_CREDENTIALS", "/api/v1/auth/login");
+
+        JsonNode unknownProblem = objectMapper.readTree(unknownUsername.body());
+        JsonNode passwordProblem = objectMapper.readTree(wrongPassword.body());
+        assertEquals(unknownProblem.get("detail").stringValue(), passwordProblem.get("detail").stringValue());
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("sensitiveEndpoints")
+    void shouldEnforceTheApprovedRoleMatrixOnEverySensitiveEndpoint(
+            String description,
+            EndpointAccess endpoint
+    ) throws Exception {
+        HttpResponse<String> unauthenticated = request(endpoint, null);
+        assertProblem(unauthenticated, 401, "UNAUTHENTICATED", endpoint.path());
+
+        for (String role : Set.of("PARTICIPANT", "OPERATOR", "ADMIN", "UNKNOWN")) {
+            String token = tokenProvider.issue(UserId.generate(), role.toLowerCase(), role);
+            HttpResponse<String> response = request(endpoint, token);
+
+            if (endpoint.allowedRoles().contains(role)) {
+                assertNotEquals(401, response.statusCode(), description + " rejected an authenticated role");
+                assertNotEquals(403, response.statusCode(), description + " rejected an authorized role");
+            } else {
+                assertProblem(response, 403, "FORBIDDEN_OPERATION", endpoint.path());
+            }
+        }
+    }
+
+    private static Stream<Arguments> sensitiveEndpoints() {
+        String containerId = UUID.randomUUID().toString();
+        String circulationId = UUID.randomUUID().toString();
+        return Stream.of(
+                Arguments.of("register container", new EndpointAccess(
+                        "POST", "/api/v1/containers", "{\"code\":\"AUTHZ-" + UUID.randomUUID() + "\"}",
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("activate container", new EndpointAccess(
+                        "POST", "/api/v1/containers/" + containerId + "/activate", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("inspect container", new EndpointAccess(
+                        "GET", "/api/v1/containers/" + containerId, null,
+                        Set.of("OPERATOR", "ADMIN")
+                )),
+                Arguments.of("list all containers", new EndpointAccess(
+                        "GET", "/api/v1/containers", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("deliver container", new EndpointAccess(
+                        "POST", "/api/v1/circulations",
+                        "{\"containerId\":\"" + containerId + "\",\"borrowerId\":\"" + UUID.randomUUID() + "\"}",
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("return container", new EndpointAccess(
+                        "POST", "/api/v1/circulations/" + circulationId + "/return", null,
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("inspect full container history", new EndpointAccess(
+                        "GET", "/api/v1/containers/" + containerId + "/history", null,
+                        Set.of("ADMIN")
+                ))
+        );
+    }
+
+    private static Stream<Arguments> developmentAccounts() {
+        return Stream.of(
+                Arguments.of("student1", "PARTICIPANT"),
+                Arguments.of("operator", "OPERATOR"),
+                Arguments.of("admin", "ADMIN")
+        );
+    }
+
     private HttpResponse<String> getContainers(String token) throws Exception {
         return getContainers(token, null);
     }
@@ -168,6 +264,35 @@ class SecurityErrorContractIntegrationTest {
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> login(String username, String password) throws Exception {
+        String body = "{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}";
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + "/api/v1/auth/login"))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> request(EndpointAccess endpoint, String token) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + endpoint.path()));
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        if (endpoint.body() != null) {
+            request.header("Content-Type", "application/json");
+        }
+        if ("GET".equals(endpoint.method())) {
+            request.GET();
+        } else {
+            request.POST(endpoint.body() == null
+                    ? HttpRequest.BodyPublishers.noBody()
+                    : HttpRequest.BodyPublishers.ofString(endpoint.body()));
+        }
+        return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
     private void assertProblem(HttpResponse<String> response, int status, String code) throws Exception {
         assertProblem(response, status, code, "/api/v1/containers");
     }
@@ -194,4 +319,6 @@ class SecurityErrorContractIntegrationTest {
         assertFalse(problem.get("timestamp").stringValue().isBlank());
         assertTrue(problem.get("errors").isArray());
     }
+
+    private record EndpointAccess(String method, String path, String body, Set<String> allowedRoles) {}
 }

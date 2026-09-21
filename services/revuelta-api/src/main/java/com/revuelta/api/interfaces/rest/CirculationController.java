@@ -31,7 +31,7 @@ public class CirculationController {
     private final GetContainerHistoryUseCase getContainerHistoryUseCase;
 
     @PostMapping("/circulations")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<CirculationResponse> deliver(
             @Valid @RequestBody DeliverRequest request,
             @AuthenticationPrincipal String operatorIdString
@@ -46,7 +46,7 @@ public class CirculationController {
     }
 
     @PostMapping("/circulations/{circulationId}/return")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('OPERATOR')")
     public ResponseEntity<CirculationResponse> returnByCirculationId(
             @PathVariable UUID circulationId,
             @AuthenticationPrincipal String operatorIdString
@@ -57,7 +57,7 @@ public class CirculationController {
     }
 
     @GetMapping("/containers/{containerId}/history")
-    @PreAuthorize("hasAnyRole('OPERATOR', 'ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<EventResponse>> getHistory(
             @PathVariable UUID containerId,
             @RequestParam(defaultValue = "0") int page,
