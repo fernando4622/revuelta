@@ -1,6 +1,6 @@
 # Feature Spec — Deliver Container
 
-**Status:** PRODUCT BEHAVIOR APPROVED. Implementation remains blocked by authentication, key, idempotency and concurrency decisions.
+**Status:** PRODUCT BEHAVIOR APPROVED. Authentication, identifiers, replay and concurrency foundations are resolved; participant/QR resolution and the complete feature slice remain pending.
 
 ## Purpose
 

@@ -130,3 +130,16 @@ and changing client-side navigation does not change the role.
 - automatic ITVer identity-provider integration;
 - distinguishing alumno from maestro when their permissions are identical;
 - using a Participant Code as an authentication credential.
+
+## 10. Verification boundary
+
+The development/MVP slice is complete only when:
+
+- every enabled sensitive endpoint is exercised with no token, an allowed role and every denied MVP role;
+- `ADMIN` cannot perform normal Cafetería delivery/return operations;
+- `OPERATOR` cannot access all-inventory or full-audit operations reserved for ReVuelta;
+- common migrations create no predictable development account;
+- the mobile client clears local session material and returns to login for `401 UNAUTHENTICATED`;
+- the mobile client preserves the authenticated session for `403 FORBIDDEN_OPERATION` and presents access denial.
+
+This verification does not approve production provisioning, account suspension or early JWT revocation. Those remain a separate security decision before a real pilot.

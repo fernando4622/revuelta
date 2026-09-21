@@ -112,3 +112,15 @@ then only records for that participant are returned.
 Given Operación ReVuelta performs an approved correction,
 when it is submitted,
 then a non-empty reason and actor are recorded in append-oriented history.
+
+## 8. Enabled MVP endpoint enforcement
+
+For the currently enabled API surface:
+
+- `ADMIN` registers/activates containers, lists the complete inventory and reads full container history;
+- `OPERATOR` inspects a specific container and performs normal delivery/return;
+- `ADMIN` may inspect a specific container but may not perform the normal Cafetería delivery/return workflow;
+- `PARTICIPANT` has no access to these operational endpoints until participant-owned resources and binding are implemented;
+- absent, malformed, expired or unknown-role credentials fail closed.
+
+Automated HTTP tests exercise every enabled sensitive endpoint against this matrix. Productive account lifecycle and early token revocation remain blocked by the authentication spec's production boundary.

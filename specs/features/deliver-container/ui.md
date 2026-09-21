@@ -1,6 +1,6 @@
 # Deliver Container — UI Contract
 
-**Status:** PRODUCT UI FLOW APPROVED. Technical implementation remains gated by authentication, API, idempotency and concurrency decisions.
+**Status:** PRODUCT UI FLOW APPROVED. Authentication and core technical decisions are resolved; participant/QR resolution, final API integration and state-layer implementation remain gated.
 
 ## Primary perspective
 

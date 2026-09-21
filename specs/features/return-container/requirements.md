@@ -1,6 +1,6 @@
 # Feature Spec — Return Container
 
-**Status:** PRODUCT BEHAVIOR APPROVED. Implementation remains blocked by authentication, idempotency, time and concurrency decisions.
+**Status:** PRODUCT BEHAVIOR APPROVED. Authentication, replay, time and concurrency foundations are resolved; container-QR resolution and the complete feature slice remain pending.
 
 ## Purpose
 

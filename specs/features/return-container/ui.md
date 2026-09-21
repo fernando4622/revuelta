@@ -1,6 +1,6 @@
 # Return Container — UI Contract
 
-**Status:** PRODUCT UI FLOW APPROVED. Technical implementation remains gated by authentication and API decisions.
+**Status:** PRODUCT UI FLOW APPROVED. Authentication is resolved; container-QR resolution, final API integration and state-layer implementation remain gated.
 
 ## Perspectives
 

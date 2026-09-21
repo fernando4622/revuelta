@@ -62,17 +62,17 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 | Arquitectura móvil | Varias pantallas consumen HTTP y mapas dinámicos directamente. | Reglas duplicadas, estados inconsistentes y baja capacidad de prueba. |
 | Datos de UI | Existen métricas, historial, pasaporte y contenido demostrativo codificado. | El usuario puede interpretar datos ficticios como reales. |
 | QR | El flujo actual acepta captura manual; no existe un escaneo físico completo y validado. | El recorrido operativo principal no está implementado. |
-| Entrega/devolución | Falta cerrar política, identidad, idempotencia y control de concurrencia. | Doble asignación, doble devolución o historial incorrecto. |
-| API | Implementación, OpenAPI y catálogo de errores no están completamente alineados. | Clientes impredecibles y errores difíciles de operar. |
-| Seguridad | Secretos y semillas ya están aislados y existe escaneo; autorización integral, concurrencia y hardening de piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
-| Pruebas | Ya existen pruebas unitarias, de migración PostgreSQL y arquitectura; faltan contrato integral, seguridad, concurrencia y E2E. | Los invariantes operativos críticos aún no están demostrados. |
+| Entrega/devolución | Tiempo, replay y concurrencia base están resueltos; faltan participante/QR y los slices completos de F5/F6. | Los flujos todavía no son operables de extremo a extremo. |
+| API | La superficie habilitada coincide con OpenAPI y errores; los endpoints futuros siguen sujetos a su feature contract. | Implementar una ruta futura antes de aprobarla rompería CDD. |
+| Seguridad | Secretos/semillas están aislados y la superficie habilitada tiene matriz de autorización probada; el ciclo productivo de cuentas y hardening del piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
+| Pruebas | Ya existen pruebas unitarias, PostgreSQL, arquitectura, contrato, autorización y concurrencia; faltan features completas y E2E crítico. | El journey operativo completo aún no está demostrado. |
 | Operación | No existe todavía evidencia de observabilidad, respaldo, recuperación, despliegue y rollback del piloto. | Incidentes sin diagnóstico o recuperación confiable. |
 
 ### 1.3 Evidencia técnica actual
 
-- El backend compila con el Maven Wrapper real y JDK 17; 62 pruebas pasan, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, seguridad HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
+- El backend compila con el Maven Wrapper real y JDK 17; 73 pruebas pasan, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, matriz de autorización HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
 - Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
-- Flutter 3.41.9/Dart 3.11.5 ejecuta 8 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
+- Flutter 3.41.9/Dart 3.11.5 ejecuta 12 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
 - Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
 - GitHub Actions completó correctamente los CI remotos hasta el commit `974ad4b` (run `35521927862`).
 - No hay evidencia suficiente para autorizar despliegue productivo.
@@ -371,11 +371,11 @@ Siguen abiertos el aprovisionamiento/recuperación institucional para producció
 - `student1` recibe `PARTICIPANT` mediante la migración V6.
 - Una cuenta sin exactamente un rol reconocido falla cerrada y no hereda permisos de Cafetería.
 - Credenciales inválidas se traducen a `401 INVALID_CREDENTIALS`.
-- La suite backend compila con Java 17: 62 pruebas, 0 fallos y 0 errores.
+- La suite backend compila con Java 17: 73 pruebas, 0 fallos y 0 errores.
 - Flyway aplicó V6 contra PostgreSQL real y se verificaron los roles efectivos de `student1`, `operator` y `admin` mediante el API.
 - Flutter enruta `PARTICIPANT`, `OPERATOR` y `ADMIN` a shells separados y falla cerrado ante un rol no soportado.
 - La app ya no ofrece registro público ni recuperación simulada desde la ruta de login aprobada.
-- La suite Flutter ejecuta 8 pruebas, incluidas configuración, resolución de rol y aislamiento de shells, sin fallos.
+- La suite Flutter ejecuta 12 pruebas, incluidas configuración, resolución de rol, aislamiento de shells y semántica `401/403`, sin fallos.
 
 ### Gate G0
 
@@ -495,7 +495,7 @@ G0 no está cerrado por completo. Esto no impide continuar el slice de autentica
 **Prioridad:** P0
 **Dependencias:** G0-01 a G0-05, F2.
 
-### Estado — 2026-09-20
+### Estado — 2026-09-20: cerrada para desarrollo/MVP demostrable
 
 Completado y verificado en backend:
 
@@ -506,26 +506,34 @@ Completado y verificado en backend:
 - respuesta `401 INVALID_CREDENTIALS`;
 - contrato `application/problem+json` para token ausente, inválido o expirado (`401 UNAUTHENTICATED`);
 - rechazo `403 FORBIDDEN_OPERATION` probado al intentar saltar la UI con un rol `PARTICIPANT`;
-- pruebas unitarias de autenticación y resolución de rol.
+- pruebas unitarias de autenticación y resolución de rol;
+- matriz de autorización HTTP probada para cada endpoint sensible y cada rol reconocido;
+- entrega y devolución limitadas a `OPERATOR`, administración de inventario e historial completo a `ADMIN`;
+- semillas y contraseña predecible aisladas exclusivamente en el perfil `dev`;
+- sesión móvil eliminada ante `401 UNAUTHENTICATED`, con retorno al login y mensaje explícito;
+- `403 FORBIDDEN_OPERATION` móvil conserva la sesión y presenta acceso denegado.
 
-Pendiente para cerrar F3:
+Fuera del alcance aprobado de F3 y bloqueante antes de un piloto real:
 
-- probar `403` por rol en cada endpoint sensible;
-- definir aprovisionamiento, baja, recuperación y revocación para el piloto real.
+- definir aprovisionamiento, baja, recuperación de cuenta y revocación productivos;
+- decidir la estrategia de invalidación anticipada de JWT para cuentas dadas de baja;
+- integrar, si se aprueba, el proveedor institucional de identidad.
+
+Estas capacidades no se implementan como supuestos: `specs/features/authentication/requirements.md` las declara no-goals del MVP y exige una aprobación de seguridad separada.
 
 ### Trabajo
 
 1. Implementar el método de acceso aprobado.
-2. Implementar aprovisionamiento/baja según especificación.
+2. Aislar cuentas de demostración en `dev`; el aprovisionamiento/baja productivo requiere especificación posterior.
 3. Validar credenciales sin revelar si una cuenta existe más allá de lo permitido.
 4. Devolver `401` para autenticación inválida o expirada.
 5. Devolver `403` para una operación no autorizada.
 6. Aplicar autorización en cada caso de uso sensible.
 7. Hacer que el filtro de seguridad responda con el contrato JSON común.
-8. Implementar expiración, renovación —si fue aprobada— y cierre de sesión.
+8. Implementar expiración y cierre de sesión local; no añadir renovación o revocación no aprobadas.
 9. Separar navegación y acciones por permisos, sin usar la UI como control de seguridad.
 10. Retirar registro público y acceso social si no fueron aprobados.
-11. Auditar cambios de rol y acciones administrativas.
+11. Mantener cambios de rol y acciones administrativas fuera del API hasta contar con su caso de uso y auditoría aprobados.
 
 ### Pruebas mínimas
 
@@ -533,15 +541,16 @@ Pendiente para cerrar F3:
 - token ausente, alterado y expirado;
 - rol correcto e incorrecto;
 - acceso directo al API saltándose la UI;
-- usuario dado de baja;
 - datos personales ausentes en logs.
+
+La prueba de usuario dado de baja pertenece al futuro mecanismo productivo de revocación y no puede exigirse hasta aprobar dicho contrato.
 
 ### Gate F3
 
-- [ ] Cada endpoint sensible tiene prueba de autorización.
+- [x] Cada endpoint sensible tiene prueba de autorización para sesión ausente, rol permitido y roles denegados.
 - [x] El servidor niega por defecto solicitudes sin una sesión válida y usa el contrato de error común.
-- [ ] No existen credenciales o flujos demo en producción.
-- [ ] La experiencia móvil representa correctamente sesión vencida y acceso denegado.
+- [x] Las credenciales semilla existen solo en migraciones `dev`; el perfil común/productivo no las instala y no se exponen registro, recuperación o acceso social.
+- [x] La experiencia móvil representa correctamente sesión vencida y acceso denegado sin confundir `401` con `403`.
 
 ---
 
@@ -909,8 +918,8 @@ Una demostración de una semana puede cubrir una porción del flujo, pero no equ
 ### Iteraciones sugeridas
 
 - **Iteración 0:** G0 + F1.
-- **Iteración 1:** F2 + completar autenticación/enrutamiento de F3. La autenticación base del backend ya está implementada.
-- **Iteración 2:** F3 completo + F4.
+- **Iteración 1:** F2 + F3, completadas para el alcance MVP demostrable.
+- **Iteración 2:** F4.
 - **Iteración 3:** F5.
 - **Iteración 4:** F6 + consultas reales.
 - **Iteración 5:** F7 + cierre F8.

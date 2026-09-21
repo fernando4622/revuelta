@@ -33,7 +33,7 @@
 │   ├── src/main/resources/
 │   │   ├── db/migration/        ✅ V1–V8 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 62 pruebas de dominio, aplicación, migración, contrato, seguridad, adaptación y arquitectura
+│   └── src/test/java/           ✅ 73 pruebas de dominio, aplicación, migración, contrato, seguridad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -52,7 +52,7 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 - Migraciones Flyway comunes (`V1` a `V8`) y semillas repetibles exclusivas del perfil `dev`.
 - Docker Compose configurado con PostgreSQL 16.
 - Contrato OpenAPI 3.0 (`openapi.yaml`).
-- Suite de 62 pruebas, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, seguridad HTTP, transacciones y límites de dependencia de dominio y aplicación.
+- Suite de 73 pruebas, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, matriz de autorización HTTP, transacciones y límites de dependencia de dominio y aplicación.
 
 
 ---
@@ -68,10 +68,10 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 | `specs/domain/container-lifecycle.md` | Approved normal flow | Máquina de estados del envase |
 | `specs/domain/circulation.md` | Approved normal handoff | Préstamo/devolución, invariantes |
 | `specs/data/data-model.md` | Approved baseline | Modelo relacional, concurrencia |
-| `specs/security/access-control.md` | Blocked | Autenticación, autorización |
+| `specs/security/access-control.md` | Approved MVP role binding | Autenticación y autorización habilitadas; ciclo productivo pendiente |
 | `specs/api/openapi-baseline.md` | Approved F2 baseline | Contrato REST habilitado y objetivos futuros |
 | `specs/api/errors.md` | Approved Baseline | Taxonomía de errores |
-| `specs/features/*/` | Blocked/Draft | Requisitos y escenarios por feature |
+| `specs/features/*/` | Mixed | Autenticación MVP aprobada; features operativas restantes en Draft/Blocked |
 | `specs/testing/test-strategy.md` | Approved Baseline | Estrategia de testing |
 | `specs/risks/threat-model.md` | Approved Baseline | Modelo de amenazas |
 | `specs/ui/mobile.md` | Partially approved | Índice, reglas globales y navegación por rol autenticado |
@@ -100,7 +100,7 @@ Ordenadas por dependencia y prioridad operativa:
 |---|---|---|---|
 | 1 | Skeleton arquitectónico backend | ADR-001, ADR-002 | Ninguna |
 | 2 | Skeleton arquitectónico Flutter | ADR-001, ui/mobile.md | D-011 |
-| 3 | Base de datos + migraciones iniciales | data/data-model.md | Base F2 completada; extensiones de participante continúan en F3/F4 |
+| 3 | Base de datos + migraciones iniciales | data/data-model.md | Base F2 completada; extensiones de participante corresponden a F4 |
 | 4 | Dominio: Container entity + state machine | container-lifecycle.md | D-005 |
 | 5 | Dominio: Participant + Participant Code | participant.md, identify-participant/* | D-018 para recuperación y deduplicación de emisión |
 | 6 | Dominio: Circulation entity | circulation.md | Base de política, tiempo y concurrencia completada; Participant pendiente |
@@ -315,7 +315,7 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - Un `PARTICIPANT` que llama directamente un endpoint de Cafetería/Operación recibe `403 FORBIDDEN_OPERATION`.
 - Las respuestas incluyen código estable, instancia, timestamp y referencia de trazabilidad sin exponer el token.
 - La configuración común ya no contiene un secreto JWT por defecto; solo el perfil local `dev` aporta la credencial de demostración.
-- La verificación de autorización todavía debe extenderse a cada endpoint sensible antes de cerrar F3.
+- En ese bloque la verificación cubría solo el bypass participante; la matriz completa por endpoint quedó incorporada posteriormente en el cierre F3 de la sección 18.
 
 ## 14. Puertos de autenticación y límite de aplicación — 2026-09-20
 
@@ -357,3 +357,16 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - El recorrido real de persistencia confirma activación, entrega y devolución atómicas con eventos que conservan actor, operación, tiempo del servidor y correlación.
 - `mvn verify`: 62 pruebas, 0 fallos, 0 errores.
 - F2 queda cerrada. No se inició trabajo de F3 en este bloque.
+
+## 18. Cierre de F3 — identidad, autenticación y autorización MVP — 2026-09-20
+
+- Los tres usuarios de desarrollo autentican por HTTP con su único rol reconocido; usuario inexistente y contraseña incorrecta conservan el mismo `401 INVALID_CREDENTIALS`.
+- Cada endpoint sensible se prueba sin token, con sus roles permitidos y con todos los roles denegados, incluido un rol desconocido.
+- La matriz respeta las responsabilidades aprobadas: Cafetería entrega/devuelve; ReVuelta registra, activa, lista todo el inventario y consulta historial completo.
+- Las migraciones comunes no dejan cuentas predecibles; `admin`, `operator` y `student1` solo se crean desde la ubicación Flyway del perfil `dev`.
+- Flutter elimina credenciales locales y vuelve al login con mensaje explícito ante `401 UNAUTHENTICATED`.
+- Flutter conserva la sesión ante `403 FORBIDDEN_OPERATION` y expone una falla de acceso estable y comprensible.
+- Aprovisionamiento, baja, recuperación y revocación anticipada productivos continúan bloqueados por la spec; no se inventó una solución dentro del MVP.
+- `mvn verify`: 73 pruebas, 0 fallos y 0 errores; `flutter test`: 12 pruebas aprobadas.
+- Redocly valida el OpenAPI actualizado sin advertencias y el análisis Flutter no reporta errores ni advertencias bloqueantes.
+- F3 queda cerrada para el alcance aprobado de desarrollo/MVP demostrable. No se inició F4 en este bloque.
