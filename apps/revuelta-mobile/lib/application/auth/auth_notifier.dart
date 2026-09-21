@@ -4,7 +4,10 @@ import '../../domain/auth/user_session.dart';
 import '../../domain/auth/user_role.dart';
 import '../../domain/failure/failure.dart';
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(
+      onSessionExpired: () =>
+          ref.read(authNotifierProvider.notifier).handleSessionExpired(),
+    ));
 
 final authNotifierProvider =
     AsyncNotifierProvider<AuthNotifier, UserSession?>(() {
@@ -17,10 +20,10 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
   @override
   Future<UserSession?> build() async {
     _apiClient = ref.watch(apiClientProvider);
-    final token = await _apiClient.storage.read(key: 'jwt_token');
-    final userId = await _apiClient.storage.read(key: 'user_id');
-    final username = await _apiClient.storage.read(key: 'username');
-    final storedRole = await _apiClient.storage.read(key: 'role');
+    final token = await _apiClient.sessionStorage.read('jwt_token');
+    final userId = await _apiClient.sessionStorage.read('user_id');
+    final username = await _apiClient.sessionStorage.read('username');
+    final storedRole = await _apiClient.sessionStorage.read('role');
 
     final values = [token, userId, username, storedRole];
     final hasAnyStoredValue = values.any((value) => value != null);
@@ -28,14 +31,14 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
 
     if (!hasCompleteSession) {
       if (hasAnyStoredValue) {
-        await _apiClient.storage.deleteAll();
+        await _apiClient.sessionStorage.deleteAll();
       }
       return null;
     }
 
     final role = UserRole.fromWire(storedRole);
     if (!role.isSupported) {
-      await _apiClient.storage.deleteAll();
+      await _apiClient.sessionStorage.deleteAll();
     }
 
     return UserSession(
@@ -63,15 +66,15 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
       );
 
       if (!role.isSupported) {
-        await _apiClient.storage.deleteAll();
+        await _apiClient.sessionStorage.deleteAll();
         state = AsyncValue.data(session);
         return;
       }
 
-      await _apiClient.storage.write(key: 'jwt_token', value: session.token);
-      await _apiClient.storage.write(key: 'user_id', value: session.userId);
-      await _apiClient.storage.write(key: 'username', value: session.username);
-      await _apiClient.storage.write(key: 'role', value: session.role.wireName);
+      await _apiClient.sessionStorage.write('jwt_token', session.token);
+      await _apiClient.sessionStorage.write('user_id', session.userId);
+      await _apiClient.sessionStorage.write('username', session.username);
+      await _apiClient.sessionStorage.write('role', session.role.wireName);
 
       state = AsyncValue.data(session);
     } catch (e, stack) {
@@ -84,7 +87,14 @@ class AuthNotifier extends AsyncNotifier<UserSession?> {
   }
 
   Future<void> logout() async {
-    await _apiClient.storage.deleteAll();
+    await _apiClient.sessionStorage.deleteAll();
     state = const AsyncValue.data(null);
+  }
+
+  void handleSessionExpired() {
+    state = AsyncValue.error(
+      const SessionExpiredFailure(),
+      StackTrace.current,
+    );
   }
 }

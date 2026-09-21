@@ -18,6 +18,22 @@ class AuthFailure extends Failure {
       : super(message, code: code ?? 'AUTH_ERROR');
 }
 
+class SessionExpiredFailure extends AuthFailure {
+  const SessionExpiredFailure()
+      : super(
+          'Tu sesión expiró. Inicia sesión nuevamente.',
+          code: 'UNAUTHENTICATED',
+        );
+}
+
+class ForbiddenFailure extends Failure {
+  const ForbiddenFailure()
+      : super(
+          'No tienes permiso para realizar esta operación.',
+          code: 'FORBIDDEN_OPERATION',
+        );
+}
+
 class ValidationFailure extends Failure {
   const ValidationFailure(String message, {String? code})
       : super(message, code: code ?? 'VALIDATION_ERROR');

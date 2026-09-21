@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../application/auth/session_storage.dart';
 import '../../domain/failure/failure.dart';
+import '../auth/secure_session_storage.dart';
+
+typedef SessionExpiredCallback = FutureOr<void> Function();
 
 class ApiClient {
   static const defaultBaseUrl = String.fromEnvironment(
@@ -9,26 +15,31 @@ class ApiClient {
   );
 
   final Dio dio;
-  final FlutterSecureStorage storage;
+  final SessionStorage sessionStorage;
+  final SessionExpiredCallback? onSessionExpired;
 
   ApiClient({
     Dio? dioClient,
-    FlutterSecureStorage? secureStorage,
+    SessionStorage? sessionStore,
+    this.onSessionExpired,
     String baseUrl = defaultBaseUrl,
   })  : dio = dioClient ?? Dio(BaseOptions(baseUrl: baseUrl)),
-        storage = secureStorage ?? const FlutterSecureStorage() {
+        sessionStorage = sessionStore ?? SecureSessionStorage() {
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await storage.read(key: 'jwt_token');
+        final token = await sessionStorage.read('jwt_token');
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }
         return handler.next(options);
       },
-      onError: (DioException error, handler) {
-        return handler.next(error);
-      },
     ));
+  }
+
+  bool _isExpiredSession(DioException error) {
+    if (error.response?.statusCode != 401) return false;
+    final data = error.response?.data;
+    return data is Map<String, dynamic> && data['code'] == 'UNAUTHENTICATED';
   }
 
   Future<Map<String, dynamic>> post(String path, {dynamic data}) async {
@@ -36,7 +47,7 @@ class ApiClient {
       final response = await dio.post(path, data: data);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw await _handleDioError(e);
     }
   }
 
@@ -46,7 +57,7 @@ class ApiClient {
       final response = await dio.get(path, queryParameters: queryParameters);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw await _handleDioError(e);
     }
   }
 
@@ -56,11 +67,16 @@ class ApiClient {
       final response = await dio.get(path, queryParameters: queryParameters);
       return response.data as List<dynamic>;
     } on DioException catch (e) {
-      throw _handleDioError(e);
+      throw await _handleDioError(e);
     }
   }
 
-  Failure _handleDioError(DioException e) {
+  Future<Failure> _handleDioError(DioException e) async {
+    if (_isExpiredSession(e)) {
+      await sessionStorage.deleteAll();
+      await onSessionExpired?.call();
+    }
+
     if (e.response != null) {
       final status = e.response!.statusCode;
       final data = e.response!.data;
@@ -74,9 +90,12 @@ class ApiClient {
 
       switch (status) {
         case 401:
+          if (code == 'UNAUTHENTICATED') {
+            return const SessionExpiredFailure();
+          }
           return AuthFailure(message, code: code);
         case 403:
-          return const AuthFailure('Forbidden operation', code: 'FORBIDDEN');
+          return const ForbiddenFailure();
         case 404:
           return NotFoundFailure(message, code: code);
         case 409:
