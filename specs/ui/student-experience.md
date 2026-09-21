@@ -17,7 +17,7 @@ Help an ITVer student understand:
 - student shell and navigation;
 - home;
 - active-container summary;
-- scan for return information;
+- generation of a short-lived operation QR for delivery or return;
 - return-point instructions;
 - waiting/validation/result feedback;
 - history;
@@ -44,10 +44,10 @@ The splash and onboarding compositions may be reused later, but their navigation
 Primary mobile destinations:
 
 ```text
-Inicio | Historial | Escanear | Impacto | Perfil
+Inicio | Historial | Mi QR | Impacto | Perfil
 ```
 
-- `Escanear` is the emphasized center action.
+- `Mi QR` is the emphasized center action.
 - Notifications open from the Inicio header and are not a sixth primary destination.
 - On wide layouts, the same destinations appear in a left navigation rail.
 - Back navigation from a multi-step return journey returns to the previous safe step and never submits implicitly.
@@ -75,7 +75,7 @@ Inicio | Historial | Escanear | Impacto | Perfil
 - notification affordance;
 - primary container card;
 - next-step card;
-- scan action;
+- operation-QR action;
 - bottom navigation.
 
 **States:**
@@ -95,29 +95,28 @@ Inicio | Historial | Escanear | Impacto | Perfil
 - cafeteria delivery/return buttons are not displayed in this perspective;
 - each active container is rendered as an individually selectable item; more than one is valid.
 
-### STU-02 — Escanear QR
+### STU-02 — Generar QR de operación
 
-**Purpose:** identify the student's container and obtain return instructions.
+**Purpose:** let Cafetería identify the authenticated participant and the intended handoff without embedding personal data.
 
-**Entry:** central scan button or the next-step action on Inicio.
+**Entry:** central `Mi QR` button or the next-step action on Inicio.
 
 **Content/actions:**
 
-- camera viewport;
-- clear instruction;
-- close/back;
-- flashlight where supported;
-- permission explanation;
-- manual entry only if separately approved.
+- choose `Entrega` or `Devolución`;
+- request a fresh server-issued QR;
+- render the exact server payload as a QR;
+- show purpose and server expiration;
+- refresh after expiry or on explicit request.
 
-**States:** use the scan state machine.
+**States:** initial, generating, active, expired/failure.
 
 **Rules:**
 
-- scanning does not authorize or register a return;
-- only one payload is resolved at a time;
-- malformed, unknown and inactive containers have distinct user-safe feedback where policy permits;
-- a container not associated with the current student produces no personal data disclosure.
+- the client never invents or extends a token locally;
+- generation does not authorize or register a delivery/return;
+- Cafetería must also scan the static container QR in every handoff;
+- the rendered payload contains no direct personal data.
 
 ### STU-03 — Container/return information
 
@@ -279,12 +278,12 @@ Given one active circulation exists,
 when Inicio loads,
 then the container, status, due information and next step come from the server.
 
-### SC-STU-003 — Scan is identification only
+### SC-STU-003 — Participant QR is identification only
 
-Given the student scans a valid QR,
-when resolution succeeds,
-then return information is displayed,
-and no circulation is finalized by scanning.
+Given the student requests a QR for a delivery or return,
+when generation succeeds,
+then the exact server payload, purpose and expiration are displayed,
+and no circulation is finalized by generation.
 
 ### SC-STU-004 — Operational receipt observed
 

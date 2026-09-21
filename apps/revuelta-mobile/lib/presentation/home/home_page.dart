@@ -262,22 +262,15 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 20),
 
-        // Main CTA: Escanear QR
+        // Main CTA: participant operation QR
         ElevatedButton.icon(
-          icon: const Icon(Icons.qr_code_scanner, size: 22),
-          label: const Text('Escanear QR para devolver'),
+          icon: const Icon(Icons.qr_code_2, size: 22),
+          label: const Text('Generar QR para devolver'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.forestGreen,
             minimumSize: const Size.fromHeight(52),
           ),
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
-              ),
-            );
-          },
+          onPressed: widget.onScanTap,
         ),
       ],
     );
@@ -317,8 +310,8 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 24),
         ElevatedButton.icon(
-          icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('Escanear envase'),
+          icon: const Icon(Icons.qr_code_2),
+          label: const Text('Generar QR para pedir'),
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.forestGreen,
             minimumSize: const Size.fromHeight(48),

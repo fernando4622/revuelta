@@ -23,7 +23,7 @@ class _CafeteriaShellState extends State<CafeteriaShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      const ScanPage(mode: ScanMode.cafeteriaOperations),
+      const ScanPage(),
       const _UnavailableCafeteriaPage(
         title: 'Pendientes de lavado',
         icon: Icons.cleaning_services_outlined,
@@ -119,18 +119,17 @@ class _CafeteriaHelpPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: const [
-          _HelpStep(
-              number: '1', text: 'Escanea o captura el código del recipiente.'),
+          _HelpStep(number: '1', text: 'Escanea el QR dinámico del cliente.'),
           _HelpStep(
               number: '2',
-              text: 'Verifica el resultado antes de elegir la operación.'),
+              text: 'Verifica la operación solicitada: entrega o devolución.'),
           _HelpStep(
               number: '3',
-              text: 'En una entrega, valida también el código del cliente.'),
+              text: 'Escanea siempre el QR estático del recipiente.'),
           _HelpStep(
               number: '4',
               text:
-                  'En una devolución, confirma que recibiste físicamente el recipiente.'),
+                  'Verifica que el estado permita la operación antes de confirmarla.'),
         ],
       ),
     );

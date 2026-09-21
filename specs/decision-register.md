@@ -14,7 +14,7 @@ This register prevents silent assumptions.
 | D-008 | Final PK/external identifier strategy | approved for MVP: application-generated UUID v4, shared as PostgreSQL PK and API identifier | NO | Architecture/Data |
 | D-009 | Time/zone representation | approved: UTC `Instant`, PostgreSQL `TIMESTAMP WITH TIME ZONE`, ISO 8601 API values; business-zone interpretation is configuration | NO | Architecture/Data |
 | D-010 | API idempotency key/deduplication mechanism | approved for MVP: database-enforced state/uniqueness conflicts with deterministic `409`; no client idempotency key | NO for MVP; review after pilot | Architecture |
-| D-011 | Flutter state-management library | unresolved | NO for domain, YES before project-wide convention | Architecture |
+| D-011 | Flutter state-management library | approved: Riverpod 2 with explicit immutable async/flow states, repository interfaces outside presentation and provider overrides as test seams; see ADR-007 | NO | Architecture |
 | D-012 | Offline mutation support | baseline recommendation: NO | NO unless scope changes | Product |
 | D-013 | Exact database concurrency mechanism | approved: partial unique index for active delivery plus optimistic locking for conflicting aggregate updates | NO | Architecture/Data |
 | D-014 | Perspective selection mechanism | superseded: no selector; authenticated server role selects the experience | NO | Product |

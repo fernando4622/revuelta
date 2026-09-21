@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 /// 5-item campus bottom navigation bar matching the student mockup:
-/// [0] Inicio | [1] Historial | [2] Escanear (Central destacado) | [3] Impacto | [4] Perfil
+/// [0] Inicio | [1] Historial | [2] Mi QR (Central destacado) | [3] Impacto | [4] Perfil
 class RevueltaBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -52,7 +52,7 @@ class RevueltaBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
 
-              // [2] Escanear (Center elevated action)
+              // [2] Mi QR (Center elevated action)
               GestureDetector(
                 onTap: () => onTap(2),
                 child: Container(
@@ -70,7 +70,7 @@ class RevueltaBottomNavBar extends StatelessWidget {
                     ],
                   ),
                   child: const Icon(
-                    Icons.qr_code_scanner,
+                    Icons.qr_code_2,
                     color: Colors.white,
                     size: 26,
                   ),
