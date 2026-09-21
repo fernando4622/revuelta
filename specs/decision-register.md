@@ -5,7 +5,7 @@ This register prevents silent assumptions.
 | ID | Decision | Current state | Blocking? | Owner |
 |---|---|---|---|---|
 | D-001 | Exact operational/admin role matrix | approved for MVP: `PARTICIPANT` → Alumno/maestro, `OPERATOR` → Cafetería, `ADMIN` → Operación ReVuelta | NO for MVP; production provisioning review remains | Product |
-| D-002 | Borrower identity model | approved: persistent opaque Participant Code, no PII in QR | NO for domain; recovery remains D-018 | Product |
+| D-002 | Borrower identity model | superseded by D-019: authenticated participant account plus short-lived operation QR; no PII in QR | NO for MVP demo; production account binding remains | Product |
 | D-003 | Exact pilot return window within 1–3 days | unresolved | YES for pilot config | Product |
 | D-004 | Exceptional lifecycle transition permissions/evidence | unresolved | YES | Product + Operations |
 | D-005 | Meaning of ASSIGNED vs IN_USE | unresolved | YES | Product |
@@ -21,7 +21,9 @@ This register prevents silent assumptions.
 | D-015 | Actor and physical handoff that finalize a return | approved: Cafetería confirms physical receipt by scanning the container | NO | Product + Operations |
 | D-016 | Canonical ReVuelta logo/brand asset | approved: `apps/revuelta-mobile/resources/logo.jpeg` | NO | Product/Brand |
 | D-017 | Environmental-impact metric methodology and data source | demo/mockup data approved only when clearly labeled; real methodology unresolved | YES before production numeric impact UI | Product + Data |
-| D-018 | Lost/replaced Participant Code recovery and reassociation | unresolved | YES before pilot with real participants | Product + Operations + Security |
+| D-018 | Lost/replaced persistent Participant Code recovery and reassociation | superseded: persistent client codes are not used in the approved handoff | NO | Product + Operations + Security |
+| D-019 | QR model for physical handoff | approved: signed/versioned static container QR plus server-issued participant QR scoped to `DELIVERY` or `RETURN`, valid for 2 configurable minutes and consumed by exactly one successful operation | NO for MVP demo; physical-device evidence remains | Product + Security |
+| D-020 | QR requirements per handoff | approved: both the participant operation QR and container QR are mandatory for every delivery and every return; no manual-entry or absent-participant exception | NO | Product + Operations |
 
 ## Rule
 
@@ -29,6 +31,8 @@ No agent may convert an unresolved row into an implementation detail without upd
 
 The current D-014 decision removes the unrestricted selector. Only the role carried by a valid server-issued session selects the application experience.
 
-D-002 does not make possession of a Participant Code an authenticated session. Only an authorized Cafetería/ReVuelta actor may use it in a protected operation.
+D-019 does not make possession of either QR an authenticated staff session. Only an authorized Cafetería actor may consume the two validated references in a handoff operation.
+
+The participant QR is emitted only for an authenticated `PARTICIPANT` account with an explicit participant association. It is read-only while resolved and is consumed atomically only when F5/F6 commits the matching handoff. Server time determines expiration.
 
 D-010 makes mutating operations deterministic for the MVP but does not promise replay of the original success response. A request observed after the first commit receives the stable conflict for its resulting state. Introducing stored idempotency keys requires a future contract decision.

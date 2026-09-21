@@ -13,7 +13,7 @@ The interface answers:
 ## 2. In scope
 
 - real pilot summary;
-- Participant Code issuance;
+- participant/account association inspection;
 - container inventory;
 - container registration and detail;
 - active/completed circulations;
@@ -60,9 +60,9 @@ Every metric links to its filtered source list. No estimated impact metric is sh
 
 ### OPS-02 — Participantes
 
-**Purpose:** issue a persistent opaque Participant Code and inspect its operational status.
+**Purpose:** inspect participant/account association and operation-token status for support without exposing PII.
 
-The UI does not require name, email or matrícula in the QR. Replacement/recovery controls remain unavailable until D-018 is approved.
+Operation QR generation remains in the authenticated participant experience. Operations cannot impersonate a participant to generate a handoff token.
 
 ### OPS-03 — Recipientes
 

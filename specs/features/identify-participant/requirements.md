@@ -1,36 +1,35 @@
-# Feature Spec — Issue and Resolve Participant Code
+# Feature Spec — Generate and Resolve Participant Operation QR
 
-**Status:** APPROVED BASELINE. Recovery/reissue remains blocked by D-018.
+**Status:** APPROVED FOR F4 MVP.
 
 ## Purpose
 
-Identify a pilot participant without login or PII in the QR so Cafetería can associate a delivery with a stable participant.
+Identify an authenticated pilot participant without PII in the QR so Cafetería can associate a delivery or return with a stable participant.
 
 ## Actors
 
-- Operación ReVuelta issues the code.
-- Cafetería resolves the code during delivery.
+- Alumno/maestro generates its own purpose-scoped dynamic QR.
+- Cafetería resolves it during delivery or return.
 
-## Issue preconditions
+## Generation preconditions
 
-- ReVuelta actor is authenticated and authorized;
-- request represents a new participant or an approved issuance context;
+- participant account is authenticated and explicitly associated;
+- purpose is `DELIVERY` or `RETURN`;
 - secure opaque code generation is available.
 
 ## Resolve preconditions
 
 - Cafetería actor is authenticated and authorized;
-- payload is syntactically valid and identifies the participant-code type/version.
+- payload is syntactically valid, current, unconsumed and identifies the participant-operation type/version.
 
 ## Outputs
 
-Issue:
+Generation:
 
-- participant reference;
-- opaque public code/scannable payload;
-- status;
+- opaque token reference and scannable payload;
+- purpose;
 - issued-at;
-- trace reference.
+- expires-at.
 
 Resolve:
 
@@ -41,12 +40,12 @@ Resolve:
 
 ## Rules
 
-- code is persistent across deliveries;
+- code is short-lived and single-use at successful handoff;
 - one participant may have multiple active circulations;
 - code possession is not authentication;
 - QR carries no name, email, matrícula or role;
 - resolution is read-only;
-- replacement/recovery is unavailable until D-018.
+- both participant and container QR values are required for delivery and return.
 
 ## Failures
 
@@ -54,16 +53,19 @@ Resolve:
 UNAUTHENTICATED
 FORBIDDEN_OPERATION
 PARTICIPANT_CODE_INVALID
+QR_EXPIRED
+QR_ALREADY_USED
+QR_PURPOSE_MISMATCH
 PARTICIPANT_NOT_FOUND
+PARTICIPANT_ACCOUNT_NOT_LINKED
 PARTICIPANT_INACTIVE
-PARTICIPANT_CODE_RECOVERY_NOT_SUPPORTED
 VALIDATION_ERROR
 ```
 
 ## Acceptance
 
-- issue produces one participant and active opaque code;
+- generation produces one expiring token without creating a participant or circulation;
 - valid active code resolves one participant;
 - invalid/unknown/inactive code produces a typed result;
-- scanning does not create a circulation;
+- resolving does not create a circulation or consume the token;
 - no PII is encoded in the QR.

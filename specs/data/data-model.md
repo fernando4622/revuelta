@@ -1,6 +1,6 @@
 # ReVuelta Data Model Specification
 
-**Status:** APPROVED BASELINE. Participant relationships, lifecycle persistence, identifiers, time and concurrency are defined. Participant-code recovery remains open under D-018.
+**Status:** APPROVED BASELINE. Participant relationships, lifecycle persistence, identifiers, time, concurrency and dual-QR handoff records are defined.
 
 ## 1. Data ownership
 
@@ -14,7 +14,7 @@ Application-generated UUID v4 values are both PostgreSQL primary keys and public
 
 A provisioned login identity with credentials and exactly one recognized MVP role: `PARTICIPANT`, `OPERATOR` or `ADMIN`.
 
-An authenticated account is not interchangeable with a Participant Code. Personal participant queries require an explicit account-to-participant association.
+An authenticated account is not interchangeable with a participant operation token. Personal participant queries and token generation require an explicit account-to-participant association.
 
 ### StaffActor
 
@@ -28,9 +28,9 @@ Authorization grouping and atomic capabilities.
 
 Stable pilot identity for a recipient. Contains no required personal profile fields.
 
-### ParticipantCode
+### ParticipantOperationToken
 
-Opaque, scannable public identifier associated with one participant. Has active/inactive status, version and issuance audit fields.
+Opaque, purpose-scoped, expiring token associated with one participant. It is consumed by at most one successful delivery or return.
 
 ### Container
 
@@ -51,7 +51,7 @@ Versioned rule captured by each circulation to establish due-at.
 ## 3. Conceptual relationships
 
 ```text
-Participant 1 ─── * ParticipantCode
+Participant 1 ─── * ParticipantOperationToken
 Participant 1 ─── * Circulation
 Container   1 ─── * Circulation
 Container   1 ─── * ContainerEvent
@@ -64,23 +64,21 @@ ReturnPolicy 1 ── * Circulation
 
 A participant may have multiple active circulations. A container may have at most one.
 
-## 4. Required ParticipantCode fields
+## 4. Required ParticipantOperationToken fields
 
-- internal identity;
+- token identity;
 - participant foreign key;
-- opaque public code/hash representation;
-- payload format version;
-- active flag/status;
-- issued-at;
-- issued-by;
-- deactivated-at/by/reason where applicable.
+- purpose (`DELIVERY` or `RETURN`);
+- issued-at and expires-at server timestamps;
+- consumed-at and consuming circulation when successful;
+- optimistic version.
 
 The raw QR payload MUST NOT contain PII. Secrets/tokens MUST not be logged.
 
 ## 5. Required relational invariants
 
 - `DR-001`: container identity and active QR are unique.
-- `DR-002`: active Participant Code is unique and resolves to one participant.
+- `DR-002`: each participant operation token is unique and resolves to one participant and purpose.
 - `DR-003`: circulation references existing participant and container.
 - `DR-004`: one active circulation per container is enforced under concurrency.
 - `DR-005`: no uniqueness constraint limits active circulations per participant.
@@ -93,6 +91,8 @@ The raw QR payload MUST NOT contain PII. Secrets/tokens MUST not be logged.
 - `DR-012`: a `PARTICIPANT` account may read personal data only through an explicit account-to-participant association.
 - `DR-013`: circulation lifecycle fields are internally consistent: active rows have no return fields, completed rows have all return fields, and return/due instants cannot precede delivery.
 - `DR-014`: aggregate updates use optimistic locking so two stale writers cannot both commit state transitions and audit events.
+- `DR-015`: container QR generation is positive and rotates atomically with the container version.
+- `DR-016`: one participant operation token can be consumed by at most one successful matching handoff.
 
 ## 6. Normal transaction boundaries
 
@@ -143,18 +143,18 @@ Business time is server-authoritative and represented as UTC `Instant`. Clients 
 - MVP mutation retries do not use a client idempotency key. A replay after a committed transition receives the stable conflict for the resulting state.
 - Database uniqueness and optimistic-lock failures are translated at the persistence boundary; raw SQL details never cross the API.
 
-## 10. Deletion and recovery
+## 10. Deletion and expiration
 
 Containers, participants, circulations and events with history are not hard-deleted through normal operations.
 
-Participant-code replacement remains blocked by D-018. Schema implementation must not assume that code replacement changes participant identity.
+Expired/consumed operation tokens remain traceable for replay protection and are not treated as participant identity.
 
 ## 11. Data scenarios
 
-### SC-DATA-001 — Participant code uniqueness
+### SC-DATA-001 — Participant operation token uniqueness
 
-Given an active Participant Code exists,
-when another active code record attempts to reuse its public value,
+Given an operation token exists,
+when another token record attempts to reuse its identity,
 then persistence rejects it.
 
 ### SC-DATA-002 — Multiple participant circulations

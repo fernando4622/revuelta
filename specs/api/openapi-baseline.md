@@ -19,8 +19,8 @@
 ```text
 POST /api/v1/auth/...
 
-POST /api/v1/participants
-POST /api/v1/participant-code-resolutions
+POST /api/v1/me/operation-qrs
+POST /api/v1/operation-qr-resolutions
 
 POST /api/v1/container-code-resolutions
 GET  /api/v1/containers/{containerId}
@@ -40,22 +40,23 @@ GET  /api/v1/operations/events
 
 These are semantic contract targets, not permission to implement before their feature/API specs are approved.
 
-## 3. Participant-code resolution
+## 3. Participant-operation QR resolution
 
 Resolution:
 
-- accepts a type/versioned opaque payload;
+- accepts a signed type/versioned, purpose-scoped and expiring opaque payload;
 - treats input as untrusted;
 - requires authorized Cafetería/ReVuelta context;
 - returns minimal participant reference and eligibility;
 - performs no business mutation;
-- never treats possession as staff authorization.
+- never treats possession as staff authorization;
+- remains read-only until F5/F6 atomically consume the token with a successful operation.
 
 ## 4. Delivery
 
 Create circulation consumes references resulting from:
 
-- Participant Code resolution;
+- `DELIVERY` participant operation QR resolution;
 - container QR resolution;
 - authorized Cafetería actor context.
 
@@ -74,7 +75,7 @@ It must not reject merely because the participant has another active circulation
 
 ## 5. Return
 
-Return is initiated by authorized Cafetería using the container/active circulation.
+Return is initiated by authorized Cafetería using both a `RETURN` participant operation QR and the container QR. The active circulation must belong to the resolved participant.
 
 Success returns:
 
@@ -104,7 +105,7 @@ The named operation `POST /containers/{containerId}/wash-completions`:
 
 Real “my containers/history” endpoints require an explicit trusted association between the authenticated `PARTICIPANT` account and the participant record. The login mechanism is approved for MVP demonstration, but this resource binding remains unimplemented.
 
-The Participant Code MUST NOT be accepted as an unauthenticated bearer credential for unrestricted history queries.
+The participant operation QR MUST NOT be accepted as an unauthenticated bearer credential for history queries.
 
 ## 8. Error additions
 

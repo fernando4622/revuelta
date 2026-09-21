@@ -28,7 +28,7 @@ This MVP slice includes:
 | `OPERATOR` | Personal de Cafetería | `operator` |
 | `ADMIN` | Operación ReVuelta | `admin` |
 
-Alumno and maestro share `PARTICIPANT` because V1 assigns them the same permissions. The role does not prove an institutional classification and MUST NOT be encoded in a Participant Code.
+Alumno and maestro share `PARTICIPANT` because V1 assigns them the same permissions. The role does not prove an institutional classification and MUST NOT be encoded in a participant operation QR.
 
 All development seed users use `password123`. These credentials MUST NOT be enabled in a production environment.
 
@@ -129,7 +129,7 @@ and changing client-side navigation does not change the role.
 - server-side token revocation;
 - automatic ITVer identity-provider integration;
 - distinguishing alumno from maestro when their permissions are identical;
-- using a Participant Code as an authentication credential.
+- using a participant operation QR as an authentication credential.
 
 ## 10. Verification boundary
 

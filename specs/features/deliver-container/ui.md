@@ -15,7 +15,7 @@ CAF-02 after QR resolution reports that delivery is allowed.
 ## Flow
 
 ```text
-Scan/resolve Participant Code
+Scan/resolve dynamic `DELIVERY` participant QR
 → scan/resolve eligible container
 → review container + recipient + policy summary
 → confirm once

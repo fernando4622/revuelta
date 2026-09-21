@@ -13,7 +13,7 @@ Authorized Cafetería actor.
 ## Preconditions
 
 - actor is authenticated and authorized;
-- Participant Code was resolved and participant is active;
+- a current `DELIVERY` participant operation QR was resolved and participant is active;
 - container QR was resolved;
 - container is active and `AVAILABLE`;
 - effective return policy exists;
@@ -23,7 +23,7 @@ The participant MAY already have other active circulations.
 
 ## Inputs
 
-- participant reference from Participant Code resolution;
+- participant operation token/reference from dynamic QR resolution;
 - container reference from container QR resolution;
 - idempotency/request metadata defined by API contract.
 
@@ -52,7 +52,9 @@ One transaction creates the circulation, transitions the container and appends o
 
 - one active circulation per container;
 - multiple active circulations per participant are allowed;
-- possession of Participant Code never authorizes delivery;
+- both participant and container QR values are mandatory;
+- possession of either QR never authorizes delivery;
+- the `DELIVERY` token is consumed atomically only on successful delivery;
 - due-at derives from captured effective policy;
 - failure produces no partial mutation.
 

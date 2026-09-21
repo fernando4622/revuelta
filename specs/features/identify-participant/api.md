@@ -1,40 +1,37 @@
-# Participant Code — API Contract
+# Participant Operation QR — API Contract
 
-**Status:** DRAFT. Paths and semantics are approved targets; UUID identifiers are resolved. Authentication, recovery and issuance replay semantics must be completed with D-007 and D-018 before implementation.
+**Status:** SUPERSEDED BY `../scan-container/api.md` FOR F4.
 
-## Issue participant
+## Generate operation QR
 
 ```text
-POST /api/v1/participants
-Permission: ISSUE_PARTICIPANT_CODE
-Actor: Operación ReVuelta
+POST /api/v1/me/operation-qrs
+Permission: GENERATE_OWN_OPERATION_QR
+Actor: PARTICIPANT
 ```
 
-Request contains only approved issuance metadata and idempotency information. It MUST NOT require PII merely to create a participant.
+Request selects `DELIVERY` or `RETURN`. The authenticated account association supplies participant identity.
 
 Success `201`:
 
 ```json
 {
-  "participantRef": "<opaque-reference>",
-  "participantCode": {
-    "formatVersion": 1,
-    "payload": "<opaque-scannable-payload>",
-    "status": "ACTIVE"
-  },
+  "tokenRef": "<opaque-reference>",
+  "purpose": "DELIVERY",
+  "payload": "<signed-scannable-payload>",
   "issuedAt": "<server-timestamp>",
-  "traceId": "<correlation-reference>"
+  "expiresAt": "<server-timestamp>"
 }
 ```
 
 The exact payload serialization is frozen before QR printing and cannot silently change.
 
-## Resolve participant code
+## Resolve participant operation QR
 
 ```text
-POST /api/v1/participant-code-resolutions
-Permission: RESOLVE_PARTICIPANT_CODE
-Actor: Cafetería or Operación ReVuelta
+POST /api/v1/operation-qr-resolutions
+Permission: RESOLVE_PARTICIPANT_OPERATION_QR
+Actor: Cafetería
 ```
 
 Request:
@@ -51,8 +48,8 @@ Success `200`:
 {
   "participantRef": "<opaque-reference>",
   "eligibility": "ELIGIBLE",
-  "activeCirculationCount": 2,
-  "traceId": "<correlation-reference>"
+  "purpose": "DELIVERY",
+  "expiresAt": "<server-timestamp>"
 }
 ```
 
@@ -60,11 +57,11 @@ The response contains no name, email or matrícula.
 
 ## Failures
 
-- `400 PARTICIPANT_CODE_INVALID`;
+- `400 INVALID_QR`, `UNSUPPORTED_QR_VERSION` or `QR_TAMPERED`;
 - `401 UNAUTHENTICATED`;
 - `403 FORBIDDEN_OPERATION`;
 - `404 PARTICIPANT_NOT_FOUND`;
-- `409 PARTICIPANT_INACTIVE`;
+- `409 PARTICIPANT_ACCOUNT_NOT_LINKED`, `PARTICIPANT_INACTIVE`, `QR_EXPIRED` or `QR_ALREADY_USED`;
 - safe `500`.
 
-Resolution is read-only and idempotent. Participant issuance has no natural pre-existing resource identity, so its feature spec MUST define a deduplication input before that mutating endpoint is implemented; the core state-conflict policy alone is insufficient for issuance.
+Resolution is read-only and idempotent. Generation intentionally creates a fresh short-lived token; only F5/F6 consume it atomically with the matching successful operation.

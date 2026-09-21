@@ -1,6 +1,6 @@
-# Participant Code — UI Contract
+# Participant Operation QR — UI Contract
 
-**Status:** APPROVED FOR ISSUE AND CAFETERIA RESOLUTION; recovery UI is blocked.
+**Status:** APPROVED FOR PARTICIPANT GENERATION AND CAFETERIA RESOLUTION.
 
 ## Cafetería delivery step
 
@@ -24,16 +24,9 @@ UnexpectedFailure
 
 The result shows an opaque participant reference and operational eligibility, not unnecessary personal information.
 
-## ReVuelta issuance
+## Participant generation
 
-Operación ReVuelta may:
-
-- create the participant/code;
-- display the QR for printing or delivery;
-- confirm issuance;
-- inspect issuance history.
-
-It may not replace a lost code until D-018 is approved.
+Alumno/maestro chooses delivery or return, requests a fresh QR and sees its server expiration. The page never invents a local token and clearly instructs the user to let Cafetería scan it.
 
 ## Acceptance
 

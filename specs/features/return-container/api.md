@@ -4,7 +4,7 @@
 
 ## Resolution prerequisite
 
-Container QR resolution returns the active circulation reference when the Cafetería actor is authorized to receive it.
+The Cafetería actor resolves a `RETURN` participant operation QR and a container QR. The server verifies that the active circulation belongs to that participant.
 
 ## Endpoint
 
@@ -12,6 +12,15 @@ Container QR resolution returns the active circulation reference when the Cafete
 POST /api/v1/circulations/{circulationId}/return
 Permission: RECEIVE_CONTAINER_RETURN
 Actor: Cafetería
+```
+
+Request:
+
+```json
+{
+  "participantOperationTokenRef": "<reference-from-dynamic-qr-resolution>",
+  "containerRef": "<reference-from-container-resolution>"
+}
 ```
 
 The request contains no client return timestamp, target state or client idempotency key.

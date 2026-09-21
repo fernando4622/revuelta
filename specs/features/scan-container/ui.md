@@ -1,11 +1,11 @@
 # Scan and Resolve Container — UI Contract
 
-**Status:** DRAFT. Governed by `specs/ui/state-machines.md` and the applicable perspective spec.
+**Status:** APPROVED FOR F4 MVP. Governed by `specs/ui/state-machines.md` and the applicable perspective spec.
 
 ## Actors
 
-- Alumno: scans a container to view return information associated with their own circulation.
-- Cafetería: scans Participant Code during delivery and container QR during delivery/return/washing.
+- Alumno: generates a dynamic QR for delivery or return; the alumno does not scan the container in the handoff.
+- Cafetería: scans the dynamic participant QR and static container QR during every delivery and return.
 - Operación ReVuelta: scans/searches for support and inventory inspection.
 
 Rendering a role-specific shell does not authorize the actor; the server validates the signed session and resource permission.
@@ -40,8 +40,8 @@ Failed
 
 | Perspective | Successful destination |
 |---|---|
-| Alumno | STU-03 container/return information, with ownership/privacy checks |
-| Cafetería participant scan | Participant eligibility, then container scan |
+| Alumno | Dynamic QR display with purpose and server expiration |
+| Cafetería participant scan | Participant eligibility and purpose, then container scan |
 | Cafetería container scan | CAF-02 operational identification result |
 | Operación ReVuelta | OPS-04 container detail |
 
@@ -54,6 +54,8 @@ Failed
 - forbidden/not-associated resource;
 - network failure;
 - unexpected failure.
+
+Manual capture is absent. Camera denial offers retry/settings guidance but never a text-entry bypass.
 
 ## Acceptance
 

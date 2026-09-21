@@ -1,6 +1,6 @@
 # Identity and Access Control Specification
 
-**Status:** PRODUCT PERMISSIONS AND MVP ROLE BINDING APPROVED. Production institutional provisioning and Participant Code recovery remain blocked.
+**Status:** PRODUCT PERMISSIONS, MVP ROLE BINDING AND DUAL-QR ACCESS APPROVED. Production institutional provisioning remains blocked.
 
 ## 1. Security principles
 
@@ -18,7 +18,7 @@
 
 The authenticated `PARTICIPANT` account opens the Alumno/maestro experience. Its access to personal data requires an explicit server-side association with the participant record.
 
-The opaque persistent Participant Code remains the handoff identifier used by Cafetería. It is not a login credential, staff session or proof of institutional status.
+The participant's dynamic operation QR is generated from an authenticated account explicitly associated with the participant. It is not a staff session or standalone authorization.
 
 ### Cafetería actor
 
@@ -43,7 +43,8 @@ There is no unrestricted selector or trusted client-supplied role. Missing or un
 | Permission | Alumno | Cafetería | Operación ReVuelta |
 |---|:---:|:---:|:---:|
 | View own active containers/history | Yes, after trusted identity binding | No | Yes, for operational purpose |
-| Resolve Participant Code | No | Yes | Yes |
+| Generate own operation QR | Yes, after trusted identity binding | No | No |
+| Resolve participant operation QR | No | Yes | No normal flow |
 | Resolve container QR | Own informational flow only | Yes | Yes |
 | Create circulation/deliver | No | Yes | No |
 | Register physical return | No | Yes | No |
@@ -72,13 +73,14 @@ authenticated actor
 
 A permitted role cannot bypass domain state. Direct API calls receive the same decision as UI calls.
 
-## 6. Participant Code controls
+## 6. Participant operation QR controls
 
-- QR contains an opaque identifier and format/version discriminator only.
+- QR contains type/version, purpose, opaque token reference, expiry and integrity signature only.
 - Cafetería may resolve only the data needed to complete the handoff.
 - Resolution MUST NOT return unnecessary personal data.
-- A copied Participant Code cannot authorize a staff operation.
-- Reissue/recovery is disabled until D-018 defines identity verification, old-code invalidation and active-circulation reassociation.
+- A copied operation QR cannot authorize a staff operation and expires after two configurable minutes.
+- A token is consumed by at most one successful matching handoff.
+- Delivery and return always require this QR plus the static container QR.
 
 ## 7. Security acceptance scenarios
 
@@ -90,13 +92,13 @@ then the server rejects the request without mutation.
 
 ### SC-SEC-002 — Participant QR is not authorization
 
-Given a valid Participant Code,
+Given a valid participant operation QR,
 when an unauthenticated client submits a delivery,
 then the request is rejected.
 
 ### SC-SEC-003 — Minimum participant exposure
 
-Given Cafetería resolves a Participant Code,
+Given Cafetería resolves a participant operation QR,
 when the response is returned,
 then it contains the participant reference and operational eligibility only,
 without name, email or matrícula unless a later approved spec requires them.

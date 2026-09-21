@@ -28,13 +28,12 @@ Legend:
 |---|:---:|:---:|:---:|
 | View own active circulation | V | — | V |
 | View own history | V | — | V |
-| Scan own container for return information | A | — | — |
+| Generate own delivery/return QR | A | — | — |
 | Resolve any operational container QR | — | A | A |
 | Deliver container | — | A | A only for approved support |
 | Receive/finalize return | — | A | — |
 | Complete washing | — | A | — |
 | View minimal borrower information | — | V | V |
-| Issue Participant Code | — | — | A |
 | Register/activate container | — | — | A |
 | Change exceptional container state | — | — | A, subject to D-004 |
 | View full pilot traceability | — | Limited to own operations | V |
@@ -50,7 +49,7 @@ The matrix describes UI responsibility. The server remains the authority for eve
 ```text
 Inicio
 Historial
-Escanear
+Mi QR
 Impacto
 Perfil
 ```
@@ -107,7 +106,7 @@ The cafeteria experience optimizes physical handoff. It shows only the informati
 
 ### Operación ReVuelta
 
-The operations experience supervises this ITVer pilot. It issues Participant Codes, manages inventory, circulation investigation, exceptions and traceability without exposing future multi-tenant concepts.
+The operations experience supervises this ITVer pilot. It manages inventory, participant associations, circulation investigation, exceptions and traceability without exposing future multi-tenant concepts.
 
 ## 7. Acceptance scenarios
 

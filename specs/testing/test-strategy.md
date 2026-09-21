@@ -43,7 +43,7 @@ Only critical journeys:
 
 ```text
 login
-→ scan Participant Code
+→ scan dynamic participant operation QR
 → scan container
 → inspect
 → deliver additional containers to the same participant

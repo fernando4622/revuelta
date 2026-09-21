@@ -15,13 +15,15 @@ Alumno cannot finalize the return.
 ## Preconditions
 
 - actor is authenticated and authorized;
+- a current `RETURN` participant operation QR was resolved;
 - container resolves from valid QR;
 - container is active and `IN_USE`;
 - exactly one active circulation exists;
+- that circulation belongs to the participant resolved by the dynamic QR;
 - server time is available;
 - circulation is not finalized.
 
-Participant Code is not required during return.
+Both QR values are mandatory during return. There is no manual or absent-participant exception.
 
 ## Outputs
 
@@ -48,6 +50,7 @@ The circulation is completed in the same transaction. The container is no longer
 - a finalized circulation cannot be finalized again;
 - return does not perform wash completion;
 - return finalization, lifecycle transition and event are atomic.
+- the `RETURN` token is consumed in that same transaction and cannot be reused.
 
 ## Failure catalog
 

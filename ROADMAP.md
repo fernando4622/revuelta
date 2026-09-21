@@ -352,8 +352,9 @@ Definir:
 - Una sola aplicación conserva el inicio de sesión; no existe selector libre de perspectiva.
 - El rol autenticado decide la experiencia: `PARTICIPANT` → Alumno/maestro, `OPERATOR` → Cafetería y `ADMIN` → Operación ReVuelta.
 - Para desarrollo se usan `student1`, `operator` y `admin`; las credenciales semilla están prohibidas en producción.
-- Participante identificado mediante Código ReVuelta persistente, opaco y sin PII.
-- Cafetería escanea Código ReVuelta + QR de recipiente para entregar.
+- Participante identificado mediante QR dinámico, opaco, firmado, de propósito `DELIVERY` o `RETURN`, válido por dos minutos configurables y sin PII.
+- Cafetería escanea QR dinámico del participante + QR estático firmado del recipiente para toda entrega y devolución.
+- No existe captura manual ni excepción de entrega/devolución con uno solo de los QR.
 - Un participante puede tener múltiples recipientes activos.
 - Cafetería escanea y confirma la devolución física.
 - La devolución finaliza la circulación y transiciona `IN_USE → RETURNED`.

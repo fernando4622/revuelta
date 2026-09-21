@@ -16,7 +16,7 @@ This matrix links approved or draft requirements to their intended evidence. A r
 | Cafeteria delivery | `ui/cafeteria-experience.md`, `features/deliver-container/ui.md` | SC-CAF-001/003/004/005 | Existing page requires layer/state remediation | BLOCKED |
 | Cafeteria return | `ui/cafeteria-experience.md`, `features/return-container/ui.md` | SC-CAF-002..005 | Existing page requires layer/state remediation | PRODUCT FLOW APPROVED |
 | Cafeteria washing | `features/complete-wash/*`, `ui/cafeteria-experience.md` | SC-WASH-*, SC-CAF-006 | TBD | PRODUCT FLOW APPROVED |
-| Participant Code | `domain/participant.md`, `features/identify-participant/*` | SC-PAR-*, SC-PID-* | TBD | APPROVED BASELINE |
+| Participant operation QR | `domain/participant.md`, `features/identify-participant/*`, `features/scan-container/*` | SC-PAR-*, SC-PID-*, SC-QR-* | F4 implementation | APPROVED DUAL-QR BASELINE |
 | ReVuelta operations | `ui/revuelta-operations-experience.md` | role shell widget test; navigation review pending | Shell and six destinations implemented; data modules unavailable explicitly | PARTIAL |
 | Shared UI states | `ui/state-machines.md` | state/controller tests | Partial | SPECIFIED |
 | Authentication UI | `features/authentication/requirements.md` | API login verification; role parsing, session-failure and shell widget tests | Login, seed roles, routing, expired-session logout and denied-access mapping verified; production lifecycle remains pending | MVP/DEV VERIFIED |

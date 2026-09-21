@@ -1,29 +1,31 @@
 # Participant Domain Specification
 
-**Status:** APPROVED BASELINE. Recovery/reissue remains blocked by D-018.
+**Status:** APPROVED FOR AUTHENTICATED MVP OPERATION QR. Production account association remains gated by identity provisioning.
 
 ## 1. Concept
 
 A `Participant` is a person taking part in the ITVer ReVuelta pilot who may possess one or more containers.
 
-The domain does not require login to represent a participant.
+The participant exists independently from login, but generating a handoff QR requires an authenticated account explicitly associated with that participant.
 
 ## 2. Identity
 
 - `BR-PAR-001`: Participant identity is stable and internal to ReVuelta.
-- `BR-PAR-002`: An active Participant Code resolves to at most one participant.
-- `BR-PAR-003`: The public code is opaque and carries no PII.
-- `BR-PAR-004`: A Participant Code is not authentication or authorization.
+- `BR-PAR-002`: An active operation QR resolves to one participant and one purpose.
+- `BR-PAR-003`: The QR carries no PII.
+- `BR-PAR-004`: An operation QR is not staff authentication or authorization.
 - `BR-PAR-005`: One participant may have zero, one or many active circulations.
-- `BR-PAR-006`: Deactivating a code does not delete participant or circulation history.
+- `BR-PAR-006`: Expiring or consuming an operation QR does not delete participant or circulation history.
 
-## 3. Participant Code
+## 3. Participant operation QR
 
 The code/QR contains:
 
-- a type discriminator identifying it as a participant code;
+- a participant-operation type discriminator;
 - a payload version;
-- an opaque public identifier.
+- the `DELIVERY` or `RETURN` purpose;
+- an opaque token identifier;
+- server expiration and an integrity signature.
 
 It MUST NOT contain:
 
@@ -36,63 +38,69 @@ It MUST NOT contain:
 
 ## 4. Issuance
 
-An authorized ReVuelta operations actor issues the first Participant Code.
+An authenticated `PARTICIPANT` account requests an operation QR after the server resolves its explicit participant association.
 
 Issuance:
 
-1. creates one participant;
-2. creates one active opaque public code;
-3. records actor, server time and correlation;
-4. produces a scannable representation.
+1. creates one opaque operation-token record;
+2. binds it to exactly one participant and purpose;
+3. sets expiration from server time (two minutes by default, configurable);
+4. produces a signed scannable representation.
 
-Duplicate physical printing of the same active code does not create another participant.
+Issuance does not create a participant or circulation. A token is consumed only by the successful matching delivery/return transaction.
 
 ## 5. Resolution
 
-Cafetería scans the code during delivery. Successful resolution returns only:
+Cafetería scans the dynamic QR during delivery or return. Successful resolution returns only:
 
 - stable internal/public participant reference appropriate for the application command;
+- token reference and purpose;
 - active/inactive eligibility;
+- expiration;
 - count or summary needed to warn about current active circulations, if approved;
 - no unnecessary personal data.
 
 Resolution does not mutate participant or circulation state.
 
-## 6. Recovery and replacement
+## 6. Expiration and replay
 
-Lost-code recovery, replacement and reassociation are prohibited in the normal UI until D-018 defines:
-
-- how the person is verified;
-- whether the participant identity is preserved;
-- how the old code is invalidated;
-- how existing active circulations remain associated;
-- what audit evidence is recorded.
+- expiration uses authoritative server time;
+- resolving is read-only and may be repeated while current;
+- only a matching successful handoff consumes the token;
+- expired, consumed, tampered and wrong-purpose tokens fail distinctly;
+- no manual fallback exists.
 
 ## 7. Acceptance scenarios
 
-### SC-PAR-001 — Issue participant
+### SC-PAR-001 — Issue operation QR
 
-Given an authorized ReVuelta actor,
-when a Participant Code is issued,
-then one participant and one active opaque code exist,
-and an issuance event is recorded.
+Given an authenticated participant account with an explicit association,
+when an operation QR is requested,
+then one short-lived token for the selected purpose exists,
+without creating a circulation.
 
 ### SC-PAR-002 — Resolve participant
 
-Given an active valid Participant Code,
+Given a current valid operation QR,
 when Cafetería resolves it,
-then exactly one participant reference and eligibility result are returned,
+then exactly one participant reference, purpose and eligibility result are returned,
 without PII in the QR payload.
 
 ### SC-PAR-003 — Multiple active containers
 
 Given a participant already has an active circulation,
-when another eligible container is delivered,
+when another eligible container is delivered using a new `DELIVERY` QR,
 then a second active circulation may be created,
 provided the second container has no active circulation.
 
-### SC-PAR-004 — Code is not authorization
+### SC-PAR-004 — QR is not authorization
 
-Given a client possesses a valid Participant Code,
+Given a client possesses a valid participant operation QR,
 when it attempts a protected mutation without an authorized staff actor,
 then the mutation is rejected.
+
+### SC-PAR-005 — Both QR values required
+
+Given Cafetería has only the participant QR or only the container QR,
+when delivery or return is attempted,
+then the operation is rejected without mutation.

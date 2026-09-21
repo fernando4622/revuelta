@@ -3,7 +3,7 @@
 ## SC-DEL-001 — Successful delivery
 
 Given an authorized Cafetería actor,
-an active participant resolved from a valid Participant Code,
+an active participant resolved from a current `DELIVERY` operation QR,
 an available container resolved from its QR,
 and an effective return policy,
 when the actor confirms delivery,
@@ -19,9 +19,9 @@ and a different container is available,
 when Cafetería confirms delivery of the different container,
 then a second active circulation is created for the participant.
 
-## SC-DEL-003 — Unknown participant code
+## SC-DEL-003 — Unknown participant operation QR
 
-Given a syntactically valid but unknown Participant Code,
+Given a syntactically valid but unknown participant operation QR,
 when delivery is attempted,
 then no circulation or state mutation occurs.
 

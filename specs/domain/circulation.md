@@ -39,7 +39,7 @@ A `Circulation` represents controlled possession of one reusable container by on
 ```text
 resolve authenticated Cafetería actor
 → authorize delivery
-→ resolve Participant Code
+→ resolve and lock participant `DELIVERY` operation token
 → validate participant eligibility
 → resolve container QR
 → validate AVAILABLE state
@@ -48,6 +48,7 @@ resolve authenticated Cafetería actor
 → create circulation
 → transition AVAILABLE → IN_USE
 → append delivery event
+→ consume participant operation token
 → commit
 ```
 
@@ -58,8 +59,10 @@ Scanning a participant QR or container QR alone performs no mutation.
 ```text
 resolve authenticated Cafetería actor
 → authorize return
+→ resolve and lock participant `RETURN` operation token
 → resolve container QR
 → resolve active circulation
+→ verify circulation participant matches token participant
 → validate IN_USE state
 → obtain server time
 → classify punctuality
@@ -67,10 +70,11 @@ resolve authenticated Cafetería actor
 → remove current participant possession
 → transition IN_USE → RETURNED
 → append return event
+→ consume participant operation token
 → commit
 ```
 
-The participant code is not required for return because the active circulation is resolved from the container.
+Both participant operation QR and container QR are mandatory for return. The participant token is consumed only if the complete return transaction commits.
 
 ## 6. Washing use case
 

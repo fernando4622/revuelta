@@ -14,7 +14,7 @@ Actor: Cafetería
 
 ```json
 {
-  "participantRef": "<reference-from-code-resolution>",
+  "participantOperationTokenRef": "<reference-from-dynamic-qr-resolution>",
   "containerRef": "<reference-from-container-resolution>"
 }
 ```
@@ -62,4 +62,4 @@ An existing circulation for a different container and the same participant is no
 
 ## Idempotency
 
-The endpoint is mutating and uses no client idempotency key in the MVP. A partial unique index permits at most one active circulation for a container under concurrency. A replay observed after the first commit receives `409 ACTIVE_CIRCULATION_EXISTS`; it does not replay the original success response. A participant may still hold active circulations for other containers.
+The endpoint is mutating and uses no client idempotency key in the MVP. The operation token is locked and consumed in the successful transaction. A partial unique index permits at most one active circulation for a container under concurrency. A replay observed after the first commit receives a stable token/container conflict; it does not replay the original success response. A participant may still hold active circulations for other containers.

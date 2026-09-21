@@ -45,12 +45,12 @@ Escanear | Pendientes de lavado | Operaciones recientes | Ayuda
 **Content/actions:**
 
 - large camera viewport;
-- instruction matching the step: “Escanea el Código ReVuelta” for delivery identification or “Escanea el QR del contenedor” for container operations;
-- explicit `Entregar` path that scans Participant Code before container QR;
-- container-first path for return and washing;
+- instruction matching the step: “Escanea el QR de entrega/devolución del cliente” and then “Escanea el QR del recipiente”;
+- delivery and return paths always scan participant operation QR before container QR;
+- container-only path remains valid only for washing, which is not a participant handoff;
 - flashlight;
 - permission/error feedback;
-- approved manual fallback, if defined;
+- no manual capture fallback;
 - visible current operating context “Cafetería del Instituto”.
 
 No delivery or return occurs at this step.
@@ -85,7 +85,7 @@ The UI MUST NOT infer allowed actions solely from a status string.
 **Required data/input:**
 
 - container code/state;
-- opaque participant reference resolved from Participant Code;
+- opaque participant reference resolved from the dynamic `DELIVERY` QR;
 - safe recipient confirmation;
 - return policy summary/due-at preview supplied by the server when available.
 

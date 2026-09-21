@@ -1,6 +1,6 @@
 # ReVuelta Product Specification
 
-**Status:** PARTIALLY APPROVED. Pilot actors, development/MVP authentication, participant identification, return ownership and post-return washing flow are approved. Production identity provisioning, participant-code recovery and remaining technical decisions stay open.
+**Status:** PARTIALLY APPROVED. Pilot actors, development/MVP authentication, dual-QR handoff, return ownership and post-return washing flow are approved. Production identity provisioning and remaining technical decisions stay open.
 
 ## 1. Product boundary
 
@@ -23,12 +23,12 @@ A member of the participating ITVer community who may hold one or more ReVuelta 
 
 Responsibilities:
 
-- present their persistent Participant Code when receiving a container;
+- generate a short-lived operation QR from their authenticated session for every delivery and return;
 - keep and return assigned containers;
 - consult their own container state, due information and history when a trusted identity/session becomes available;
 - follow instructions for the approved return point.
 
-The Participant Code does not prove institutional status and is not authentication.
+The operation QR does not grant staff authorization and contains no PII.
 
 ### 2.2 Personal de Cafetería
 
@@ -36,7 +36,7 @@ The operational actor performing physical handoffs.
 
 Responsibilities:
 
-- scan/resolve a Participant Code;
+- scan/resolve the participant's dynamic operation QR;
 - scan/resolve a container QR;
 - confirm delivery;
 - scan and confirm physical return;
@@ -52,7 +52,7 @@ The administrative actor for this pilot.
 Responsibilities:
 
 - register, activate and retire containers through explicit operations;
-- issue Participant Codes;
+- inspect participant/account associations for operational support;
 - reprint/replace container QR;
 - search containers and circulations;
 - inspect complete traceability;
@@ -69,13 +69,13 @@ Operation ReVuelta does not use a generic status editor and does not rewrite his
 
 The user signs in with a provisioned account. The server-issued role opens exactly one experience: Alumno/maestro participante, Cafetería or Operación ReVuelta. There is no unrestricted perspective selector.
 
-### J-01 Issue Participant Code
+### J-01 Generate participant operation QR
 
-An authorized ReVuelta actor creates a persistent participant record and issues an opaque code/QR containing no personal data.
+An authenticated participant associated with a participant record requests a short-lived, single-use QR for `DELIVERY` or `RETURN`. It contains no personal data.
 
 ### J-02 Deliver container
 
-Cafetería scans the Participant Code and container QR, reviews eligibility and confirms the physical handoff. One active circulation is created for that container.
+Cafetería scans the participant's `DELIVERY` QR and the static container QR, reviews eligibility and confirms the physical handoff. One active circulation is created for that container and the operation QR is consumed atomically.
 
 ### J-03 Student information
 
@@ -83,7 +83,7 @@ Alumno or maestro views their active containers, return instructions and history
 
 ### J-04 Return container
 
-Cafetería scans the container, resolves the active circulation, confirms physical receipt, finalizes the circulation, unlinks it from the participant and moves the container to `RETURNED`.
+Cafetería scans the participant's `RETURN` QR and the static container QR, verifies that the active circulation belongs to that participant, confirms physical receipt, consumes the operation QR, finalizes the circulation, unlinks it from the participant and moves the container to `RETURNED`.
 
 ### J-05 Complete washing
 
@@ -100,15 +100,15 @@ Operación ReVuelta searches inventory/circulations, reviews events and executes
 - `FR-001`: Every protected mutation MUST be performed by an authenticated actor before the real pilot.
 - `FR-002`: Every protected mutation MUST be authorized server-side.
 - `FR-003`: The server-issued authenticated role MUST determine the available UI experience; the client MUST NOT choose or override its role.
-- `FR-004`: Participant Code possession MUST NOT authorize a business mutation.
+- `FR-004`: Possession of either QR MUST NOT authorize a business mutation without an authenticated and authorized Cafetería actor.
 
 ### Participant
 
 - `FR-005`: Each participant MUST have one persistent internal identity.
-- `FR-006`: Each active Participant Code MUST resolve to at most one participant.
-- `FR-007`: The Participant Code payload MUST contain no name, email, matrícula or institutional role.
+- `FR-006`: Each active participant operation QR MUST resolve to exactly one participant and one purpose until it expires or is consumed.
+- `FR-007`: The participant operation QR payload MUST contain no name, email, matrícula or institutional role.
 - `FR-008`: A participant MAY have more than one active circulation.
-- `FR-009`: Lost/replaced Participant Code recovery MUST remain disabled until D-018 is approved.
+- `FR-009`: An operation QR MUST be short-lived, server-issued, purpose-scoped and consumed by at most one successful handoff.
 
 ### Containers
 
@@ -120,11 +120,13 @@ Operación ReVuelta searches inventory/circulations, reviews events and executes
 
 ### QR
 
-- `FR-020`: Cafetería MUST scan a Participant Code and container QR for delivery.
-- `FR-021`: Cafetería MUST scan the container QR for return.
+- `FR-020`: Cafetería MUST scan a current `DELIVERY` operation QR and the container QR for delivery.
+- `FR-021`: Cafetería MUST scan a current `RETURN` operation QR and the container QR for return.
 - `FR-022`: The backend MUST treat every scanned payload as untrusted.
 - `FR-023`: Participant and container QR formats MUST be distinguishable.
 - `FR-024`: Unknown, inactive, malformed or unsupported payloads MUST produce explicit failures.
+- `FR-025`: Container QR is static, signed and generation-versioned so an individual label can be invalidated and reprinted.
+- `FR-026`: Manual code entry and handoff without both QR values are not supported.
 
 ### Circulation and delivery
 
@@ -168,7 +170,7 @@ Operación ReVuelta searches inventory/circulations, reviews events and executes
 
 V1 is not acceptable if:
 
-- one Participant Code resolves to multiple active participants;
+- one participant operation QR resolves to multiple participants or purposes;
 - personal information appears in a QR payload;
 - two active circulations exist for one container;
 - a participant is limited to one container without an approved policy;
@@ -188,6 +190,5 @@ V1 is not acceptable if:
 - D-005 final treatment of unused `ASSIGNED`;
 - production institutional account provisioning, recovery and token revocation beyond the approved MVP mechanism;
 - D-017 real environmental methodology;
-- D-018 Participant Code recovery/replacement.
 
-UUID v4 identifiers, UTC `Instant`, replay by stable conflict and the partial-index/optimistic-locking concurrency strategy are resolved for the MVP in D-008, D-009, D-010 and D-013.
+UUID v4 identifiers, UTC `Instant`, replay by stable conflict, the partial-index/optimistic-locking concurrency strategy and the dual-QR handoff are resolved for the MVP in D-008, D-009, D-010, D-013, D-019 and D-020.
