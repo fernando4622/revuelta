@@ -1,8 +1,8 @@
 # ReVuelta — Roadmap de remediación y entrega del MVP ITVer
 
-> **Estado:** Propuesto para aprobación
-> **Versión:** 2.0
-> **Última revisión:** 2026-09-18
+> **Estado:** En ejecución por fases
+> **Versión:** 2.1
+> **Última revisión:** 2026-09-20
 > **Punto de partida técnico:** commit `4f4967d` (`feat: initialize ReVuelta MVP`)
 > **Objetivo:** convertir el prototipo actual en un piloto operativo, seguro y verificable para la Cafetería del Instituto Tecnológico de Veracruz.
 
@@ -61,8 +61,8 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 | Acceso | Existen elementos de registro público o acceso social que no están autorizados para el piloto institucional. | Identidades y permisos incorrectos. |
 | Arquitectura móvil | Varias pantallas consumen HTTP y mapas dinámicos directamente. | Reglas duplicadas, estados inconsistentes y baja capacidad de prueba. |
 | Datos de UI | Existen métricas, historial, pasaporte y contenido demostrativo codificado. | El usuario puede interpretar datos ficticios como reales. |
-| QR | El flujo actual acepta captura manual; no existe un escaneo físico completo y validado. | El recorrido operativo principal no está implementado. |
-| Entrega/devolución | Tiempo, replay y concurrencia base están resueltos; faltan participante/QR y los slices completos de F5/F6. | Los flujos todavía no son operables de extremo a extremo. |
+| QR | El doble QR está implementado en backend y Flutter: participante dinámico + recipiente estático, sin captura manual. Falta evidencia con dos dispositivos físicos. | No se cierra el gate F4 hasta probar cámara y lectura física en el dispositivo objetivo. |
+| Entrega/devolución | Tiempo, replay, concurrencia y doble identificación QR están resueltos como base; faltan los commits atómicos de F5/F6. | Los flujos todavía no mutan estado a partir del par de QR. |
 | API | La superficie habilitada coincide con OpenAPI y errores; los endpoints futuros siguen sujetos a su feature contract. | Implementar una ruta futura antes de aprobarla rompería CDD. |
 | Seguridad | Secretos/semillas están aislados y la superficie habilitada tiene matriz de autorización probada; el ciclo productivo de cuentas y hardening del piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
 | Pruebas | Ya existen pruebas unitarias, PostgreSQL, arquitectura, contrato, autorización y concurrencia; faltan features completas y E2E crítico. | El journey operativo completo aún no está demostrado. |
@@ -70,9 +70,9 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 
 ### 1.3 Evidencia técnica actual
 
-- El backend compila con el Maven Wrapper real y JDK 17; 73 pruebas pasan, incluidas migraciones y concurrencia sobre PostgreSQL 16, contrato OpenAPI, matriz de autorización HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
+- El backend compila con el Maven Wrapper real y JDK 17; 90 pruebas pasan, incluidas migraciones V1–V9 y concurrencia sobre PostgreSQL 16, QR firmado, contrato OpenAPI, matriz de autorización HTTP, transacciones y límites arquitectónicos de dominio y aplicación.
 - Maven es la única herramienta de build del backend; JDK 17 está fijado y el wrapper descarga Maven 3.9.6.
-- Flutter 3.41.9/Dart 3.11.5 ejecuta 12 pruebas; el análisis no presenta errores ni advertencias bloqueantes.
+- Flutter 3.41.9/Dart 3.11.5 ejecuta 18 pruebas; el análisis no presenta errores ni advertencias bloqueantes y el APK `debug` compila con cámara/QR nativos.
 - Trivy 0.74.0 no detecta vulnerabilidades `HIGH/CRITICAL` corregibles ni secretos en la revisión local posterior a actualizar Spring Boot 4.1.1 y Tomcat 11.0.25.
 - GitHub Actions completó correctamente los CI remotos hasta el commit `974ad4b` (run `35521927862`).
 - No hay evidencia suficiente para autorizar despliegue productivo.
@@ -559,13 +559,14 @@ La prueba de usuario dado de baja pertenece al futuro mecanismo productivo de re
 
 **Prioridad:** P0
 **Dependencias:** G0-07, G0-10, F2, F3.
+**Estado al 2026-09-20:** alcance QR implementado y validado automáticamente; aceptación física pendiente. El retiro excepcional queda fuera del alcance ejecutable mientras D-004 siga abierto.
 
 ### 8.1 Backend
 
-- Registrar un recipiente con identificador definido y evento inicial.
-- Resolver QR como entrada no confiable.
-- Distinguir QR malformado, desconocido, inactivo o alterado.
-- Consultar detalle operativo:
+- [x] Registrar un recipiente con identificador definido, QR estático firmado y evento inicial.
+- [x] Resolver QR como entrada no confiable.
+- [x] Distinguir QR malformado, desconocido, inactivo, revocado o alterado.
+- [x] Consultar detalle operativo:
   - estado;
   - circulación activa;
   - prestatario visible según permisos;
@@ -573,33 +574,33 @@ La prueba de usuario dado de baja pertenece al futuro mecanismo productivo de re
   - fecha límite;
   - historial;
   - acciones permitidas.
-- Desactivar/retirar con transición explícita; no borrar historial.
+- [ ] Desactivar/retirar con transición explícita; diferido hasta resolver D-004, sin borrar historial.
 
 ### 8.2 Flutter
 
-- Integrar escáner de cámara real.
-- Declarar y manejar permisos de cámara.
-- Modelar estados `Initial / RequestingPermission / Scanning / Resolving / Success / Failure`.
-- Evitar dobles lecturas mediante pausa/debounce.
-- Mostrar captura manual solo si G0 la autoriza.
-- Traducir fallos sin inventar la elegibilidad en la UI.
-- Eliminar datos de ejemplo del detalle productivo.
+- [x] Integrar escáner de cámara real.
+- [x] Declarar y manejar permisos de cámara en Android/iOS.
+- [x] Modelar estado explícito de apertura, escaneo participante, resolución, escaneo recipiente, resultado y fallo.
+- [x] Evitar dobles lecturas mediante pausa/debounce en el controlador.
+- [x] Eliminar la captura manual: D-020 exige siempre ambos QR.
+- [x] Traducir fallos sin inventar la elegibilidad en la UI.
+- [x] Mostrar en el resultado QR únicamente datos devueltos por el servidor.
 
 ### Pruebas mínimas
 
-- payload válido, inválido, desconocido e inactivo;
-- manipulación o formato no soportado;
-- escaneo repetido;
-- permiso de cámara denegado;
-- resolución con rol no autorizado;
-- prueba en dispositivo físico objetivo.
+- [x] payload válido, inválido, desconocido e inactivo;
+- [x] manipulación o formato no soportado;
+- [x] escaneo repetido;
+- [ ] permiso de cámara denegado en dispositivo objetivo; la recuperación UI está implementada;
+- [x] resolución con rol no autorizado;
+- [ ] prueba con QR y dos dispositivos físicos objetivo.
 
 ### Gate F4
 
 - [ ] El QR físico del piloto se resuelve de extremo a extremo.
-- [ ] Escanear nunca concede autorización.
-- [ ] La UI muestra únicamente información real del servidor.
-- [ ] El operador puede distinguir claramente la siguiente acción válida.
+- [x] Escanear nunca concede autorización.
+- [x] La UI del flujo QR muestra únicamente información real del servidor.
+- [x] El operador puede distinguir claramente la siguiente acción válida.
 
 ---
 
@@ -1034,21 +1035,22 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-F1 quedó implementada y validada local y remotamente el 2026-09-20. El siguiente incremento funcional es **escaneo y resolución QR real de solo lectura**:
+El alcance QR de F4 quedó implementado y validado localmente el 2026-09-20, con un único gate de aceptación abierto: prueba física del QR/cámara en los dispositivos objetivo. La transición excepcional de retiro sigue diferida por D-004. No se inicia F5 dentro de esta fase.
 
-1. [x] Confirmar en GitHub la ejecución remota de los gates de F1.
-2. Implementar el siguiente vertical operativo:
+1. [x] Implementar generación de QR dinámico para Alumno/Maestro y resolución de solo lectura por Cafetería.
+2. [x] Implementar resolución firmada/versionada del QR estático del recipiente y rotación revocable.
+3. [x] Demostrar mediante pruebas que el flujo móvil exige siempre los dos QR y evita resoluciones duplicadas por fotogramas repetidos.
+4. [ ] Ejecutar la aceptación física:
 
 ```text
-sesión y shell por rol
-→ escaneo QR real de solo lectura
-→ resolución de solo lectura
-→ detalle operativo real
+dispositivo Alumno/Maestro genera QR dinámico
+→ dispositivo Cafetería lo escanea
+→ dispositivo Cafetería escanea QR físico del recipiente
+→ la app muestra estado y siguiente acción del servidor sin mutar datos
 ```
 
-3. Antes de modificar entrega/devolución, cerrar las decisiones de política, idempotencia, tiempo y concurrencia y diseñar sus pruebas PostgreSQL.
-4. Implementar entrega solo después de superar ese gate.
-5. Implementar devolución solo después de demostrar la entrega concurrente.
-6. Liberar a campo únicamente después de F9.
+5. Implementar F5 entrega solo después de superar el gate físico de F4.
+6. Implementar devolución solo después de demostrar la entrega concurrente.
+7. Liberar a campo únicamente después de F9.
 
 Este orden reduce el riesgo de seguir ampliando una demostración visual sobre reglas todavía indefinidas.

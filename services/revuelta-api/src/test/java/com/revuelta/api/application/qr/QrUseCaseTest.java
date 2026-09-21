@@ -137,4 +137,46 @@ class QrUseCaseTest {
         );
         assertEquals(FailureCode.CONTAINER_QR_REVOKED, failure.code());
     }
+
+    @Test
+    void shouldRejectUnknownContainerWithoutInventingOperationalData() {
+        ContainerId id = ContainerId.generate();
+        ContainerRepositoryPort containers = mock(ContainerRepositoryPort.class);
+        QrPayloadCodecPort codec = mock(QrPayloadCodecPort.class);
+        when(codec.decodeContainer("unknown-payload"))
+                .thenReturn(new QrPayloadCodecPort.ContainerClaims(id, 1));
+        when(containers.findById(id)).thenReturn(Optional.empty());
+
+        ApplicationFailureException failure = assertThrows(
+                ApplicationFailureException.class,
+                () -> new ResolveContainerQrUseCase(
+                        containers, mock(CirculationRepositoryPort.class), codec
+                ).execute("unknown-payload", "OPERATOR")
+        );
+
+        assertEquals(FailureCode.CONTAINER_NOT_FOUND, failure.code());
+    }
+
+    @Test
+    void shouldRejectRetiredContainerAsInactive() {
+        ContainerId id = ContainerId.generate();
+        Container container = new Container(
+                id, new ContainerCode("CTR-RETIRED"), ContainerStatus.RETIRED,
+                now, now, 1, 0
+        );
+        ContainerRepositoryPort containers = mock(ContainerRepositoryPort.class);
+        QrPayloadCodecPort codec = mock(QrPayloadCodecPort.class);
+        when(codec.decodeContainer("retired-payload"))
+                .thenReturn(new QrPayloadCodecPort.ContainerClaims(id, 1));
+        when(containers.findById(id)).thenReturn(Optional.of(container));
+
+        ApplicationFailureException failure = assertThrows(
+                ApplicationFailureException.class,
+                () -> new ResolveContainerQrUseCase(
+                        containers, mock(CirculationRepositoryPort.class), codec
+                ).execute("retired-payload", "OPERATOR")
+        );
+
+        assertEquals(FailureCode.INACTIVE_CONTAINER, failure.code());
+    }
 }
