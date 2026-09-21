@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.revuelta.api.interfaces.rest.AuthController;
 import com.revuelta.api.interfaces.rest.CirculationController;
 import com.revuelta.api.interfaces.rest.ContainerController;
+import com.revuelta.api.interfaces.rest.QrController;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
@@ -42,6 +43,14 @@ class RestEndpointOpenApiContractTest {
                 openApiSchemaFields("Container")
         );
         assertEquals(
+                recordFields(ContainerController.RegisteredContainerResponse.class),
+                openApiSchemaFields("RegisteredContainer")
+        );
+        assertEquals(recordFields(QrController.OperationQrResponse.class), openApiSchemaFields("OperationQr"));
+        assertEquals(recordFields(QrController.ResolveOperationQrResponse.class), openApiSchemaFields("ResolvedOperationQr"));
+        assertEquals(recordFields(QrController.ResolveContainerQrResponse.class), openApiSchemaFields("ResolvedContainerQr"));
+        assertEquals(recordFields(QrController.ContainerQrResponse.class), openApiSchemaFields("ContainerQr"));
+        assertEquals(
                 recordFields(CirculationController.CirculationResponse.class),
                 openApiSchemaFields("Circulation")
         );
@@ -69,11 +78,17 @@ class RestEndpointOpenApiContractTest {
                 recordFields(CirculationController.DeliverRequest.class),
                 openApiInlineRequestFields("/circulations", "post")
         );
+        assertEquals(recordFields(QrController.GenerateOperationQrRequest.class), openApiInlineRequestFields("/me/operation-qrs", "post"));
+        assertEquals(recordFields(QrController.QrPayloadRequest.class), openApiInlineRequestFields("/operation-qr-resolutions", "post"));
+        assertEquals(recordFields(QrController.QrPayloadRequest.class), openApiInlineRequestFields("/container-qr-resolutions", "post"));
+        assertEquals(recordFields(QrController.RotateContainerQrRequest.class), openApiInlineRequestFields("/containers/{containerId}/qr-rotations", "post"));
     }
 
     private Set<Route> implementedRoutes() {
         Set<Route> routes = new HashSet<>();
-        for (Class<?> controller : Set.of(AuthController.class, ContainerController.class, CirculationController.class)) {
+        for (Class<?> controller : Set.of(
+                AuthController.class, ContainerController.class, CirculationController.class, QrController.class
+        )) {
             RequestMapping classMapping = controller.getAnnotation(RequestMapping.class);
             String prefix = firstPath(selectPaths(classMapping.path(), classMapping.value()));
             for (Method method : controller.getDeclaredMethods()) {

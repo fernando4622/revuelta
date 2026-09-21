@@ -63,8 +63,8 @@ class PersistenceAdapterIntegrationTest {
 
     @Test
     void mutationsPersistPolicyVersionOptimisticStateAndCorrelatedAppendOnlyHistory() {
-        var registered = registerContainer.execute("PERSIST-" + UUID.randomUUID());
-        var available = activateContainer.execute(registered.id(), ADMIN, "Initial activation");
+        var registered = registerContainer.execute("PERSIST-" + UUID.randomUUID(), ADMIN);
+        var available = activateContainer.execute(registered.container().id(), ADMIN, "Initial activation");
         var delivery = deliverContainer.execute(available.id(), PARTICIPANT, OPERATOR);
         var returned = returnContainer.execute(delivery.circulation().id(), OPERATOR);
 
@@ -72,8 +72,8 @@ class PersistenceAdapterIntegrationTest {
         assertNotNull(delivery.circulation().returnPolicyId());
         assertEquals(1, delivery.circulation().returnPolicyVersion());
 
-        List<ContainerEvent> history = getHistory.execute(registered.id(), 0, 20);
-        assertEquals(3, history.size());
+        List<ContainerEvent> history = getHistory.execute(registered.container().id(), 0, 20);
+        assertEquals(4, history.size());
         history.forEach(event -> {
             assertNotNull(event.actorId());
             assertNotNull(event.occurredAt());

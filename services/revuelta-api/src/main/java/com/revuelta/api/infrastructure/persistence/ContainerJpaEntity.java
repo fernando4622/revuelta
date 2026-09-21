@@ -31,6 +31,9 @@ public class ContainerJpaEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "qr_generation", nullable = false)
+    private int qrGeneration;
+
     @Version
     @Column(name = "lock_version", nullable = false)
     private long version;

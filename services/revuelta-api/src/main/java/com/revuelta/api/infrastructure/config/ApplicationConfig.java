@@ -18,9 +18,20 @@ import com.revuelta.api.application.port.ReturnPolicyRepositoryPort;
 import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
 import com.revuelta.api.application.port.UserRepositoryPort;
+import com.revuelta.api.application.port.OperationQrTokenRepositoryPort;
+import com.revuelta.api.application.port.ParticipantRepositoryPort;
+import com.revuelta.api.application.port.QrPayloadCodecPort;
+import com.revuelta.api.application.qr.GenerateOperationQrUseCase;
+import com.revuelta.api.application.qr.GetContainerQrUseCase;
+import com.revuelta.api.application.qr.ResolveContainerQrUseCase;
+import com.revuelta.api.application.qr.ResolveOperationQrUseCase;
+import com.revuelta.api.application.qr.RotateContainerQrUseCase;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
 
 @Configuration
 public class ApplicationConfig {
@@ -98,9 +109,14 @@ public class ApplicationConfig {
     public RegisterContainerUseCase registerContainerUseCase(
             ContainerRepositoryPort containerRepository,
             TransactionRunnerPort transactionRunner,
-            ServerClockPort clock
+            ServerClockPort clock,
+            ContainerEventRepositoryPort eventRepository,
+            CorrelationIdProviderPort correlationIds,
+            QrPayloadCodecPort qrCodec
     ) {
-        return new RegisterContainerUseCase(containerRepository, transactionRunner, clock);
+        return new RegisterContainerUseCase(
+                containerRepository, transactionRunner, clock, eventRepository, correlationIds, qrCodec
+        );
     }
 
     @Bean
@@ -116,5 +132,60 @@ public class ApplicationConfig {
     @Bean
     public ListContainersUseCase listContainersUseCase(ContainerRepositoryPort containerRepository) {
         return new ListContainersUseCase(containerRepository);
+    }
+
+    @Bean
+    public GenerateOperationQrUseCase generateOperationQrUseCase(
+            ParticipantRepositoryPort participants,
+            OperationQrTokenRepositoryPort tokens,
+            QrPayloadCodecPort qrCodec,
+            TransactionRunnerPort transactions,
+            ServerClockPort clock,
+            @Value("${qr.operation-ttl-seconds:120}") long ttlSeconds
+    ) {
+        return new GenerateOperationQrUseCase(
+                participants, tokens, qrCodec, transactions, clock, Duration.ofSeconds(ttlSeconds)
+        );
+    }
+
+    @Bean
+    public ResolveOperationQrUseCase resolveOperationQrUseCase(
+            OperationQrTokenRepositoryPort tokens,
+            ParticipantRepositoryPort participants,
+            QrPayloadCodecPort qrCodec,
+            ServerClockPort clock
+    ) {
+        return new ResolveOperationQrUseCase(tokens, participants, qrCodec, clock);
+    }
+
+    @Bean
+    public ResolveContainerQrUseCase resolveContainerQrUseCase(
+            ContainerRepositoryPort containers,
+            CirculationRepositoryPort circulations,
+            QrPayloadCodecPort qrCodec
+    ) {
+        return new ResolveContainerQrUseCase(containers, circulations, qrCodec);
+    }
+
+    @Bean
+    public GetContainerQrUseCase getContainerQrUseCase(
+            ContainerRepositoryPort containers,
+            QrPayloadCodecPort qrCodec
+    ) {
+        return new GetContainerQrUseCase(containers, qrCodec);
+    }
+
+    @Bean
+    public RotateContainerQrUseCase rotateContainerQrUseCase(
+            ContainerRepositoryPort containers,
+            ContainerEventRepositoryPort events,
+            QrPayloadCodecPort qrCodec,
+            TransactionRunnerPort transactions,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
+    ) {
+        return new RotateContainerQrUseCase(
+                containers, events, qrCodec, transactions, clock, correlationIds
+        );
     }
 }

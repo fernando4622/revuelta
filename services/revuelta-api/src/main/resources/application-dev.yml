@@ -23,6 +23,10 @@ jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
   expiration-hours: ${JWT_EXPIRATION_HOURS:4}
 
+qr:
+  signing-secret: ${QR_SIGNING_SECRET:cmV2dWVsdGEtZGV2LXFyLXNpZ25pbmctc2VjcmV0ISE=}
+  operation-ttl-seconds: ${QR_OPERATION_TTL_SECONDS:120}
+
 logging:
   level:
     root: INFO

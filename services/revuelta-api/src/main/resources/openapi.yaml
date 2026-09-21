@@ -56,6 +56,95 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /me/operation-qrs:
+    post:
+      summary: Generate a short-lived participant QR for delivery or return
+      operationId: generateOperationQr
+      x-required-roles: [PARTICIPANT]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purpose]
+              properties:
+                purpose: { type: string, enum: [DELIVERY, RETURN] }
+      responses:
+        '201':
+          description: Server-issued operation QR
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperationQr' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operation-qr-resolutions:
+    post:
+      summary: Resolve a participant operation QR without consuming it
+      operationId: resolveOperationQr
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payload]
+              properties:
+                payload: { type: string, maxLength: 512 }
+      responses:
+        '200':
+          description: Minimal participant handoff identity
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResolvedOperationQr' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /container-qr-resolutions:
+    post:
+      summary: Resolve a signed current-generation container QR
+      operationId: resolveContainerQr
+      x-required-roles: [OPERATOR, ADMIN]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [payload]
+              properties:
+                payload: { type: string, maxLength: 512 }
+      responses:
+        '200':
+          description: Real operational container state and allowed actions
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResolvedContainerQr' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
   /containers:
     post:
       summary: Register new container (ADMIN only)
@@ -73,7 +162,7 @@ paths:
                 code: { type: string, example: "CTR-100" }
       responses:
         '201':
-          $ref: '#/components/responses/ContainerResponse'
+          $ref: '#/components/responses/RegisteredContainerResponse'
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
@@ -176,6 +265,66 @@ paths:
           $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+
+  /containers/{containerId}/qr:
+    get:
+      summary: Retrieve the current printable container QR
+      operationId: getContainerQr
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: containerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Current container QR payload
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContainerQr' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /containers/{containerId}/qr-rotations:
+    post:
+      summary: Rotate one container QR and invalidate its previous label
+      operationId: rotateContainerQr
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: containerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: { type: string, minLength: 1 }
+      responses:
+        '200':
+          description: Newly rotated container QR payload
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ContainerQr' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
 
   /circulations:
     post:
@@ -319,6 +468,74 @@ components:
         updatedAt: { type: string, format: date-time }
         eligibleForCirculation: { type: boolean }
 
+    RegisteredContainer:
+      type: object
+      required: [id, code, status, createdAt, updatedAt, eligibleForCirculation, qrGeneration, qrPayload]
+      properties:
+        id: { type: string, format: uuid }
+        code: { type: string }
+        status: { type: string, enum: [REGISTERED] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        eligibleForCirculation: { type: boolean }
+        qrGeneration: { type: integer, minimum: 1 }
+        qrPayload: { type: string }
+
+    OperationQr:
+      type: object
+      required: [tokenRef, purpose, payload, issuedAt, expiresAt]
+      properties:
+        tokenRef: { type: string, format: uuid }
+        purpose: { type: string, enum: [DELIVERY, RETURN] }
+        payload: { type: string }
+        issuedAt: { type: string, format: date-time }
+        expiresAt: { type: string, format: date-time }
+
+    ResolvedOperationQr:
+      type: object
+      required: [tokenRef, participantRef, purpose, expiresAt, eligibility]
+      properties:
+        tokenRef: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        purpose: { type: string, enum: [DELIVERY, RETURN] }
+        expiresAt: { type: string, format: date-time }
+        eligibility: { type: string, enum: [ELIGIBLE] }
+
+    ActiveCirculationSummary:
+      type: object
+      required: [circulationRef, participantRef, deliveredAt, dueAt]
+      properties:
+        circulationRef: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        deliveredAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+
+    ResolvedContainerQr:
+      type: object
+      required: [containerRef, displayCode, state, stateLabel, eligibleForCirculation, allowedActions]
+      properties:
+        containerRef: { type: string, format: uuid }
+        displayCode: { type: string }
+        state: { type: string, enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST] }
+        stateLabel: { type: string }
+        eligibleForCirculation: { type: boolean }
+        activeCirculation:
+          type: object
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/ActiveCirculationSummary'
+        allowedActions:
+          type: array
+          items: { type: string, enum: [ACTIVATE, DELIVER, RETURN, COMPLETE_WASH, ROTATE_QR, VIEW_HISTORY] }
+
+    ContainerQr:
+      type: object
+      required: [containerRef, generation, payload]
+      properties:
+        containerRef: { type: string, format: uuid }
+        generation: { type: integer, minimum: 1 }
+        payload: { type: string }
+
     Circulation:
       type: object
       required:
@@ -412,6 +629,15 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Container'
+    RegisteredContainerResponse:
+      description: Registered container with its initial printable QR
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RegisteredContainer'
     CirculationResponse:
       description: Circulation object
       headers:

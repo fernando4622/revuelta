@@ -4,6 +4,7 @@ import com.revuelta.api.domain.container.ContainerStatus;
 
 public enum ContainerEventType {
     REGISTERED,
+    CONTAINER_QR_ROTATED,
     ACTIVATED,
     DELIVERED,
     RETURNED,

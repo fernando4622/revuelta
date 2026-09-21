@@ -54,6 +54,13 @@ class DataIntegrityPostgresIntegrationTest {
             insertUser(insert, BORROWER_ID, "constraint-borrower");
             insertUser(insert, OPERATOR_ID, "constraint-operator");
         }
+        try (Connection connection = connection();
+                PreparedStatement insert = connection.prepareStatement("""
+                        INSERT INTO participants (id, active, created_at) VALUES (?, TRUE, NOW())
+                        """)) {
+            insert.setObject(1, BORROWER_ID);
+            insert.executeUpdate();
+        }
     }
 
     @Test
@@ -123,6 +130,36 @@ class DataIntegrityPostgresIntegrationTest {
                 () -> insertEventWithoutCorrelation(insertContainer("NO-CORR-" + UUID.randomUUID(), "AVAILABLE"))
         );
         assertEquals("23502", correlationFailure.getSQLState());
+    }
+
+    @Test
+    void dualQrConstraintsRejectInvalidGenerationAndExpiration() throws SQLException {
+        UUID containerId = insertContainer("QR-CONSTRAINT-" + UUID.randomUUID(), "REGISTERED");
+
+        SQLException generationFailure = assertThrows(SQLException.class, () -> {
+            try (Connection connection = connection();
+                    PreparedStatement update = connection.prepareStatement(
+                            "UPDATE containers SET qr_generation = 0 WHERE id = ?"
+                    )) {
+                update.setObject(1, containerId);
+                update.executeUpdate();
+            }
+        });
+        assertEquals("23514", generationFailure.getSQLState());
+
+        SQLException expirationFailure = assertThrows(SQLException.class, () -> {
+            try (Connection connection = connection();
+                    PreparedStatement insert = connection.prepareStatement("""
+                            INSERT INTO operation_qr_tokens (
+                                id, participant_id, purpose, issued_at, expires_at
+                            ) VALUES (?, ?, 'DELIVERY', NOW(), NOW())
+                            """)) {
+                insert.setObject(1, UUID.randomUUID());
+                insert.setObject(2, BORROWER_ID);
+                insert.executeUpdate();
+            }
+        });
+        assertEquals("23514", expirationFailure.getSQLState());
     }
 
     private static void insertUser(PreparedStatement insert, UUID id, String username) throws SQLException {

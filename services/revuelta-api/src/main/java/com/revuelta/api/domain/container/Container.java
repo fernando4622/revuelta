@@ -19,11 +19,12 @@ public class Container {
     private ContainerStatus status;
     private final Instant createdAt;
     private Instant updatedAt;
+    private int qrGeneration;
     private final long version;
 
     // Constructor de reconstitución (desde persistencia)
     public Container(ContainerId id, ContainerCode code, ContainerStatus status,
-                     Instant createdAt, Instant updatedAt, long version) {
+                     Instant createdAt, Instant updatedAt, int qrGeneration, long version) {
         if (id == null) throw new IllegalArgumentException("Container id must not be null");
         if (code == null) throw new IllegalArgumentException("Container code must not be null");
         if (status == null) throw new IllegalArgumentException("Container status must not be null");
@@ -32,6 +33,8 @@ public class Container {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        if (qrGeneration <= 0) throw new IllegalArgumentException("QR generation must be positive");
+        this.qrGeneration = qrGeneration;
         this.version = version;
     }
 
@@ -43,7 +46,27 @@ public class Container {
                 ContainerStatus.REGISTERED,
                 now,
                 now,
+                1,
                 0
+        );
+    }
+
+    public ContainerEvent registeredBy(UserId actor, Instant now, UUID correlationId) {
+        return new ContainerEvent(
+                UUID.randomUUID(), id, ContainerEventType.REGISTERED, actor, now,
+                null, ContainerStatus.REGISTERED, "Container registered", correlationId
+        );
+    }
+
+    public ContainerEvent rotateQr(UserId actor, String reason, Instant now, UUID correlationId) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("QR rotation reason must not be blank");
+        }
+        qrGeneration++;
+        updatedAt = now;
+        return new ContainerEvent(
+                UUID.randomUUID(), id, ContainerEventType.CONTAINER_QR_ROTATED, actor, now,
+                status, status, reason.trim(), correlationId
         );
     }
 
@@ -89,6 +112,7 @@ public class Container {
     public ContainerStatus status() { return status; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
+    public int qrGeneration() { return qrGeneration; }
     public long version() { return version; }
 
     public boolean isEligibleForCirculation() {

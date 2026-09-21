@@ -61,9 +61,11 @@ public class GlobalExceptionHandler {
             ApplicationFailureException ex,
             HttpServletRequest request
     ) {
-        HttpStatus status = ex.code().category() == FailureCategory.NOT_FOUND
-                ? HttpStatus.NOT_FOUND
-                : HttpStatus.CONFLICT;
+        HttpStatus status = switch (ex.code().category()) {
+            case VALIDATION -> HttpStatus.BAD_REQUEST;
+            case NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case CONFLICT -> HttpStatus.CONFLICT;
+        };
         return buildProblem(status, ex.code().name(), ex.getMessage(), request);
     }
 

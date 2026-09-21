@@ -15,3 +15,14 @@ INSERT INTO user_roles (user_id, role_id) VALUES
 ('a0000000-0000-0000-0000-000000000002', 'b3b3a1a1-0000-0000-0000-000000000001'),
 ('a0000000-0000-0000-0000-000000000003', 'b3b3a1a1-0000-0000-0000-000000000003')
 ON CONFLICT DO NOTHING;
+
+-- Development-only account-to-participant association for the F4 demo.
+-- The participant shares the UUID with student1 only as deterministic seed data;
+-- productive provisioning must create and associate identities explicitly.
+INSERT INTO participants (id, active, created_at) VALUES
+('a0000000-0000-0000-0000-000000000003', TRUE, NOW())
+ON CONFLICT (id) DO UPDATE SET active = EXCLUDED.active;
+
+INSERT INTO participant_accounts (user_id, participant_id) VALUES
+('a0000000-0000-0000-0000-000000000003', 'a0000000-0000-0000-0000-000000000003')
+ON CONFLICT (user_id) DO UPDATE SET participant_id = EXCLUDED.participant_id;

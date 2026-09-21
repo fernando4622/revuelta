@@ -32,9 +32,16 @@ public class ContainerController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ContainerResponse> register(@Valid @RequestBody RegisterContainerRequest request) {
-        Container container = registerContainerUseCase.execute(request.code());
-        return ResponseEntity.status(HttpStatus.CREATED).body(ContainerResponse.fromDomain(container));
+    public ResponseEntity<RegisteredContainerResponse> register(
+            @Valid @RequestBody RegisterContainerRequest request,
+            @AuthenticationPrincipal String actorIdString
+    ) {
+        var result = registerContainerUseCase.execute(
+                request.code(), new UserId(UUID.fromString(actorIdString))
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                RegisteredContainerResponse.fromResult(result)
+        );
     }
 
     @PostMapping("/{containerId}/activate")
@@ -72,6 +79,26 @@ public class ContainerController {
 
     public record RegisterContainerRequest(@NotBlank(message = "Code must not be blank") String code) {}
     public record ActivateRequest(String reason) {}
+
+    public record RegisteredContainerResponse(
+            String id,
+            String code,
+            String status,
+            Instant createdAt,
+            Instant updatedAt,
+            boolean eligibleForCirculation,
+            int qrGeneration,
+            String qrPayload
+    ) {
+        public static RegisteredContainerResponse fromResult(RegisterContainerUseCase.Result result) {
+            Container c = result.container();
+            return new RegisteredContainerResponse(
+                    c.id().value().toString(), c.code().value(), c.status().name(),
+                    c.createdAt(), c.updatedAt(), c.isEligibleForCirculation(),
+                    c.qrGeneration(), result.qrPayload()
+            );
+        }
+    }
 
     public record ContainerResponse(
             String id,

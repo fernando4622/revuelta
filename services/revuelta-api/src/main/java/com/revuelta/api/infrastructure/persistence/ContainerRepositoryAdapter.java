@@ -75,6 +75,7 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
                 domain.status().name(),
                 domain.createdAt(),
                 domain.updatedAt(),
+                domain.qrGeneration(),
                 domain.version()
         );
     }
@@ -86,6 +87,7 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
                 ContainerStatus.valueOf(entity.getStatus()),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt(),
+                entity.getQrGeneration(),
                 entity.getVersion()
         );
     }

@@ -8,6 +8,7 @@ import static org.mockito.Mockito.when;
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.port.QrPayloadCodecPort;
 import com.revuelta.api.domain.container.ContainerCode;
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
@@ -31,12 +32,15 @@ class ContainerManagementUseCaseTest {
         RegisterContainerUseCase useCase = new RegisterContainerUseCase(
                 containers,
                 new ImmediateTransactionRunner(),
-                () -> now
+                () -> now,
+                events,
+                () -> correlationId,
+                mock(QrPayloadCodecPort.class)
         );
 
         ApplicationFailureException failure = assertThrows(
                 ApplicationFailureException.class,
-                () -> useCase.execute("CTR-DUP")
+                () -> useCase.execute("CTR-DUP", UserId.generate())
         );
 
         assertEquals(FailureCode.CONTAINER_CODE_ALREADY_EXISTS, failure.code());

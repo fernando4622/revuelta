@@ -109,7 +109,7 @@ class SecurityErrorContractIntegrationTest {
 
     @Test
     void shouldReturnTypedConflictWhenContainerCodeAlreadyExists() throws Exception {
-        String adminToken = tokenProvider.issue(UserId.generate(), "admin", "ADMIN");
+        String adminToken = tokenFor("admin");
         String code = "HTTP-DUP-" + UUID.randomUUID();
 
         HttpResponse<String> created = postContainer(adminToken, code);
@@ -162,6 +162,59 @@ class SecurityErrorContractIntegrationTest {
         assertEquals(unknownProblem.get("detail").stringValue(), passwordProblem.get("detail").stringValue());
     }
 
+    @Test
+    void shouldGenerateResolveAndRotateDualQrWithoutGrantingAuthorization() throws Exception {
+        String participantToken = tokenFor("student1");
+        String operatorToken = tokenFor("operator");
+        String adminToken = tokenFor("admin");
+
+        HttpResponse<String> generated = request(new EndpointAccess(
+                "POST", "/api/v1/me/operation-qrs", "{\"purpose\":\"DELIVERY\"}", Set.of("PARTICIPANT")
+        ), participantToken);
+        assertEquals(201, generated.statusCode());
+        JsonNode operationQr = objectMapper.readTree(generated.body());
+        String operationPayload = operationQr.get("payload").stringValue();
+
+        HttpResponse<String> operationResolution = request(new EndpointAccess(
+                "POST", "/api/v1/operation-qr-resolutions",
+                objectMapper.writeValueAsString(java.util.Map.of("payload", operationPayload)), Set.of("OPERATOR")
+        ), operatorToken);
+        assertEquals(200, operationResolution.statusCode());
+        JsonNode participantResult = objectMapper.readTree(operationResolution.body());
+        assertEquals("DELIVERY", participantResult.get("purpose").stringValue());
+        assertFalse(participantResult.has("email"));
+        assertFalse(participantResult.has("username"));
+
+        HttpResponse<String> registered = request(new EndpointAccess(
+                "POST", "/api/v1/containers", "{\"code\":\"QR-" + UUID.randomUUID() + "\"}", Set.of("ADMIN")
+        ), adminToken);
+        assertEquals(201, registered.statusCode());
+        JsonNode registeredBody = objectMapper.readTree(registered.body());
+        String containerId = registeredBody.get("id").stringValue();
+        String originalPayload = registeredBody.get("qrPayload").stringValue();
+
+        HttpResponse<String> resolvedContainer = request(new EndpointAccess(
+                "POST", "/api/v1/container-qr-resolutions",
+                objectMapper.writeValueAsString(java.util.Map.of("payload", originalPayload)),
+                Set.of("OPERATOR", "ADMIN")
+        ), operatorToken);
+        assertEquals(200, resolvedContainer.statusCode());
+
+        HttpResponse<String> rotated = request(new EndpointAccess(
+                "POST", "/api/v1/containers/" + containerId + "/qr-rotations",
+                "{\"reason\":\"Damaged label\"}", Set.of("ADMIN")
+        ), adminToken);
+        assertEquals(200, rotated.statusCode());
+        assertEquals(2, objectMapper.readTree(rotated.body()).get("generation").intValue());
+
+        HttpResponse<String> revoked = request(new EndpointAccess(
+                "POST", "/api/v1/container-qr-resolutions",
+                objectMapper.writeValueAsString(java.util.Map.of("payload", originalPayload)),
+                Set.of("OPERATOR", "ADMIN")
+        ), operatorToken);
+        assertProblem(revoked, 409, "CONTAINER_QR_REVOKED", "/api/v1/container-qr-resolutions");
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("sensitiveEndpoints")
     void shouldEnforceTheApprovedRoleMatrixOnEverySensitiveEndpoint(
@@ -172,7 +225,12 @@ class SecurityErrorContractIntegrationTest {
         assertProblem(unauthenticated, 401, "UNAUTHENTICATED", endpoint.path());
 
         for (String role : Set.of("PARTICIPANT", "OPERATOR", "ADMIN", "UNKNOWN")) {
-            String token = tokenProvider.issue(UserId.generate(), role.toLowerCase(), role);
+            String token = switch (role) {
+                case "PARTICIPANT" -> tokenFor("student1");
+                case "OPERATOR" -> tokenFor("operator");
+                case "ADMIN" -> tokenFor("admin");
+                default -> tokenProvider.issue(UserId.generate(), "unknown", role);
+            };
             HttpResponse<String> response = request(endpoint, token);
 
             if (endpoint.allowedRoles().contains(role)) {
@@ -188,6 +246,18 @@ class SecurityErrorContractIntegrationTest {
         String containerId = UUID.randomUUID().toString();
         String circulationId = UUID.randomUUID().toString();
         return Stream.of(
+                Arguments.of("generate participant operation QR", new EndpointAccess(
+                        "POST", "/api/v1/me/operation-qrs", "{\"purpose\":\"DELIVERY\"}",
+                        Set.of("PARTICIPANT")
+                )),
+                Arguments.of("resolve participant operation QR", new EndpointAccess(
+                        "POST", "/api/v1/operation-qr-resolutions", "{\"payload\":\"invalid\"}",
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("resolve container QR", new EndpointAccess(
+                        "POST", "/api/v1/container-qr-resolutions", "{\"payload\":\"invalid\"}",
+                        Set.of("OPERATOR", "ADMIN")
+                )),
                 Arguments.of("register container", new EndpointAccess(
                         "POST", "/api/v1/containers", "{\"code\":\"AUTHZ-" + UUID.randomUUID() + "\"}",
                         Set.of("ADMIN")
@@ -195,6 +265,14 @@ class SecurityErrorContractIntegrationTest {
                 Arguments.of("activate container", new EndpointAccess(
                         "POST", "/api/v1/containers/" + containerId + "/activate", null,
                         Set.of("ADMIN")
+                )),
+                Arguments.of("retrieve container QR", new EndpointAccess(
+                        "GET", "/api/v1/containers/" + containerId + "/qr", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("rotate container QR", new EndpointAccess(
+                        "POST", "/api/v1/containers/" + containerId + "/qr-rotations",
+                        "{\"reason\":\"Replace label\"}", Set.of("ADMIN")
                 )),
                 Arguments.of("inspect container", new EndpointAccess(
                         "GET", "/api/v1/containers/" + containerId, null,
@@ -272,6 +350,12 @@ class SecurityErrorContractIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.ofString(body))
                 .build();
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private String tokenFor(String username) throws Exception {
+        HttpResponse<String> response = login(username, "password123");
+        assertEquals(200, response.statusCode());
+        return objectMapper.readTree(response.body()).get("token").stringValue();
     }
 
     private HttpResponse<String> request(EndpointAccess endpoint, String token) throws Exception {

@@ -67,4 +67,4 @@ La aplicación conserva el inicio de sesión. No existe selector libre de experi
 
 Estas credenciales no son aptas para producción.
 
-Las cuentas se cargan únicamente con el perfil Spring `dev`. Sin ese perfil, las migraciones comunes retiran las antiguas semillas conocidas y el arranque exige conexión PostgreSQL y `JWT_SECRET` mediante variables de entorno.
+Las cuentas se cargan únicamente con el perfil Spring `dev`. Sin ese perfil, las migraciones comunes retiran las antiguas semillas conocidas y el arranque exige conexión PostgreSQL, `JWT_SECRET` y `QR_SIGNING_SECRET` mediante variables de entorno. Los dos secretos deben ser valores Base64 independientes; no reutilices la clave JWT para firmar QR.
