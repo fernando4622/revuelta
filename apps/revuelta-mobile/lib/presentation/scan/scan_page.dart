@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:intl/intl.dart';
 
 import '../../application/qr/qr_providers.dart';
 import '../../domain/failure/failure.dart';
@@ -156,20 +157,27 @@ class _ScannerStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.activity == CafeteriaScanActivity.resolving) {
-      return const Center(
+    if (state.activity == CafeteriaScanActivity.resolving ||
+        state.activity == CafeteriaScanActivity.previewing ||
+        state.activity == CafeteriaScanActivity.submitting) {
+      final message = switch (state.activity) {
+        CafeteriaScanActivity.previewing => 'Preparando confirmación…',
+        CafeteriaScanActivity.submitting => 'Confirmando entrega…',
+        _ => 'Validando con ReVuelta…',
+      };
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: AppColors.primaryGreen),
-            SizedBox(height: 16),
-            Text('Validando con ReVuelta…',
-                style: TextStyle(color: Colors.white)),
+            const CircularProgressIndicator(color: AppColors.primaryGreen),
+            const SizedBox(height: 16),
+            Text(message, style: const TextStyle(color: Colors.white)),
           ],
         ),
       );
     }
-    if (state.step == CafeteriaScanStep.complete) {
+    if (state.step == CafeteriaScanStep.review ||
+        state.step == CafeteriaScanStep.finished) {
       return const Center(
         child:
             Icon(Icons.check_circle, size: 112, color: AppColors.primaryGreen),
@@ -196,13 +204,27 @@ class _BottomPanel extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: switch ((state.step, state.activity)) {
+        (_, CafeteriaScanActivity.uncertain) => _UncertainPanel(
+            failure: state.failure,
+            onRecover: () => ref
+                .read(cafeteriaScanProvider.notifier)
+                .recoverUncertainDelivery(),
+            onReset: () => ref.read(cafeteriaScanProvider.notifier).reset(),
+          ),
+        (CafeteriaScanStep.finished, CafeteriaScanActivity.success) =>
+          _DeliverySuccessPanel(
+            state: state,
+            onReset: () => ref.read(cafeteriaScanProvider.notifier).reset(),
+          ),
         (_, CafeteriaScanActivity.failure) => _FailurePanel(
             failure: state.failure,
             onRetry: () => ref.read(cafeteriaScanProvider.notifier).retry(),
             onReset: () => ref.read(cafeteriaScanProvider.notifier).reset(),
           ),
-        (CafeteriaScanStep.complete, _) => _ResolvedPairPanel(
+        (CafeteriaScanStep.review, _) => _ReviewPanel(
             state: state,
+            onConfirm: () =>
+                ref.read(cafeteriaScanProvider.notifier).confirmDelivery(),
             onReset: () => ref.read(cafeteriaScanProvider.notifier).reset(),
           ),
         (CafeteriaScanStep.container, _) =>
@@ -288,18 +310,23 @@ class _ParticipantResolvedPanel extends StatelessWidget {
   }
 }
 
-class _ResolvedPairPanel extends StatelessWidget {
-  const _ResolvedPairPanel({required this.state, required this.onReset});
+class _ReviewPanel extends StatelessWidget {
+  const _ReviewPanel({
+    required this.state,
+    required this.onConfirm,
+    required this.onReset,
+  });
 
   final CafeteriaScanState state;
+  final VoidCallback onConfirm;
   final VoidCallback onReset;
 
   @override
   Widget build(BuildContext context) {
     final container = state.container!;
-    final operation = state.participant!.purpose == OperationQrPurpose.delivery
-        ? 'entrega'
-        : 'devolución';
+    final isDelivery =
+        state.participant!.purpose == OperationQrPurpose.delivery;
+    final preview = state.preview;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -323,6 +350,11 @@ class _ResolvedPairPanel extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
+        Text(
+          'Cliente: ${_shortRef(state.participant!.participantRef)}',
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 10),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -333,21 +365,147 @@ class _ResolvedPairPanel extends StatelessWidget {
           ),
           child: Text(
             state.isPairCompatible
-                ? 'Ambos QR son válidos. La $operation puede confirmarse en la fase operativa correspondiente.'
-                : 'Ambos QR fueron leídos, pero el estado actual del recipiente no permite esta $operation.',
+                ? isDelivery
+                    ? 'Ambos QR son válidos. Revisa la política antes de confirmar.'
+                    : 'Ambos QR son válidos. La devolución se habilitará en F6.'
+                : 'Ambos QR fueron leídos, pero el estado actual del recipiente no permite esta operación.',
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
-        const SizedBox(height: 10),
-        const Text(
-          'F4 solo identifica y valida. No se ha cambiado el estado del recipiente.',
-          style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
-        ),
+        if (preview != null) ...[
+          const SizedBox(height: 14),
+          Text(preview.policy.name,
+              style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(
+            'Plazo: ${preview.policy.durationHours} h · versión ${preview.policy.version}',
+            style: const TextStyle(color: AppColors.textSecondary),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Devolución estimada: ${_dateTime(preview.estimatedDueAt)}',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'La fecha exacta la confirma el servidor al completar la entrega.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+        ],
         const SizedBox(height: 14),
-        OutlinedButton.icon(
+        if (isDelivery && state.isPairCompatible) ...[
+          ElevatedButton.icon(
+            key: const Key('confirm-delivery'),
+            onPressed: state.canConfirmDelivery ? onConfirm : null,
+            icon: const Icon(Icons.check_circle_outline),
+            label: const Text('Confirmar entrega'),
+          ),
+          const SizedBox(height: 8),
+        ],
+        OutlinedButton(
+          key: const Key('cancel-delivery'),
           onPressed: onReset,
-          icon: const Icon(Icons.refresh),
-          label: const Text('Escanear otra operación'),
+          child: const Text('Cancelar y borrar escaneo'),
+        ),
+      ],
+    );
+  }
+}
+
+class _UncertainPanel extends StatelessWidget {
+  const _UncertainPanel({
+    required this.failure,
+    required this.onRecover,
+    required this.onReset,
+  });
+
+  final Failure? failure;
+  final VoidCallback onRecover;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Resultado por confirmar',
+            style: TextStyle(
+                color: AppColors.warningOrange,
+                fontWeight: FontWeight.w800,
+                fontSize: 18)),
+        const SizedBox(height: 8),
+        const Text(
+          'Se perdió la conexión después de enviar la entrega. No asumimos éxito ni repetimos la operación automáticamente.',
+        ),
+        if (failure?.message.isNotEmpty == true) ...[
+          const SizedBox(height: 6),
+          Text(failure!.message,
+              style: const TextStyle(color: AppColors.textSecondary)),
+        ],
+        const SizedBox(height: 14),
+        ElevatedButton(
+          key: const Key('recover-delivery'),
+          onPressed: onRecover,
+          child: const Text('Consultar estado actual'),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton(
+            onPressed: onReset, child: const Text('Cerrar operación')),
+      ],
+    );
+  }
+}
+
+class _DeliverySuccessPanel extends StatelessWidget {
+  const _DeliverySuccessPanel({required this.state, required this.onReset});
+
+  final CafeteriaScanState state;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final receipt = state.receipt;
+    final active = state.container?.activeCirculation;
+    final dueAt = receipt?.dueAt ?? active?.dueAt;
+    final circulationRef = receipt?.circulationId ?? active?.circulationRef;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.check_circle, color: AppColors.successGreen, size: 30),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text('Entrega confirmada',
+                  style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+            'Recipiente: ${receipt?.container.publicCode ?? state.container?.displayCode}'),
+        if (receipt != null)
+          Text('Entregado: ${_dateTime(receipt.deliveredAt)}'),
+        if (dueAt != null) Text('Devolver antes de: ${_dateTime(dueAt)}'),
+        if (receipt != null)
+          Text('Política: ${receipt.policy.name} · v${receipt.policy.version}'),
+        if (circulationRef != null)
+          Text('Circulación: ${_shortRef(circulationRef)}',
+              style: const TextStyle(color: AppColors.textSecondary)),
+        if (state.recoveredFromState) ...[
+          const SizedBox(height: 8),
+          const Text(
+            'Resultado recuperado consultando el estado actual; no se reenvió la entrega.',
+            style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+          ),
+        ],
+        const SizedBox(height: 14),
+        ElevatedButton(
+          key: const Key('finish-delivery'),
+          onPressed: onReset,
+          child: const Text('Finalizar'),
         ),
       ],
     );
@@ -396,6 +554,8 @@ class _FailurePanel extends StatelessWidget {
 String _scannerFailureMessage(Failure? failure) => switch (failure?.code) {
       'QR_EXPIRED' => 'El QR del cliente venció. Pídele que genere uno nuevo.',
       'QR_ALREADY_USED' => 'Este QR ya fue utilizado en otra operación.',
+      'QR_PURPOSE_MISMATCH' =>
+        'Este QR fue generado para otra operación. Solicita uno de entrega.',
       'QR_TAMPERED' ||
       'INVALID_QR' ||
       'UNSUPPORTED_QR_VERSION' =>
@@ -403,9 +563,18 @@ String _scannerFailureMessage(Failure? failure) => switch (failure?.code) {
       'CONTAINER_QR_REVOKED' =>
         'El QR del recipiente fue reemplazado y ya no es vigente.',
       'INACTIVE_CONTAINER' => 'El recipiente no está activo para operar.',
+      'PARTICIPANT_INACTIVE' => 'El cliente no está habilitado para operar.',
+      'CONTAINER_NOT_AVAILABLE' ||
+      'ACTIVE_CIRCULATION_EXISTS' =>
+        'El recipiente ya no está disponible. Se actualizó su estado actual.',
+      'POLICY_NOT_FOUND' =>
+        'No hay una política de devolución activa. Contacta a ReVuelta.',
       'NETWORK_ERROR' => 'Sin conexión. Revisa la red e intenta otra vez.',
       _ => failure?.message ?? 'Ocurrió un error inesperado.',
     };
 
 String _shortRef(String value) =>
     value.length <= 8 ? value : value.substring(0, 8);
+
+String _dateTime(DateTime value) =>
+    DateFormat('dd/MM/yyyy · HH:mm').format(value.toLocal());
