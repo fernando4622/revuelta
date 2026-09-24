@@ -370,3 +370,16 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - `mvn verify`: 73 pruebas, 0 fallos y 0 errores; `flutter test`: 12 pruebas aprobadas.
 - Redocly valida el OpenAPI actualizado sin advertencias y el análisis Flutter no reporta errores ni advertencias bloqueantes.
 - F3 queda cerrada para el alcance aprobado de desarrollo/MVP demostrable. No se inició F4 en este bloque.
+
+## 19. Cierre de F5 — entrega atómica con doble QR — 2026-09-23
+
+- El comando de entrega exige el payload firmado dinámico `DELIVERY` y el payload firmado estático del recipiente; no acepta UUID resueltos como sustituto de los escaneos.
+- Un preview de solo lectura entrega a la confirmación móvil la política versionada y fecha límite estimada sin reservar el recipiente ni consumir el QR.
+- La transacción bloquea el token, valida participante y recipiente, captura política/tiempo servidor, crea circulación, cambia `AVAILABLE → IN_USE`, agrega el evento enlazado y consume el token.
+- V10 alinea la clave foránea de posesión con `Participant` y agrega referencias consistentes de participante/circulación a los eventos de handoff.
+- PostgreSQL y la aplicación demuestran un único ganador bajo carrera; una falla forzada del evento revierte también estado, circulación y consumo del token.
+- La app elimina la captura manual anterior, exige revisión y confirmación explícitas, deshabilita el doble submit y recupera un timeout consultando estado sin reenviar automáticamente.
+- La aceptación física en Samsung SM-S936B confirmó ambos escaneos, preview, confirmación y resultado. PostgreSQL reportó `IN_USE | 1 circulación | 1 evento | 1 token consumido`.
+- `mvn test`: 93 pruebas inventariadas, 0 fallos/errores; `flutter test`: 21 pruebas aprobadas; Redocly válido y APK debug compilado.
+- Evidencia detallada: `docs/testing/f5-physical-acceptance.md`.
+- F5 queda cerrada. F6 no se inició en este bloque.
