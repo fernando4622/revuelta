@@ -13,6 +13,7 @@ import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.policy.ReturnPolicy;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import com.revuelta.api.support.ImmediateTransactionRunner;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +45,7 @@ class ReturnContainerUseCaseTest {
 
     private final ContainerId containerId = ContainerId.generate();
     private final CirculationId circulationId = CirculationId.generate();
-    private final UserId borrowerId = UserId.generate();
+    private final ParticipantId borrowerId = new ParticipantId(UUID.randomUUID());
     private final UserId operatorId = UserId.generate();
     private final Instant now = Instant.now();
     private final UUID correlationId = UUID.randomUUID();

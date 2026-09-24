@@ -54,7 +54,7 @@ public class Container {
     public ContainerEvent registeredBy(UserId actor, Instant now, UUID correlationId) {
         return new ContainerEvent(
                 UUID.randomUUID(), id, ContainerEventType.REGISTERED, actor, now,
-                null, ContainerStatus.REGISTERED, "Container registered", correlationId
+                null, ContainerStatus.REGISTERED, "Container registered", correlationId, null, null
         );
     }
 
@@ -66,7 +66,7 @@ public class Container {
         updatedAt = now;
         return new ContainerEvent(
                 UUID.randomUUID(), id, ContainerEventType.CONTAINER_QR_ROTATED, actor, now,
-                status, status, reason.trim(), correlationId
+                status, status, reason.trim(), correlationId, null, null
         );
     }
 
@@ -103,7 +103,9 @@ public class Container {
                 previous,
                 target,
                 reason,
-                correlationId
+                correlationId,
+                null,
+                null
         );
     }
 

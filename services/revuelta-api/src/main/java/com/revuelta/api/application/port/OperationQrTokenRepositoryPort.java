@@ -8,4 +8,5 @@ import java.util.UUID;
 public interface OperationQrTokenRepositoryPort {
     OperationQrToken save(OperationQrToken token);
     Optional<OperationQrToken> findById(UUID id);
+    Optional<OperationQrToken> findByIdForUpdate(UUID id);
 }

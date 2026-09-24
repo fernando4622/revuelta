@@ -2,6 +2,8 @@ package com.revuelta.api.infrastructure.config;
 
 import com.revuelta.api.application.auth.LoginUseCase;
 import com.revuelta.api.application.circulation.DeliverContainerUseCase;
+import com.revuelta.api.application.circulation.DeliveryQrValidationService;
+import com.revuelta.api.application.circulation.PreviewDeliveryUseCase;
 import com.revuelta.api.application.circulation.ReturnContainerUseCase;
 import com.revuelta.api.application.container.ActivateContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
@@ -47,24 +49,46 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public DeliverContainerUseCase deliverContainerUseCase(
+    public DeliveryQrValidationService deliveryQrValidationService(
+            OperationQrTokenRepositoryPort tokens,
+            ParticipantRepositoryPort participants,
             ContainerRepositoryPort containerRepository,
             CirculationRepositoryPort circulationRepository,
-            UserRepositoryPort userRepository,
             ReturnPolicyRepositoryPort policyRepository,
+            QrPayloadCodecPort qrCodec,
+            ServerClockPort clock
+    ) {
+        return new DeliveryQrValidationService(
+                tokens, participants, containerRepository, circulationRepository,
+                policyRepository, qrCodec, clock
+        );
+    }
+
+    @Bean
+    public PreviewDeliveryUseCase previewDeliveryUseCase(
+            DeliveryQrValidationService validator,
+            CorrelationIdProviderPort correlationIds
+    ) {
+        return new PreviewDeliveryUseCase(validator, correlationIds);
+    }
+
+    @Bean
+    public DeliverContainerUseCase deliverContainerUseCase(
+            DeliveryQrValidationService validator,
+            ContainerRepositoryPort containerRepository,
+            CirculationRepositoryPort circulationRepository,
+            OperationQrTokenRepositoryPort tokens,
             ContainerEventRepositoryPort eventRepository,
             TransactionRunnerPort transactionRunner,
-            ServerClockPort clock,
             CorrelationIdProviderPort correlationIds
     ) {
         return new DeliverContainerUseCase(
+                validator,
                 containerRepository,
                 circulationRepository,
-                userRepository,
-                policyRepository,
+                tokens,
                 eventRepository,
                 transactionRunner,
-                clock,
                 correlationIds
         );
     }

@@ -2,19 +2,21 @@ package com.revuelta.api.domain.circulation;
 
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.policy.ReturnPolicy;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CirculationTest {
 
     private final ContainerId containerId = ContainerId.generate();
-    private final UserId borrowerId = UserId.generate();
+    private final ParticipantId borrowerId = new ParticipantId(UUID.randomUUID());
     private final UserId operatorId = UserId.generate();
     private final Instant now = Instant.now();
     private final ReturnPolicy policy = ReturnPolicy.defaultPolicy(now);

@@ -2,6 +2,7 @@ package com.revuelta.api.domain.circulation;
 
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.policy.ReturnPolicy;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 
 import java.time.Instant;
@@ -16,7 +17,7 @@ public class Circulation {
 
     private final CirculationId id;
     private final ContainerId containerId;
-    private final UserId borrowerId;
+    private final ParticipantId borrowerId;
     private final UserId deliveredBy;
     private final Instant deliveredAt;
     private final Instant dueAt;
@@ -29,7 +30,7 @@ public class Circulation {
     private final long version;
 
     // Reconstitución desde infraestructura
-    public Circulation(CirculationId id, ContainerId containerId, UserId borrowerId,
+    public Circulation(CirculationId id, ContainerId containerId, ParticipantId borrowerId,
                        UserId deliveredBy, Instant deliveredAt, Instant dueAt,
                        UUID returnPolicyId, int returnPolicyVersion,
                        UserId returnedBy, Instant returnedAt, Punctuality punctuality,
@@ -53,7 +54,7 @@ public class Circulation {
     }
 
     // Factory para creación de nueva circulación
-    public static Circulation create(ContainerId containerId, UserId borrowerId,
+    public static Circulation create(ContainerId containerId, ParticipantId borrowerId,
                                       UserId deliveredBy, Instant deliveredAt, ReturnPolicy policy) {
         Objects.requireNonNull(policy, "ReturnPolicy must not be null");
         Instant dueAt = policy.calculateDueAt(deliveredAt);
@@ -94,7 +95,7 @@ public class Circulation {
 
     public CirculationId id() { return id; }
     public ContainerId containerId() { return containerId; }
-    public UserId borrowerId() { return borrowerId; }
+    public ParticipantId borrowerId() { return borrowerId; }
     public UserId deliveredBy() { return deliveredBy; }
     public Instant deliveredAt() { return deliveredAt; }
     public Instant dueAt() { return dueAt; }

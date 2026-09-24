@@ -13,6 +13,7 @@ import com.revuelta.api.domain.container.Container;
 import com.revuelta.api.domain.container.ContainerCode;
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.policy.ReturnPolicy;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -34,7 +35,7 @@ class PersistenceConflictTranslationTest {
         ));
         Circulation circulation = Circulation.create(
                 ContainerId.generate(),
-                UserId.generate(),
+                new ParticipantId(UUID.randomUUID()),
                 UserId.generate(),
                 now,
                 ReturnPolicy.defaultPolicy(now)
@@ -57,7 +58,7 @@ class PersistenceConflictTranslationTest {
         ));
         Circulation circulation = Circulation.create(
                 ContainerId.generate(),
-                UserId.generate(),
+                new ParticipantId(UUID.randomUUID()),
                 UserId.generate(),
                 now,
                 ReturnPolicy.defaultPolicy(now)

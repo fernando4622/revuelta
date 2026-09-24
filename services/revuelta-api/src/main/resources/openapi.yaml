@@ -326,10 +326,42 @@ paths:
         '409': { $ref: '#/components/responses/409Conflict' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
 
+  /delivery-previews:
+    post:
+      summary: Validate both delivery QR values and obtain a read-only policy preview
+      description: Does not reserve the container or consume the participant QR. The estimated due-at is not authoritative until delivery commits.
+      operationId: previewDelivery
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [participantQrPayload, containerQrPayload]
+              properties:
+                participantQrPayload: { type: string, minLength: 1, maxLength: 512 }
+                containerQrPayload: { type: string, minLength: 1, maxLength: 512 }
+      responses:
+        '200':
+          description: Current delivery eligibility and server policy preview
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeliveryPreview' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
   /circulations:
     post:
       summary: Register container delivery (create active circulation)
-      description: A replay after a committed delivery returns `409 ACTIVE_CIRCULATION_EXISTS`. No client idempotency key is accepted in the MVP.
+      description: Both signed QR payloads are revalidated atomically. A replay after a committed delivery returns `409 QR_ALREADY_USED`. No client idempotency key is accepted in the MVP.
       operationId: deliverContainer
       x-required-roles: [OPERATOR]
       security: [{ bearerAuth: [] }]
@@ -339,13 +371,18 @@ paths:
           application/json:
             schema:
               type: object
-              required: [containerId, borrowerId]
+              required: [participantQrPayload, containerQrPayload]
               properties:
-                containerId: { type: string, format: uuid }
-                borrowerId: { type: string, format: uuid }
+                participantQrPayload: { type: string, minLength: 1, maxLength: 512 }
+                containerQrPayload: { type: string, minLength: 1, maxLength: 512 }
       responses:
         '201':
-          $ref: '#/components/responses/CirculationResponse'
+          description: Atomic delivery result
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Delivery' }
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
@@ -536,6 +573,46 @@ components:
         generation: { type: integer, minimum: 1 }
         payload: { type: string }
 
+    DeliveryContainer:
+      type: object
+      required: [id, publicCode, state]
+      properties:
+        id: { type: string, format: uuid }
+        publicCode: { type: string }
+        state: { type: string, enum: [AVAILABLE, IN_USE] }
+
+    DeliveryPolicy:
+      type: object
+      required: [id, version, name, durationHours]
+      properties:
+        id: { type: string, format: uuid }
+        version: { type: integer, minimum: 1 }
+        name: { type: string }
+        durationHours: { type: integer, minimum: 1 }
+
+    DeliveryPreview:
+      type: object
+      required: [participantRef, container, policy, previewedAt, estimatedDueAt, traceId]
+      properties:
+        participantRef: { type: string, format: uuid }
+        container: { $ref: '#/components/schemas/DeliveryContainer' }
+        policy: { $ref: '#/components/schemas/DeliveryPolicy' }
+        previewedAt: { type: string, format: date-time }
+        estimatedDueAt: { type: string, format: date-time }
+        traceId: { type: string, format: uuid }
+
+    Delivery:
+      type: object
+      required: [circulationId, participantRef, container, deliveredAt, dueAt, policy, traceId]
+      properties:
+        circulationId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        container: { $ref: '#/components/schemas/DeliveryContainer' }
+        deliveredAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        policy: { $ref: '#/components/schemas/DeliveryPolicy' }
+        traceId: { type: string, format: uuid }
+
     Circulation:
       type: object
       required:
@@ -580,6 +657,8 @@ components:
           enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST, RETIRED]
         reason: { type: string, nullable: true }
         correlationId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid, nullable: true }
+        circulationRef: { type: string, format: uuid, nullable: true }
 
   responses:
     401Unauthenticated:

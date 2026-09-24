@@ -8,6 +8,7 @@ import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.circulation.CirculationStatus;
 import com.revuelta.api.domain.circulation.Punctuality;
 import com.revuelta.api.domain.container.ContainerId;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -82,7 +83,7 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
         return new Circulation(
                 new CirculationId(entity.getId()),
                 new ContainerId(entity.getContainerId()),
-                new UserId(entity.getBorrowerId()),
+                new ParticipantId(entity.getBorrowerId()),
                 new UserId(entity.getDeliveredBy()),
                 entity.getDeliveredAt(),
                 entity.getDueAt(),

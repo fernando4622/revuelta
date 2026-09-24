@@ -59,6 +59,19 @@ public class OperationQrToken {
         return consumedAt != null;
     }
 
+    public void consume(Instant now, UUID consumingCirculationId) {
+        Objects.requireNonNull(now, "Consumption time must not be null");
+        Objects.requireNonNull(consumingCirculationId, "Consuming circulation must not be null");
+        if (isConsumed()) {
+            throw new IllegalStateException("Operation QR token is already consumed");
+        }
+        if (isExpiredAt(now)) {
+            throw new IllegalStateException("Expired operation QR token cannot be consumed");
+        }
+        consumedAt = now;
+        circulationId = consumingCirculationId;
+    }
+
     public UUID id() { return id; }
     public ParticipantId participantId() { return participantId; }
     public OperationQrPurpose purpose() { return purpose; }

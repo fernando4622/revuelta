@@ -54,6 +54,10 @@ class RestEndpointOpenApiContractTest {
                 recordFields(CirculationController.CirculationResponse.class),
                 openApiSchemaFields("Circulation")
         );
+        assertEquals(recordFields(CirculationController.DeliveryResponse.class), openApiSchemaFields("Delivery"));
+        assertEquals(recordFields(CirculationController.DeliveryPreviewResponse.class), openApiSchemaFields("DeliveryPreview"));
+        assertEquals(recordFields(CirculationController.DeliveryContainerResponse.class), openApiSchemaFields("DeliveryContainer"));
+        assertEquals(recordFields(CirculationController.DeliveryPolicyResponse.class), openApiSchemaFields("DeliveryPolicy"));
         assertEquals(
                 recordFields(CirculationController.EventResponse.class),
                 openApiSchemaFields("ContainerEvent")
@@ -77,6 +81,10 @@ class RestEndpointOpenApiContractTest {
         assertEquals(
                 recordFields(CirculationController.DeliverRequest.class),
                 openApiInlineRequestFields("/circulations", "post")
+        );
+        assertEquals(
+                recordFields(CirculationController.DeliverRequest.class),
+                openApiInlineRequestFields("/delivery-previews", "post")
         );
         assertEquals(recordFields(QrController.GenerateOperationQrRequest.class), openApiInlineRequestFields("/me/operation-qrs", "post"));
         assertEquals(recordFields(QrController.QrPayloadRequest.class), openApiInlineRequestFields("/operation-qr-resolutions", "post"));

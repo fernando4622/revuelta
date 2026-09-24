@@ -6,6 +6,10 @@ import com.revuelta.api.domain.participant.OperationQrToken;
 import com.revuelta.api.domain.participant.ParticipantId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+
+import com.revuelta.api.application.failure.ApplicationFailureException;
+import com.revuelta.api.application.failure.FailureCode;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -17,12 +21,24 @@ public class OperationQrTokenRepositoryAdapter implements OperationQrTokenReposi
 
     @Override
     public OperationQrToken save(OperationQrToken token) {
-        return toDomain(repository.saveAndFlush(toEntity(token)));
+        try {
+            return toDomain(repository.saveAndFlush(toEntity(token)));
+        } catch (ObjectOptimisticLockingFailureException exception) {
+            throw new ApplicationFailureException(
+                    FailureCode.QR_ALREADY_USED,
+                    "Participant operation QR was consumed concurrently"
+            );
+        }
     }
 
     @Override
     public Optional<OperationQrToken> findById(UUID id) {
         return repository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<OperationQrToken> findByIdForUpdate(UUID id) {
+        return repository.findByIdForUpdate(id).map(this::toDomain);
     }
 
     private OperationQrTokenJpaEntity toEntity(OperationQrToken token) {

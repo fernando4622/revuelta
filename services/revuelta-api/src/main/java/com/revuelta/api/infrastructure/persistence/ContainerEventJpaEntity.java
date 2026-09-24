@@ -41,4 +41,10 @@ public class ContainerEventJpaEntity {
 
     @Column(name = "correlation_id", nullable = false)
     private UUID correlationId;
+
+    @Column(name = "participant_id")
+    private UUID participantId;
+
+    @Column(name = "circulation_id")
+    private UUID circulationId;
 }

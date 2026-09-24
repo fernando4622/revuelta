@@ -284,7 +284,12 @@ class SecurityErrorContractIntegrationTest {
                 )),
                 Arguments.of("deliver container", new EndpointAccess(
                         "POST", "/api/v1/circulations",
-                        "{\"containerId\":\"" + containerId + "\",\"borrowerId\":\"" + UUID.randomUUID() + "\"}",
+                        "{\"participantQrPayload\":\"invalid\",\"containerQrPayload\":\"invalid\"}",
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("preview delivery", new EndpointAccess(
+                        "POST", "/api/v1/delivery-previews",
+                        "{\"participantQrPayload\":\"invalid\",\"containerQrPayload\":\"invalid\"}",
                         Set.of("OPERATOR")
                 )),
                 Arguments.of("return container", new EndpointAccess(

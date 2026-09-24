@@ -5,6 +5,7 @@ import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.event.ContainerEventType;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import lombok.RequiredArgsConstructor;
 import jakarta.persistence.EntityManager;
@@ -31,7 +32,9 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
                 event.previousStatus() != null ? event.previousStatus().name() : null,
                 event.newStatus().name(),
                 event.reason(),
-                event.correlationId()
+                event.correlationId(),
+                event.participantId() != null ? event.participantId().value() : null,
+                event.circulationId()
         );
         entityManager.persist(entity);
         entityManager.flush();
@@ -55,7 +58,9 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
                 entity.getPreviousStatus() != null ? ContainerStatus.valueOf(entity.getPreviousStatus()) : null,
                 ContainerStatus.valueOf(entity.getNewStatus()),
                 entity.getReason(),
-                entity.getCorrelationId()
+                entity.getCorrelationId(),
+                entity.getParticipantId() != null ? new ParticipantId(entity.getParticipantId()) : null,
+                entity.getCirculationId()
         );
     }
 }
