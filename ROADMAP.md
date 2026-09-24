@@ -1,8 +1,8 @@
 # ReVuelta — Roadmap de remediación y entrega del MVP ITVer
 
 > **Estado:** En ejecución por fases
-> **Versión:** 2.1
-> **Última revisión:** 2026-09-20
+> **Versión:** 2.2
+> **Última revisión:** 2026-09-23
 > **Punto de partida técnico:** commit `4f4967d` (`feat: initialize ReVuelta MVP`)
 > **Objetivo:** convertir el prototipo actual en un piloto operativo, seguro y verificable para la Cafetería del Instituto Tecnológico de Veracruz.
 
@@ -61,7 +61,7 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 | Acceso | Existen elementos de registro público o acceso social que no están autorizados para el piloto institucional. | Identidades y permisos incorrectos. |
 | Arquitectura móvil | Varias pantallas consumen HTTP y mapas dinámicos directamente. | Reglas duplicadas, estados inconsistentes y baja capacidad de prueba. |
 | Datos de UI | Existen métricas, historial, pasaporte y contenido demostrativo codificado. | El usuario puede interpretar datos ficticios como reales. |
-| QR | El doble QR está implementado en backend y Flutter: participante dinámico + recipiente estático, sin captura manual. Falta evidencia con dos dispositivos físicos. | No se cierra el gate F4 hasta probar cámara y lectura física en el dispositivo objetivo. |
+| QR | El doble QR está implementado y aceptado en Samsung SM-S936B/Android 16: participante dinámico + recipiente estático, sin captura manual. | El flujo identifica y valida; la mutación atómica corresponde a F5/F6. |
 | Entrega/devolución | Tiempo, replay, concurrencia y doble identificación QR están resueltos como base; faltan los commits atómicos de F5/F6. | Los flujos todavía no mutan estado a partir del par de QR. |
 | API | La superficie habilitada coincide con OpenAPI y errores; los endpoints futuros siguen sujetos a su feature contract. | Implementar una ruta futura antes de aprobarla rompería CDD. |
 | Seguridad | Secretos/semillas están aislados y la superficie habilitada tiene matriz de autorización probada; el ciclo productivo de cuentas y hardening del piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
@@ -559,7 +559,7 @@ La prueba de usuario dado de baja pertenece al futuro mecanismo productivo de re
 
 **Prioridad:** P0
 **Dependencias:** G0-07, G0-10, F2, F3.
-**Estado al 2026-09-20:** alcance QR implementado y validado automáticamente; aceptación física pendiente. El retiro excepcional queda fuera del alcance ejecutable mientras D-004 siga abierto.
+**Estado al 2026-09-23:** gate QR cerrado con validación automática y aceptación física en Samsung SM-S936B/Android 16. El retiro excepcional queda fuera del alcance ejecutable mientras D-004 siga abierto.
 
 ### 8.1 Backend
 
@@ -591,13 +591,13 @@ La prueba de usuario dado de baja pertenece al futuro mecanismo productivo de re
 - [x] payload válido, inválido, desconocido e inactivo;
 - [x] manipulación o formato no soportado;
 - [x] escaneo repetido;
-- [ ] permiso de cámara denegado en dispositivo objetivo; la recuperación UI está implementada;
+- [x] permiso de cámara denegado en dispositivo objetivo, explicación segura y recuperación sin captura manual;
 - [x] resolución con rol no autorizado;
-- [ ] prueba con QR y dos dispositivos físicos objetivo.
+- [x] prueba óptica en dispositivo físico con QR dinámico del participante y QR estático del recipiente presentados desde un soporte independiente.
 
 ### Gate F4
 
-- [ ] El QR físico del piloto se resuelve de extremo a extremo.
+- [x] El QR físico del piloto se resuelve de extremo a extremo.
 - [x] Escanear nunca concede autorización.
 - [x] La UI del flujo QR muestra únicamente información real del servidor.
 - [x] El operador puede distinguir claramente la siguiente acción válida.
@@ -1035,12 +1035,12 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-El alcance QR de F4 quedó implementado y validado localmente el 2026-09-20, con un único gate de aceptación abierto: prueba física del QR/cámara en los dispositivos objetivo. La transición excepcional de retiro sigue diferida por D-004. No se inicia F5 dentro de esta fase.
+El alcance QR de F4 quedó implementado y aceptado el 2026-09-23. La transición excepcional de retiro sigue diferida por D-004 y no forma parte del gate QR cerrado. No se inició F5 dentro de esta fase.
 
 1. [x] Implementar generación de QR dinámico para Alumno/Maestro y resolución de solo lectura por Cafetería.
 2. [x] Implementar resolución firmada/versionada del QR estático del recipiente y rotación revocable.
 3. [x] Demostrar mediante pruebas que el flujo móvil exige siempre los dos QR y evita resoluciones duplicadas por fotogramas repetidos.
-4. [ ] Ejecutar la aceptación física:
+4. [x] Ejecutar la aceptación física:
 
 ```text
 dispositivo Alumno/Maestro genera QR dinámico
@@ -1049,7 +1049,7 @@ dispositivo Alumno/Maestro genera QR dinámico
 → la app muestra estado y siguiente acción del servidor sin mutar datos
 ```
 
-5. Implementar F5 entrega solo después de superar el gate físico de F4.
+5. Implementar F5 entrega en el siguiente incremento, ahora que el gate físico de F4 está cerrado.
 6. Implementar devolución solo después de demostrar la entrega concurrente.
 7. Liberar a campo únicamente después de F9.
 
