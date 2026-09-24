@@ -61,8 +61,8 @@ El repositorio ya contiene una base útil, pero sigue siendo un prototipo parcia
 | Acceso | Existen elementos de registro público o acceso social que no están autorizados para el piloto institucional. | Identidades y permisos incorrectos. |
 | Arquitectura móvil | Varias pantallas consumen HTTP y mapas dinámicos directamente. | Reglas duplicadas, estados inconsistentes y baja capacidad de prueba. |
 | Datos de UI | Existen métricas, historial, pasaporte y contenido demostrativo codificado. | El usuario puede interpretar datos ficticios como reales. |
-| QR | El doble QR está implementado y aceptado en Samsung SM-S936B/Android 16: participante dinámico + recipiente estático, sin captura manual. | Entrega ya consume el par atómicamente; devolución todavía corresponde a F6. |
-| Entrega/devolución | F5 entrega está implementada y aceptada con tiempo servidor, política versionada, replay, rollback y carrera controlada. | La devolución todavía no muta estado a partir del par de QR hasta F6. |
+| QR | El doble QR está implementado para entrega y devolución: participante dinámico + recipiente estático, sin captura manual. | Ambos handoffs revalidan y consumen el par atómicamente. |
+| Entrega/devolución | F5 entrega y F6 devolución están implementadas con tiempo servidor, replay, rollback y carreras controladas. | El lavado separado y las consultas operativas completas continúan en fases posteriores. |
 | API | La superficie habilitada coincide con OpenAPI y errores; los endpoints futuros siguen sujetos a su feature contract. | Implementar una ruta futura antes de aprobarla rompería CDD. |
 | Seguridad | Secretos/semillas están aislados y la superficie habilitada tiene matriz de autorización probada; el ciclo productivo de cuentas y hardening del piloto siguen pendientes. | Exposición o accesos indebidos si se libera antes de F8/F9. |
 | Pruebas | Ya existen pruebas unitarias, PostgreSQL, arquitectura, contrato, autorización y concurrencia; faltan features completas y E2E crítico. | El journey operativo completo aún no está demostrado. |
@@ -698,10 +698,10 @@ Una devolución exitosa debe:
 
 ### Gate F6
 
-- [ ] Una carrera produce una devolución y una respuesta idempotente/conflicto definido.
-- [ ] No hay eventos duplicados.
-- [ ] El recipiente nunca queda en un estado imposible.
-- [ ] El resultado visible proviene del servidor.
+- [x] Una carrera produce una devolución y una respuesta idempotente/conflicto definido.
+- [x] No hay eventos duplicados.
+- [x] El recipiente nunca queda en un estado imposible.
+- [x] El resultado visible proviene del servidor.
 
 ---
 
@@ -1035,7 +1035,7 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-El alcance QR de F4 y la entrega atómica F5 quedaron implementados y aceptados el 2026-09-23. La transición excepcional de retiro sigue diferida por D-004 y no forma parte de estos gates. F6 no se inició dentro de esta fase.
+El alcance QR de F4, la entrega atómica F5 y la devolución atómica F6 quedaron implementados y aceptados. La transición excepcional de retiro sigue diferida por D-004 y no forma parte de estos gates. F7 no se inició dentro de esta fase.
 
 1. [x] Implementar generación de QR dinámico para Alumno/Maestro y resolución de solo lectura por Cafetería.
 2. [x] Implementar resolución firmada/versionada del QR estático del recipiente y rotación revocable.
@@ -1050,7 +1050,8 @@ dispositivo Alumno/Maestro genera QR dinámico
 ```
 
 5. [x] Implementar y aceptar F5 entrega, incluida la carrera con un único ganador y la recuperación ante timeout.
-6. Implementar F6 devolución usando obligatoriamente ambos QR y verificando que el participante coincida con la circulación activa.
-7. Liberar a campo únicamente después de F9.
+6. [x] Implementar F6 devolución usando obligatoriamente ambos QR y verificando que el participante coincida con la circulación activa.
+7. Implementar F7 Flutter limpio, historial y experiencias por perspectiva en el siguiente incremento.
+8. Liberar a campo únicamente después de F9.
 
 Este orden reduce el riesgo de seguir ampliando una demostración visual sobre reglas todavía indefinidas.

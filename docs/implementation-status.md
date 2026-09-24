@@ -383,3 +383,17 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - `mvn test`: 93 pruebas inventariadas, 0 fallos/errores; `flutter test`: 21 pruebas aprobadas; Redocly válido y APK debug compilado.
 - Evidencia detallada: `docs/testing/f5-physical-acceptance.md`.
 - F5 queda cerrada. F6 no se inició en este bloque.
+
+## 20. Cierre de F6 — devolución atómica con doble QR — 2026-09-24
+
+- Preview y confirmación reciben los payloads firmados completos `RETURN` + recipiente; ninguna referencia interna sustituye los dos escaneos.
+- La confirmación bloquea el token, verifica que el participante sea titular de la circulación activa, usa tiempo servidor y finaliza circulación, estado, evento y token en una transacción.
+- El estado resultante es `RETURNED` / “Pendiente de lavado”; la devolución no vuelve disponible el recipiente.
+- QR consumido, recipiente ya devuelto, falta de circulación y titular incorrecto producen conflictos tipados distintos.
+- La carrera PostgreSQL demuestra un solo ganador, una sola finalización, un solo evento y un solo token consumido. La falla forzada del evento revierte todas las mutaciones.
+- Flutter presenta circulación, entrega y fecha límite antes de confirmar; bloquea doble submit y recupera timeout consultando estado sin reenviar automáticamente.
+- Recorrido E2E Docker `F6-E2E-1790245884`: preview/circulación/participante coincidentes, respuesta y persistencia `RETURNED`, puntualidad `ON_TIME`, cuatro eventos totales y exactamente un evento de devolución.
+- `mvn test`: 98 pruebas, 0 fallos/errores; `flutter test`: 24 pruebas aprobadas; análisis sin errores/advertencias bloqueantes; OpenAPI válido; Docker y APK debug compilados.
+- Evidencia detallada: `docs/testing/f6-integrated-acceptance.md`.
+- El APK F6 quedó instalado en Samsung SM-S936B con el túnel `tcp:8080 → tcp:8080` activo. La repetición manual de cámara queda disponible para validación del usuario.
+- F6 queda cerrada. F7 no se inició en este bloque.
