@@ -9,7 +9,8 @@ sealed class Failure {
 }
 
 class NetworkFailure extends Failure {
-  const NetworkFailure([String message = 'Network connection failed'])
+  const NetworkFailure(
+      [String message = 'Sin conexión. Revisa la red e intenta nuevamente.'])
       : super(message, code: 'NETWORK_ERROR');
 }
 

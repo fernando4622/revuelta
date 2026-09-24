@@ -72,7 +72,10 @@ class LoginOptionsPage extends StatelessWidget {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Inicio de sesión con Google (Demo UI)')),
+                      content: Text(
+                        'Acceso con Google no habilitado en esta etapa del piloto.',
+                      ),
+                    ),
                   );
                 },
               ),
@@ -94,8 +97,10 @@ class LoginOptionsPage extends StatelessWidget {
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content:
-                            Text('Inicio de sesión con Microsoft (Demo UI)')),
+                      content: Text(
+                        'Acceso con Microsoft no habilitado en esta etapa del piloto.',
+                      ),
+                    ),
                   );
                 },
               ),

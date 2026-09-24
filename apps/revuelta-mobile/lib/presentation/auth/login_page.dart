@@ -204,9 +204,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  authState.error is Failure
-                                      ? (authState.error as Failure).message
-                                      : authState.error.toString(),
+                                  _loginErrorMessage(authState.error!),
                                   textAlign: TextAlign.center,
                                   style: const TextStyle(
                                     color: AppColors.errorRed,
@@ -241,6 +239,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
     );
   }
+}
+
+String _loginErrorMessage(Object error) {
+  if (error is! Failure) {
+    return 'No fue posible iniciar sesión. Intenta nuevamente.';
+  }
+
+  return switch (error.code) {
+    'INVALID_CREDENTIALS' =>
+      'Usuario o contraseña incorrectos. Verifica tus datos.',
+    'UNAUTHENTICATED' => 'Tu sesión expiró. Inicia sesión nuevamente.',
+    'NETWORK_ERROR' => 'Sin conexión. Revisa la red e intenta nuevamente.',
+    _ => 'No fue posible iniciar sesión. Intenta nuevamente.',
+  };
 }
 
 /// Pixel-accurate replication of the decorative leaf background from the mockup.

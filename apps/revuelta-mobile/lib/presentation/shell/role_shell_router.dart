@@ -65,7 +65,7 @@ class UnsupportedRolePage extends ConsumerWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'La cuenta ${session.username} no tiene un rol compatible con esta versión de ReVuelta.',
+                    'La cuenta ${session.username} no tiene acceso habilitado para este piloto.',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.textSecondary),
                   ),

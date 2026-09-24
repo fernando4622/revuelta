@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/theme/app_colors.dart';
+import '../shared/widgets/pilot_data_banner.dart';
 
 /// Screen representing "Tu impacto" (Mockup Screen 8).
 /// Features weekly stats, accumulated total metrics, and environmental commitment card.
@@ -19,6 +20,8 @@ class ImpactPage extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const PilotDataBanner(),
+              const SizedBox(height: 16),
               // Section: Esta semana
               Card(
                 child: Padding(

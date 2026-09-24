@@ -39,6 +39,15 @@ void main() {
     expect(find.byType(RevueltaOperationsShell), findsNothing);
     expect(find.text('Escanear ReVuelta'), findsOneWidget);
     expect(find.text('Impacto'), findsNothing);
+
+    await tester.tap(find.text('Lavado'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Módulo de lavado pendiente durante esta etapa del piloto.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('backend'), findsNothing);
   });
 
   testWidgets('ADMIN opens the ReVuelta operations shell', (tester) async {
@@ -48,6 +57,11 @@ void main() {
     expect(find.byType(MainShell), findsNothing);
     expect(find.byType(CafeteriaShell), findsNothing);
     expect(find.text('Resumen del piloto'), findsOneWidget);
+    expect(
+      find.text('Módulo pendiente durante esta etapa del piloto.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('backend'), findsNothing);
   });
 
   testWidgets('unknown role opens no protected shell', (tester) async {
@@ -58,5 +72,10 @@ void main() {
     expect(find.byType(CafeteriaShell), findsNothing);
     expect(find.byType(RevueltaOperationsShell), findsNothing);
     expect(find.text('Acceso no disponible'), findsOneWidget);
+    expect(
+      find.text(
+          'La cuenta test-user no tiene acceso habilitado para este piloto.'),
+      findsOneWidget,
+    );
   });
 }

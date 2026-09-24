@@ -262,5 +262,6 @@ String _friendlyFailure(Failure failure) => switch (failure.code) {
       'PARTICIPANT_INACTIVE' =>
         'Tu perfil participante no está activo. Solicita ayuda a ReVuelta.',
       'NETWORK_ERROR' => 'Sin conexión. Revisa tu red e intenta de nuevo.',
-      _ => failure.message,
+      _ =>
+        'No fue posible generar el QR. Intenta nuevamente o solicita ayuda a ReVuelta.',
     };

@@ -98,7 +98,7 @@ class ProfilePage extends StatelessWidget {
               child: Padding(
                 padding: EdgeInsets.all(16),
                 child: Text(
-                  'Las opciones de cuenta se habilitarán cuando exista su contrato funcional.',
+                  'Módulo de opciones de cuenta pendiente durante esta etapa del piloto.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textSecondary),
                 ),

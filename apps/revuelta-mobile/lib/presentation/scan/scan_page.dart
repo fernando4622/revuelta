@@ -208,7 +208,6 @@ class _BottomPanel extends ConsumerWidget {
       ),
       child: switch ((state.step, state.activity)) {
         (_, CafeteriaScanActivity.uncertain) => _UncertainPanel(
-            failure: state.failure,
             isReturn: state.participant?.purpose ==
                 OperationQrPurpose.returnContainer,
             onRecover: () {
@@ -403,7 +402,7 @@ class _ReviewPanel extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
           Text(
-            'Plazo: ${preview.policy.durationHours} h · versión ${preview.policy.version}',
+            'Plazo: ${preview.policy.durationHours} h',
             style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 4),
@@ -413,7 +412,7 @@ class _ReviewPanel extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           const Text(
-            'La fecha exacta la confirma el servidor al completar la entrega.',
+            'La fecha final quedará registrada al confirmar la entrega.',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
@@ -428,7 +427,7 @@ class _ReviewPanel extends StatelessWidget {
           Text('Fecha límite: ${_dateTime(returnPreview.dueAt)}'),
           const SizedBox(height: 4),
           const Text(
-            'La puntualidad y hora de recepción las confirma el servidor.',
+            'La puntualidad y la hora quedarán registradas al confirmar la recepción.',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
@@ -463,13 +462,11 @@ class _ReviewPanel extends StatelessWidget {
 
 class _UncertainPanel extends StatelessWidget {
   const _UncertainPanel({
-    required this.failure,
     required this.isReturn,
     required this.onRecover,
     required this.onReset,
   });
 
-  final Failure? failure;
   final bool isReturn;
   final VoidCallback onRecover;
   final VoidCallback onReset;
@@ -487,13 +484,8 @@ class _UncertainPanel extends StatelessWidget {
                 fontSize: 18)),
         const SizedBox(height: 8),
         Text(
-          'Se perdió la conexión después de enviar la ${isReturn ? 'devolución' : 'entrega'}. No asumimos éxito ni repetimos la operación automáticamente.',
+          'No pudimos confirmar la ${isReturn ? 'devolución' : 'entrega'}. Consulta el estado antes de intentarlo otra vez.',
         ),
-        if (failure?.message.isNotEmpty == true) ...[
-          const SizedBox(height: 6),
-          Text(failure!.message,
-              style: const TextStyle(color: AppColors.textSecondary)),
-        ],
         const SizedBox(height: 14),
         ElevatedButton(
           key: Key(isReturn ? 'recover-return' : 'recover-delivery'),
@@ -552,7 +544,7 @@ class _ReturnSuccessPanel extends StatelessWidget {
         if (state.recoveredFromState) ...[
           const SizedBox(height: 8),
           const Text(
-            'Resultado recuperado consultando el estado actual; no se reenvió la devolución.',
+            'La devolución ya había quedado registrada. Puedes continuar con seguridad.',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
@@ -599,15 +591,14 @@ class _DeliverySuccessPanel extends StatelessWidget {
         if (receipt != null)
           Text('Entregado: ${_dateTime(receipt.deliveredAt)}'),
         if (dueAt != null) Text('Devolver antes de: ${_dateTime(dueAt)}'),
-        if (receipt != null)
-          Text('Política: ${receipt.policy.name} · v${receipt.policy.version}'),
+        if (receipt != null) Text('Política: ${receipt.policy.name}'),
         if (circulationRef != null)
           Text('Circulación: ${_shortRef(circulationRef)}',
               style: const TextStyle(color: AppColors.textSecondary)),
         if (state.recoveredFromState) ...[
           const SizedBox(height: 8),
           const Text(
-            'Resultado recuperado consultando el estado actual; no se reenvió la entrega.',
+            'La entrega ya había quedado registrada. Puedes continuar con seguridad.',
             style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
           ),
         ],
@@ -686,7 +677,8 @@ String _scannerFailureMessage(Failure? failure) => switch (failure?.code) {
       'RETURN_ALREADY_REGISTERED' =>
         'La devolución de este recipiente ya fue registrada.',
       'NETWORK_ERROR' => 'Sin conexión. Revisa la red e intenta otra vez.',
-      _ => failure?.message ?? 'Ocurrió un error inesperado.',
+      _ =>
+        'No fue posible completar la operación. Intenta nuevamente o contacta al equipo ReVuelta.',
     };
 
 String _shortRef(String value) =>

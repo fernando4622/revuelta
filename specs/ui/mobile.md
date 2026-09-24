@@ -75,6 +75,8 @@ Public registration, email verification, social login, password recovery and pro
 ## 6. Global UI rules
 
 - User-facing language is Spanish.
+- User-facing copy describes pilot availability and operational next steps; it MUST NOT expose implementation terms such as backend, API, endpoint, contract, mock, payload or server internals.
+- A deferred capability is presented as a module pending for the current pilot stage, without promising an implementation mechanism or date.
 - The pilot refers to “Cafetería” or “Cafetería del Instituto”.
 - The return point is “Punto ReVuelta — Cafetería del Instituto”.
 - The approved prototype logo source is `apps/revuelta-mobile/resources/logo.jpeg`.
@@ -129,3 +131,10 @@ then transient state is discarded,
 the camera is released,
 local credentials are removed,
 and no business command is submitted.
+
+### SC-UI-005 — Pilot-safe copy
+
+Given a destination or capability is not yet enabled,
+when its state is shown to a pilot user,
+then the message identifies it as pending for the current pilot stage,
+and does not mention backend, API, contracts, mocks or other developer-facing implementation details.

@@ -27,14 +27,12 @@ class _CafeteriaShellState extends State<CafeteriaShell> {
       const _UnavailableCafeteriaPage(
         title: 'Pendientes de lavado',
         icon: Icons.cleaning_services_outlined,
-        message:
-            'Esta cola se habilitará cuando exista la consulta operativa en el backend.',
+        message: 'Módulo de lavado pendiente durante esta etapa del piloto.',
       ),
       const _UnavailableCafeteriaPage(
         title: 'Operaciones recientes',
         icon: Icons.history,
-        message:
-            'El historial aparecerá cuando el API exponga operaciones de esta cafetería.',
+        message: 'Módulo de historial pendiente durante esta etapa del piloto.',
       ),
       const _CafeteriaHelpPage(),
     ];

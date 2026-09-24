@@ -112,7 +112,7 @@ class _OperationsPlaceholder extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Sin datos disponibles. Esta vista se conectará cuando exista su contrato de consulta en el backend.',
+                'Módulo pendiente durante esta etapa del piloto.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textSecondary),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/theme/app_colors.dart';
+import '../shared/widgets/pilot_data_banner.dart';
 
 /// Screen representing "Notificaciones" (Mockup Screen 10).
 /// Lists reminders, return confirmations, drop-off point updates, and weekly summaries.
@@ -17,6 +18,8 @@ class NotificationsPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           children: const [
+            PilotDataBanner(),
+            SizedBox(height: 12),
             _NotificationTile(
               icon: Icons.check_circle_outline,
               iconColor: AppColors.forestGreen,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../shared/theme/app_colors.dart';
+import '../shared/widgets/pilot_data_banner.dart';
 
 /// Screen representing "Historial" (Mockup Screen 7).
 /// Features filter chips [Todos | En uso | Devueltos] and chronological history cards.
@@ -67,6 +68,10 @@ class _HistoryPageState extends State<HistoryPage> {
       body: SafeArea(
         child: Column(
           children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: PilotDataBanner(),
+            ),
             // Filter Segmented Chips
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),

@@ -5,6 +5,7 @@ import '../shared/theme/app_colors.dart';
 import '../shared/widgets/container_card.dart';
 import '../container/container_passport_page.dart';
 import '../shared/widgets/logout_icon_button.dart';
+import '../shared/widgets/pilot_data_banner.dart';
 
 /// Screen representing "Inicio" (Mockup Screen 1).
 /// Features user greeting ("Hola, Valeria"), current active container status card with arc gauge,
@@ -73,17 +74,17 @@ class _HomePageState extends State<HomePage> {
                       PopupMenuButton<int>(
                         icon: const Icon(Icons.tune,
                             color: AppColors.textSecondary, size: 20),
-                        tooltip: 'Cambiar modo adaptativo',
+                        tooltip: 'Ver escenarios del piloto',
                         onSelected: (val) =>
                             setState(() => _stateDemoIndex = val),
                         itemBuilder: (context) => const [
                           PopupMenuItem(
-                              value: 0, child: Text('Modo: 0 envases')),
+                              value: 0, child: Text('Escenario: sin envases')),
                           PopupMenuItem(
-                              value: 1,
-                              child: Text('Modo: 1 envase (Valeria)')),
+                              value: 1, child: Text('Escenario: un envase')),
                           PopupMenuItem(
-                              value: 2, child: Text('Modo: Varios envases')),
+                              value: 2,
+                              child: Text('Escenario: varios envases')),
                         ],
                       ),
                       const LogoutIconButton(color: AppColors.textSecondary),
@@ -101,28 +102,7 @@ class _HomePageState extends State<HomePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.warningOrange.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.science_outlined,
-                              size: 18, color: AppColors.warningOrange),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Datos de demostración: aún no están conectados a tu cuenta.',
-                              style: TextStyle(
-                                  fontSize: 12, color: AppColors.textSecondary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    const PilotDataBanner(),
                     const SizedBox(height: 16),
                     if (_stateDemoIndex == 1) ...[
                       _buildValeriaActiveContainerState(),
