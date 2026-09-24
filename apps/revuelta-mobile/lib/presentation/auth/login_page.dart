@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../application/auth/auth_notifier.dart';
 import '../../domain/failure/failure.dart';
 import '../shared/theme/app_colors.dart';
+import '../shared/widgets/revuelta_logo.dart';
 
 // ignore_for_file: deprecated_member_use
 
@@ -69,44 +70,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // ReVuelta Leaf Icon — large, no background circle
-                            Center(
-                              child: SizedBox(
-                                width: 88,
-                                height: 88,
-                                child: CustomPaint(
-                                  painter: _LoginLeafIconPainter(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // Brand Name
-                            const Text(
-                              'ReVuelta',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 38,
-                                fontWeight: FontWeight.w900,
-                                color: Color(0xFF163A2E),
-                                letterSpacing: -0.8,
-                                height: 1.1,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-
-                            // Subtitle
-                            const Text(
-                              'El ciclo de tu contenedor\nen tus manos.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF3F5E52),
-                                height: 1.35,
-                              ),
-                            ),
-                            const SizedBox(height: 36),
+                            const Center(child: RevueltaLogo(width: 220)),
+                            const SizedBox(height: 28),
 
                             // 1. Campo: Correo institucional / Usuario
                             Container(
@@ -423,42 +388,6 @@ class _LoginOrganicBackgroundPainter extends CustomPainter {
     );
     path.close();
     canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Painter for the ReVuelta leaf loop logo mark on login
-class _LoginLeafIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final primaryColor = const Color(0xFF163A2E);
-
-    final paint = Paint()
-      ..color = primaryColor
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final w = size.width;
-    final h = size.height;
-
-    // Outer leaf loop
-    path.moveTo(w * 0.5, h * 0.05);
-    path.cubicTo(w * 0.9, h * 0.05, w * 0.95, h * 0.5, w * 0.75, h * 0.85);
-    path.cubicTo(w * 0.6, h * 1.0, w * 0.25, h * 0.95, w * 0.1, h * 0.65);
-    path.cubicTo(w * 0.02, h * 0.45, w * 0.15, h * 0.15, w * 0.5, h * 0.05);
-    path.close();
-
-    // Inner negative-space cutout
-    final inner = Path();
-    inner.moveTo(w * 0.48, h * 0.28);
-    inner.cubicTo(w * 0.72, h * 0.28, w * 0.72, h * 0.58, w * 0.54, h * 0.72);
-    inner.cubicTo(w * 0.32, h * 0.72, w * 0.28, h * 0.45, w * 0.48, h * 0.28);
-    inner.close();
-
-    final combined = Path.combine(PathOperation.difference, path, inner);
-    canvas.drawPath(combined, paint);
   }
 
   @override

@@ -26,7 +26,7 @@ class LoginOptionsPage extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 12),
-              const RevueltaLogo(iconSize: 52, titleSize: 30),
+              const RevueltaLogo(width: 190),
               const SizedBox(height: 36),
 
               const Text(

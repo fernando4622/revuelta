@@ -1,11 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'login_page.dart';
+import '../shared/widgets/revuelta_logo.dart';
 
 /// Pixel-perfect 100% faithful replication of the ReVuelta Welcome / Splash screen.
 /// Features:
 /// - Organic fluid sage-green background waves and botanical leaves
-/// - Authentic ReVuelta leaf-loop mark and typography ("El ciclo de tu contenedor en tus manos.")
+/// - Canonical ReVuelta logo asset approved by the product specification
 /// - 3D lunchbox container illustration with orbiting circulation cycle arrows and floating leaves
 /// - Centered 3-dot page indicator
 /// - Dark forest-green "Comenzar →" pill button
@@ -36,46 +37,7 @@ class SplashWelcomePage extends StatelessWidget {
                 children: [
                   const SizedBox(height: 32),
 
-                  // Brand Logo & Subtitle
-                  Column(
-                    children: [
-                      // ReVuelta Leaf-Loop Icon
-                      SizedBox(
-                        width: 76,
-                        height: 76,
-                        child: CustomPaint(
-                          painter: _RevueltaLeafIconPainter(),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Brand Title
-                      const Text(
-                        'ReVuelta',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 38,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF163A2E),
-                          letterSpacing: -0.8,
-                          height: 1.1,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Subtitle
-                      const Text(
-                        'El ciclo de tu contenedor\nen tus manos.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF3F5E52),
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
-                  ),
+                  const Center(child: RevueltaLogo(width: 210)),
 
                   const Spacer(flex: 2),
 
@@ -290,51 +252,6 @@ class _OrganicBackgroundPainter extends CustomPainter {
     path.close();
 
     canvas.drawPath(path, paint);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-/// Painter for the exact ReVuelta leaf loop logo mark
-class _RevueltaLeafIconPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final primaryColor = const Color(0xFF163A2E);
-
-    final paint = Paint()
-      ..color = primaryColor
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    final w = size.width;
-    final h = size.height;
-
-    // Outer leaf loop shape
-    path.moveTo(w * 0.5, h * 0.05);
-    // Right curve tapering to top
-    path.cubicTo(w * 0.9, h * 0.05, w * 0.95, h * 0.5, w * 0.75, h * 0.85);
-    // Bottom curve
-    path.cubicTo(w * 0.6, h * 1.0, w * 0.25, h * 0.95, w * 0.1, h * 0.65);
-    // Left curve
-    path.cubicTo(w * 0.02, h * 0.45, w * 0.15, h * 0.15, w * 0.5, h * 0.05);
-    path.close();
-
-    // Inner negative-space leaf cutout
-    final inner = Path();
-    inner.moveTo(w * 0.48, h * 0.28);
-    inner.cubicTo(w * 0.72, h * 0.28, w * 0.72, h * 0.58, w * 0.54, h * 0.72);
-    inner.cubicTo(w * 0.32, h * 0.72, w * 0.28, h * 0.45, w * 0.48, h * 0.28);
-    inner.close();
-
-    // Subtract inner path from outer path
-    final combined = Path.combine(PathOperation.difference, path, inner);
-
-    // Diagonal cut mark in the loop
-    canvas.save();
-    canvas.translate(0, 0);
-    canvas.drawPath(combined, paint);
     canvas.restore();
   }
 
