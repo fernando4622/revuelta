@@ -1,15 +1,17 @@
 # Return Container — API Contract
 
-**Status:** DRAFT TARGET. Product semantics, identifiers, server time and MVP replay behavior are approved; QR resolution and feature authorization remain gated.
+**Status:** APPROVED F6 CONTRACT.
 
 ## Resolution prerequisite
 
-The Cafetería actor resolves a `RETURN` participant operation QR and a container QR. The server verifies that the active circulation belongs to that participant.
+The Cafetería actor scans a `RETURN` participant operation QR and a container QR.
+Both complete signed payloads are retained only for the active handoff and are
+revalidated by the server for preview and again inside the commit transaction.
 
 ## Endpoint
 
 ```text
-POST /api/v1/circulations/{circulationId}/return
+POST /api/v1/return-previews
 Permission: RECEIVE_CONTAINER_RETURN
 Actor: Cafetería
 ```
@@ -18,12 +20,27 @@ Request:
 
 ```json
 {
-  "participantOperationTokenRef": "<reference-from-dynamic-qr-resolution>",
-  "containerRef": "<reference-from-container-resolution>"
+  "participantQrPayload": "<complete-signed-dynamic-payload>",
+  "containerQrPayload": "<complete-signed-static-payload>"
 }
 ```
 
-The request contains no client return timestamp, target state or client idempotency key.
+Success: `200 OK`. The response contains the participant reference, circulation
+identity, container code/current state, delivered-at, due-at, previewed-at and
+trace reference. It performs no mutation and consumes no token.
+
+## Commit endpoint
+
+```text
+POST /api/v1/circulation-returns
+Permission: RECEIVE_CONTAINER_RETURN
+Actor: Cafetería
+```
+
+The request uses the same two required payload fields as the preview. It contains
+no circulation identifier, client return timestamp, target state or client
+idempotency key. The active circulation is derived from the verified container
+and must belong to the verified participant.
 
 ## Success
 
@@ -54,6 +71,8 @@ The operation finalizes possession but does not make the container available.
 - `403 FORBIDDEN_OPERATION`;
 - `404 CIRCULATION_NOT_FOUND`;
 - `404 CONTAINER_NOT_FOUND`;
+- `409 CIRCULATION_PARTICIPANT_MISMATCH`;
+- `409 QR_ALREADY_USED`;
 - `409 RETURN_ALREADY_REGISTERED`;
 - `409 INVALID_STATE_TRANSITION`;
 - `409 CONCURRENCY_CONFLICT`;
@@ -61,4 +80,9 @@ The operation finalizes possession but does not make the container available.
 
 ## Idempotency
 
-The active-state check and optimistic version protect the circulation and container updates. Repetition or concurrency MUST produce at most one finalization and one return event. A request observed after the first commit receives `409 RETURN_ALREADY_REGISTERED`; it does not replay the original success response.
+The participant token lock, active-state check and optimistic versions protect the
+token, circulation and container updates. Repetition or concurrency MUST produce
+at most one finalization and one return event. Replaying the consumed QR pair
+receives `409 QR_ALREADY_USED`. A fresh valid `RETURN` QR submitted for the same
+already-returned container receives `409 RETURN_ALREADY_REGISTERED`. Neither
+conflict replays the original success response.

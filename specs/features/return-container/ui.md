@@ -1,6 +1,6 @@
 # Return Container — UI Contract
 
-**Status:** PRODUCT UI FLOW APPROVED. Authentication is resolved; container-QR resolution, final API integration and state-layer implementation remain gated.
+**Status:** APPROVED FOR F6 IMPLEMENTATION.
 
 ## Perspectives
 
@@ -19,7 +19,7 @@ Must not finalize the circulation.
 
 Approved operational flow:
 
-- scan/resolve container;
+- scan/resolve the participant `RETURN` QR and then the container QR;
 - review active circulation and minimum holder information;
 - confirm physical receipt once;
 - show server-confirmed `RETURNED` result and “Pendiente de lavado”.
@@ -34,6 +34,7 @@ May inspect the result and perform separately specified reasoned corrections. It
 - missing active circulation is a typed failure;
 - duplicate taps do not create duplicate client commands;
 - timeout produces an uncertain result;
+- an uncertain result is recovered by querying server state before a retry is enabled;
 - return success displays `RETURNED/Pendiente de lavado`, never `Disponible`;
 - `Disponible` appears only after the separate washing operation succeeds;
 - environmental impact is not inferred by the return screen.

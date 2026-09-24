@@ -396,21 +396,26 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
-  /circulations/{circulationId}/return:
+  /return-previews:
     post:
-      summary: Register container return and finalize active circulation
-      description: A replay after a committed return receives `409 RETURN_ALREADY_REGISTERED`. The successful transition leaves the container in `RETURNED` pending wash.
-      operationId: returnCirculation
+      summary: Validate both return QR values and obtain a read-only circulation preview
+      description: Does not finalize the circulation, change container state or consume the participant QR.
+      operationId: previewReturn
       x-required-roles: [OPERATOR]
       security: [{ bearerAuth: [] }]
-      parameters:
-        - name: circulationId
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DualQrHandoffRequest' }
       responses:
         '200':
-          $ref: '#/components/responses/CirculationResponse'
+          description: Current return eligibility and active circulation preview
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReturnPreview' }
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
@@ -423,6 +428,33 @@ paths:
           $ref: '#/components/responses/409Conflict'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+
+  /circulation-returns:
+    post:
+      summary: Register a physical container return using both QR values
+      description: Both signed QR payloads are revalidated atomically. Success finalizes possession and leaves the container in `RETURNED` pending wash. A consumed participant QR receives `409 QR_ALREADY_USED`; a fresh QR for an already-returned container receives `409 RETURN_ALREADY_REGISTERED`.
+      operationId: returnContainer
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DualQrHandoffRequest' }
+      responses:
+        '200':
+          description: Atomic return result
+          headers:
+            X-Correlation-ID: { $ref: '#/components/headers/CorrelationId' }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ReturnReceipt' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
 
   /containers/{containerId}/history:
     get:
@@ -581,6 +613,13 @@ components:
         publicCode: { type: string }
         state: { type: string, enum: [AVAILABLE, IN_USE] }
 
+    DualQrHandoffRequest:
+      type: object
+      required: [participantQrPayload, containerQrPayload]
+      properties:
+        participantQrPayload: { type: string, minLength: 1, maxLength: 512 }
+        containerQrPayload: { type: string, minLength: 1, maxLength: 512 }
+
     DeliveryPolicy:
       type: object
       required: [id, version, name, durationHours]
@@ -613,31 +652,37 @@ components:
         policy: { $ref: '#/components/schemas/DeliveryPolicy' }
         traceId: { type: string, format: uuid }
 
-    Circulation:
+    ReturnContainer:
       type: object
-      required:
-        - id
-        - containerId
-        - borrowerId
-        - deliveredBy
-        - deliveredAt
-        - dueAt
-        - returnPolicyId
-        - returnPolicyVersion
-        - status
+      required: [id, publicCode, state, stateLabel]
       properties:
         id: { type: string, format: uuid }
-        containerId: { type: string, format: uuid }
-        borrowerId: { type: string, format: uuid }
-        deliveredBy: { type: string, format: uuid }
+        publicCode: { type: string }
+        state: { type: string, enum: [IN_USE, RETURNED] }
+        stateLabel: { type: string, enum: [En uso, Pendiente de lavado] }
+
+    ReturnPreview:
+      type: object
+      required: [circulationId, participantRef, container, deliveredAt, dueAt, previewedAt, traceId]
+      properties:
+        circulationId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        container: { $ref: '#/components/schemas/ReturnContainer' }
         deliveredAt: { type: string, format: date-time }
         dueAt: { type: string, format: date-time }
-        returnPolicyId: { type: string, format: uuid }
-        returnPolicyVersion: { type: integer, minimum: 1 }
-        returnedBy: { type: string, format: uuid, nullable: true }
-        returnedAt: { type: string, format: date-time, nullable: true }
-        punctuality: { type: string, enum: [ON_TIME, LATE], nullable: true }
-        status: { type: string, enum: [ACTIVE, COMPLETED] }
+        previewedAt: { type: string, format: date-time }
+        traceId: { type: string, format: uuid }
+
+    ReturnReceipt:
+      type: object
+      required: [circulationId, participantRef, container, returnedAt, punctuality, traceId]
+      properties:
+        circulationId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        container: { $ref: '#/components/schemas/ReturnContainer' }
+        returnedAt: { type: string, format: date-time }
+        punctuality: { type: string, enum: [ON_TIME, LATE] }
+        traceId: { type: string, format: uuid }
 
     ContainerEvent:
       type: object
@@ -717,15 +762,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RegisteredContainer'
-    CirculationResponse:
-      description: Circulation object
-      headers:
-        X-Correlation-ID:
-          $ref: '#/components/headers/CorrelationId'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Circulation'
     400BadRequest:
       description: Bad Request / Validation Failure
       headers:

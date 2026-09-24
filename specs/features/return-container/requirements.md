@@ -1,6 +1,6 @@
 # Feature Spec — Return Container
 
-**Status:** PRODUCT BEHAVIOR APPROVED. Authentication, replay, time and concurrency foundations are resolved; container-QR resolution and the complete feature slice remain pending.
+**Status:** APPROVED FOR F6 IMPLEMENTATION. Authentication, dual-QR validation, replay, time and concurrency behavior are resolved.
 
 ## Purpose
 
@@ -15,8 +15,8 @@ Alumno cannot finalize the return.
 ## Preconditions
 
 - actor is authenticated and authorized;
-- a current `RETURN` participant operation QR was resolved;
-- container resolves from valid QR;
+- a current signed `RETURN` participant operation QR payload is supplied;
+- a current signed static container QR payload is supplied;
 - container is active and `IN_USE`;
 - exactly one active circulation exists;
 - that circulation belongs to the participant resolved by the dynamic QR;
@@ -24,6 +24,8 @@ Alumno cannot finalize the return.
 - circulation is not finalized.
 
 Both QR values are mandatory during return. There is no manual or absent-participant exception.
+Read-only resolution or preview never substitutes for revalidating both complete
+payloads inside the commit transaction.
 
 ## Outputs
 
@@ -61,6 +63,7 @@ INVALID_QR
 CONTAINER_NOT_FOUND
 INACTIVE_CONTAINER
 CIRCULATION_NOT_FOUND
+CIRCULATION_PARTICIPANT_MISMATCH
 RETURN_ALREADY_REGISTERED
 INVALID_STATE_TRANSITION
 VALIDATION_ERROR
@@ -75,3 +78,5 @@ CONCURRENCY_CONFLICT
 - one return event exists;
 - duplicate/concurrent return cannot create another completion/event;
 - only wash completion may later make the container `AVAILABLE`.
+- replaying the already-consumed participant QR returns `QR_ALREADY_USED`;
+- a fresh `RETURN` QR for a container already received returns `RETURN_ALREADY_REGISTERED`.

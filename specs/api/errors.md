@@ -28,6 +28,7 @@ CONTAINER_CODE_ALREADY_EXISTS
 INVALID_STATE_TRANSITION
 ACTIVE_CIRCULATION_EXISTS
 CIRCULATION_NOT_FOUND
+CIRCULATION_PARTICIPANT_MISMATCH
 RETURN_ALREADY_REGISTERED
 FORBIDDEN_OPERATION
 VALIDATION_ERROR
@@ -57,6 +58,10 @@ A feature may add a code only when its spec explains the exact condition.
 normalized code that is already owned by another container. It is a conflict and
 MUST map to HTTP `409`, including when the database uniqueness constraint wins a
 registration race.
+
+`CIRCULATION_PARTICIPANT_MISMATCH` is returned when both QR values are valid but
+the active circulation for the scanned container belongs to a different
+participant. It MUST map to HTTP `409` without exposing that other participant.
 
 ## 3. Ownership
 
