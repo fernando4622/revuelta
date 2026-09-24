@@ -2,10 +2,9 @@ package com.revuelta.api.interfaces.rest;
 
 import com.revuelta.api.application.circulation.DeliverContainerUseCase;
 import com.revuelta.api.application.circulation.PreviewDeliveryUseCase;
+import com.revuelta.api.application.circulation.PreviewReturnUseCase;
 import com.revuelta.api.application.circulation.ReturnContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
-import com.revuelta.api.domain.circulation.Circulation;
-import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.user.UserId;
@@ -30,6 +29,7 @@ public class CirculationController {
 
     private final DeliverContainerUseCase deliverContainerUseCase;
     private final PreviewDeliveryUseCase previewDeliveryUseCase;
+    private final PreviewReturnUseCase previewReturnUseCase;
     private final ReturnContainerUseCase returnContainerUseCase;
     private final GetContainerHistoryUseCase getContainerHistoryUseCase;
 
@@ -61,15 +61,32 @@ public class CirculationController {
         ));
     }
 
-    @PostMapping("/circulations/{circulationId}/return")
+    @PostMapping("/return-previews")
     @PreAuthorize("hasRole('OPERATOR')")
-    public ResponseEntity<CirculationResponse> returnByCirculationId(
-            @PathVariable UUID circulationId,
+    public ResponseEntity<ReturnPreviewResponse> previewReturn(
+            @Valid @RequestBody DeliverRequest request
+    ) {
+        return ResponseEntity.ok(ReturnPreviewResponse.fromResult(
+                previewReturnUseCase.execute(
+                        request.participantQrPayload(),
+                        request.containerQrPayload()
+                )
+        ));
+    }
+
+    @PostMapping("/circulation-returns")
+    @PreAuthorize("hasRole('OPERATOR')")
+    public ResponseEntity<ReturnReceiptResponse> returnContainer(
+            @Valid @RequestBody DeliverRequest request,
             @AuthenticationPrincipal String operatorIdString
     ) {
         UserId operatorId = new UserId(UUID.fromString(operatorIdString));
-        var result = returnContainerUseCase.execute(new CirculationId(circulationId), operatorId);
-        return ResponseEntity.ok(CirculationResponse.fromDomain(result.circulation()));
+        var result = returnContainerUseCase.execute(
+                request.participantQrPayload(),
+                request.containerQrPayload(),
+                operatorId
+        );
+        return ResponseEntity.ok(ReturnReceiptResponse.fromResult(result));
     }
 
     @GetMapping("/containers/{containerId}/history")
@@ -165,34 +182,66 @@ public class CirculationController {
             int durationHours
     ) {}
 
-    public record CirculationResponse(
+    public record ReturnContainerResponse(
             String id,
-            String containerId,
-            String borrowerId,
-            String deliveredBy,
+            String publicCode,
+            String state,
+            String stateLabel
+    ) {
+        static ReturnContainerResponse inUse(com.revuelta.api.domain.container.Container container) {
+            return new ReturnContainerResponse(
+                    container.id().value().toString(), container.code().value(),
+                    container.status().name(), "En uso"
+            );
+        }
+
+        static ReturnContainerResponse returned(com.revuelta.api.domain.container.Container container) {
+            return new ReturnContainerResponse(
+                    container.id().value().toString(), container.code().value(),
+                    container.status().name(), "Pendiente de lavado"
+            );
+        }
+    }
+
+    public record ReturnPreviewResponse(
+            String circulationId,
+            String participantRef,
+            ReturnContainerResponse container,
             Instant deliveredAt,
             Instant dueAt,
-            String returnPolicyId,
-            int returnPolicyVersion,
-            String returnedBy,
+            Instant previewedAt,
+            String traceId
+    ) {
+        static ReturnPreviewResponse fromResult(PreviewReturnUseCase.PreviewResult result) {
+            var valid = result.returnData();
+            return new ReturnPreviewResponse(
+                    valid.circulation().id().value().toString(),
+                    valid.participant().id().value().toString(),
+                    ReturnContainerResponse.inUse(valid.container()),
+                    valid.circulation().deliveredAt(),
+                    valid.circulation().dueAt(),
+                    valid.validatedAt(),
+                    result.traceId().toString()
+            );
+        }
+    }
+
+    public record ReturnReceiptResponse(
+            String circulationId,
+            String participantRef,
+            ReturnContainerResponse container,
             Instant returnedAt,
             String punctuality,
-            String status
+            String traceId
     ) {
-        public static CirculationResponse fromDomain(Circulation c) {
-            return new CirculationResponse(
-                    c.id().value().toString(),
-                    c.containerId().value().toString(),
-                    c.borrowerId().value().toString(),
-                    c.deliveredBy().value().toString(),
-                    c.deliveredAt(),
-                    c.dueAt(),
-                    c.returnPolicyId().toString(),
-                    c.returnPolicyVersion(),
-                    c.returnedBy() != null ? c.returnedBy().value().toString() : null,
-                    c.returnedAt(),
-                    c.punctuality() != null ? c.punctuality().name() : null,
-                    c.status().name()
+        static ReturnReceiptResponse fromResult(ReturnContainerUseCase.ReturnResult result) {
+            return new ReturnReceiptResponse(
+                    result.circulation().id().value().toString(),
+                    result.circulation().borrowerId().value().toString(),
+                    ReturnContainerResponse.returned(result.container()),
+                    result.circulation().returnedAt(),
+                    result.circulation().punctuality().name(),
+                    result.traceId().toString()
             );
         }
     }

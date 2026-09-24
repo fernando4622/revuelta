@@ -293,7 +293,13 @@ class SecurityErrorContractIntegrationTest {
                         Set.of("OPERATOR")
                 )),
                 Arguments.of("return container", new EndpointAccess(
-                        "POST", "/api/v1/circulations/" + circulationId + "/return", null,
+                        "POST", "/api/v1/circulation-returns",
+                        "{\"participantQrPayload\":\"invalid\",\"containerQrPayload\":\"invalid\"}",
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("preview return", new EndpointAccess(
+                        "POST", "/api/v1/return-previews",
+                        "{\"participantQrPayload\":\"invalid\",\"containerQrPayload\":\"invalid\"}",
                         Set.of("OPERATOR")
                 )),
                 Arguments.of("inspect full container history", new EndpointAccess(

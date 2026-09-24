@@ -50,14 +50,13 @@ class RestEndpointOpenApiContractTest {
         assertEquals(recordFields(QrController.ResolveOperationQrResponse.class), openApiSchemaFields("ResolvedOperationQr"));
         assertEquals(recordFields(QrController.ResolveContainerQrResponse.class), openApiSchemaFields("ResolvedContainerQr"));
         assertEquals(recordFields(QrController.ContainerQrResponse.class), openApiSchemaFields("ContainerQr"));
-        assertEquals(
-                recordFields(CirculationController.CirculationResponse.class),
-                openApiSchemaFields("Circulation")
-        );
         assertEquals(recordFields(CirculationController.DeliveryResponse.class), openApiSchemaFields("Delivery"));
         assertEquals(recordFields(CirculationController.DeliveryPreviewResponse.class), openApiSchemaFields("DeliveryPreview"));
         assertEquals(recordFields(CirculationController.DeliveryContainerResponse.class), openApiSchemaFields("DeliveryContainer"));
         assertEquals(recordFields(CirculationController.DeliveryPolicyResponse.class), openApiSchemaFields("DeliveryPolicy"));
+        assertEquals(recordFields(CirculationController.ReturnContainerResponse.class), openApiSchemaFields("ReturnContainer"));
+        assertEquals(recordFields(CirculationController.ReturnPreviewResponse.class), openApiSchemaFields("ReturnPreview"));
+        assertEquals(recordFields(CirculationController.ReturnReceiptResponse.class), openApiSchemaFields("ReturnReceipt"));
         assertEquals(
                 recordFields(CirculationController.EventResponse.class),
                 openApiSchemaFields("ContainerEvent")
@@ -85,6 +84,10 @@ class RestEndpointOpenApiContractTest {
         assertEquals(
                 recordFields(CirculationController.DeliverRequest.class),
                 openApiInlineRequestFields("/delivery-previews", "post")
+        );
+        assertEquals(
+                recordFields(CirculationController.DeliverRequest.class),
+                openApiSchemaFields("DualQrHandoffRequest")
         );
         assertEquals(recordFields(QrController.GenerateOperationQrRequest.class), openApiInlineRequestFields("/me/operation-qrs", "post"));
         assertEquals(recordFields(QrController.QrPayloadRequest.class), openApiInlineRequestFields("/operation-qr-resolutions", "post"));

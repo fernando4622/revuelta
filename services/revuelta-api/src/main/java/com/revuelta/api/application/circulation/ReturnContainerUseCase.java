@@ -1,95 +1,90 @@
 package com.revuelta.api.application.circulation;
 
-import com.revuelta.api.application.failure.ApplicationFailureException;
-import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
-import com.revuelta.api.application.port.CorrelationIdProviderPort;
 import com.revuelta.api.application.port.ContainerRepositoryPort;
+import com.revuelta.api.application.port.CorrelationIdProviderPort;
+import com.revuelta.api.application.port.OperationQrTokenRepositoryPort;
 import com.revuelta.api.application.port.TransactionRunnerPort;
-import com.revuelta.api.application.port.ServerClockPort;
 import com.revuelta.api.domain.circulation.Circulation;
-import com.revuelta.api.domain.circulation.CirculationId;
 import com.revuelta.api.domain.container.Container;
-import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
+import com.revuelta.api.domain.participant.OperationQrToken;
 import com.revuelta.api.domain.user.UserId;
-import java.time.Instant;
+
+import java.util.UUID;
 
 public class ReturnContainerUseCase {
-
-    private final ContainerRepositoryPort containerRepository;
-    private final CirculationRepositoryPort circulationRepository;
-    private final ContainerEventRepositoryPort eventRepository;
-    private final TransactionRunnerPort transactionRunner;
-    private final ServerClockPort clock;
+    private final ReturnQrValidationService validator;
+    private final ContainerRepositoryPort containers;
+    private final CirculationRepositoryPort circulations;
+    private final OperationQrTokenRepositoryPort tokens;
+    private final ContainerEventRepositoryPort events;
+    private final TransactionRunnerPort transactions;
     private final CorrelationIdProviderPort correlationIds;
 
     public ReturnContainerUseCase(
-            ContainerRepositoryPort containerRepository,
-            CirculationRepositoryPort circulationRepository,
-            ContainerEventRepositoryPort eventRepository,
-            TransactionRunnerPort transactionRunner,
-            ServerClockPort clock,
+            ReturnQrValidationService validator,
+            ContainerRepositoryPort containers,
+            CirculationRepositoryPort circulations,
+            OperationQrTokenRepositoryPort tokens,
+            ContainerEventRepositoryPort events,
+            TransactionRunnerPort transactions,
             CorrelationIdProviderPort correlationIds
     ) {
-        this.containerRepository = containerRepository;
-        this.circulationRepository = circulationRepository;
-        this.eventRepository = eventRepository;
-        this.transactionRunner = transactionRunner;
-        this.clock = clock;
+        this.validator = validator;
+        this.containers = containers;
+        this.circulations = circulations;
+        this.tokens = tokens;
+        this.events = events;
+        this.transactions = transactions;
         this.correlationIds = correlationIds;
     }
 
-    public ReturnResult execute(CirculationId circulationId, UserId operatorId) {
-        return transactionRunner.required(() -> returnByCirculationId(circulationId, operatorId));
+    public ReturnResult execute(
+            String participantQrPayload,
+            String containerQrPayload,
+            UserId operatorId
+    ) {
+        return transactions.required(() -> returnContainer(
+                participantQrPayload, containerQrPayload, operatorId
+        ));
     }
 
-    private ReturnResult returnByCirculationId(CirculationId circulationId, UserId operatorId) {
-        // 1. Resolve Circulation
-        Circulation circulation = circulationRepository.findById(circulationId)
-                .orElseThrow(() -> new ApplicationFailureException(
-                        FailureCode.CIRCULATION_NOT_FOUND,
-                        "Circulation not found: " + circulationId.value()
-                ));
+    private ReturnResult returnContainer(
+            String participantQrPayload,
+            String containerQrPayload,
+            UserId operatorId
+    ) {
+        ReturnQrValidationService.ValidatedReturn valid =
+                validator.validateForCommit(participantQrPayload, containerQrPayload);
 
-        if (!circulation.isActive()) {
-            throw new ApplicationFailureException(
-                    FailureCode.RETURN_ALREADY_REGISTERED,
-                    "Circulation " + circulationId.value() + " is already finalized"
-            );
-        }
-
-        // 2. Resolve Container
-        Container container = containerRepository.findById(circulation.containerId())
-                .orElseThrow(() -> new ApplicationFailureException(
-                        FailureCode.CONTAINER_NOT_FOUND,
-                        "Container not found: " + circulation.containerId().value()
-                ));
-
-        // 3. Server-authoritative return time
-        Instant returnedAt = clock.now();
-
-        // 4. Finalize circulation (classifies ON_TIME / LATE)
-        circulation.finalize(operatorId, returnedAt);
-
-        // 5. Persist pending-wash state (DL-006)
-        ContainerEvent event = container.transition(
+        Circulation circulation = valid.circulation();
+        circulation.finalize(operatorId, valid.validatedAt());
+        UUID traceId = correlationIds.current();
+        ContainerEvent event = valid.container().transition(
                 ContainerStatus.RETURNED,
                 operatorId,
                 "Container returned",
-                returnedAt,
-                correlationIds.current()
-        );
+                valid.validatedAt(),
+                traceId
+        ).withHandoff(valid.participant().id(), circulation.id().value());
 
-        // 6. Commit atomic transaction
-        circulationRepository.save(circulation);
-        containerRepository.save(container);
-        eventRepository.save(event);
+        OperationQrToken token = valid.token();
+        token.consume(valid.validatedAt(), circulation.id().value());
 
-        return new ReturnResult(circulation, container);
+        circulations.save(circulation);
+        containers.save(valid.container());
+        events.save(event);
+        tokens.save(token);
+
+        return new ReturnResult(circulation, valid.container(), traceId);
     }
 
-    public record ReturnResult(Circulation circulation, Container container) {}
+    public record ReturnResult(
+            Circulation circulation,
+            Container container,
+            UUID traceId
+    ) {}
 }

@@ -11,6 +11,7 @@ import com.revuelta.api.application.failure.FailureCode;
 import com.revuelta.api.application.circulation.DeliveryQrValidationService;
 import com.revuelta.api.application.circulation.DeliverContainerUseCase;
 import com.revuelta.api.application.circulation.ReturnContainerUseCase;
+import com.revuelta.api.application.circulation.ReturnQrValidationService;
 import com.revuelta.api.application.container.ActivateContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
 import com.revuelta.api.application.container.RegisterContainerUseCase;
@@ -85,6 +86,7 @@ class PersistenceAdapterIntegrationTest {
     @Autowired private ReturnContainerUseCase returnContainer;
     @Autowired private GetContainerHistoryUseCase getHistory;
     @Autowired private DeliveryQrValidationService deliveryValidator;
+    @Autowired private ReturnQrValidationService returnValidator;
     @Autowired private ContainerRepositoryPort containers;
     @Autowired private CirculationRepositoryPort circulations;
     @Autowired private OperationQrTokenRepositoryPort tokens;
@@ -98,7 +100,8 @@ class PersistenceAdapterIntegrationTest {
         var participantQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.DELIVERY);
         var containerQr = getContainerQr.execute(available.id());
         var delivery = deliverContainer.execute(participantQr.payload(), containerQr.payload(), OPERATOR);
-        var returned = returnContainer.execute(delivery.circulation().id(), OPERATOR);
+        var returnQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.RETURN);
+        var returned = returnContainer.execute(returnQr.payload(), containerQr.payload(), OPERATOR);
 
         assertEquals(ContainerStatus.RETURNED, returned.container().status());
         assertNotNull(delivery.circulation().returnPolicyId());
@@ -209,6 +212,93 @@ class PersistenceAdapterIntegrationTest {
         }
     }
 
+    @Test
+    void returnRollsBackCirculationContainerEventAndTokenWhenEventPersistenceFails() {
+        var registered = registerContainer.execute("RETURN-ROLLBACK-" + UUID.randomUUID(), ADMIN);
+        var available = activateContainer.execute(registered.container().id(), ADMIN, "Initial activation");
+        var deliveryQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.DELIVERY);
+        var containerQr = getContainerQr.execute(available.id());
+        var delivery = deliverContainer.execute(deliveryQr.payload(), containerQr.payload(), OPERATOR);
+        var returnQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.RETURN);
+        ContainerEventRepositoryPort failingEvents = new ContainerEventRepositoryPort() {
+            @Override
+            public void save(ContainerEvent event) {
+                throw new IllegalStateException("simulated return event persistence failure");
+            }
+
+            @Override
+            public List<ContainerEvent> findByContainerId(
+                    com.revuelta.api.domain.container.ContainerId containerId,
+                    int page,
+                    int size
+            ) {
+                return List.of();
+            }
+        };
+        ReturnContainerUseCase failingReturn = new ReturnContainerUseCase(
+                returnValidator, containers, circulations, tokens, failingEvents,
+                transactions, correlationIds
+        );
+
+        assertThrows(IllegalStateException.class, () -> failingReturn.execute(
+                returnQr.payload(), containerQr.payload(), OPERATOR
+        ));
+
+        assertEquals(ContainerStatus.IN_USE, containers.findById(available.id()).orElseThrow().status());
+        assertTrue(circulations.findById(delivery.circulation().id()).orElseThrow().isActive());
+        assertFalse(tokens.findById(returnQr.tokenRef()).orElseThrow().isConsumed());
+        assertEquals(3, getHistory.execute(available.id(), 0, 20).size());
+    }
+
+    @Test
+    void concurrentReturnHasOneWinnerOneConflictAndOneEvent() throws Exception {
+        var registered = registerContainer.execute("RETURN-RACE-" + UUID.randomUUID(), ADMIN);
+        var available = activateContainer.execute(registered.container().id(), ADMIN, "Initial activation");
+        var deliveryQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.DELIVERY);
+        var containerQr = getContainerQr.execute(available.id());
+        var delivery = deliverContainer.execute(deliveryQr.payload(), containerQr.payload(), OPERATOR);
+        var firstQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.RETURN);
+        var secondQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.RETURN);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<Object> first = executor.submit(() -> concurrentReturn(firstQr.payload(), containerQr.payload(), ready, start));
+            Future<Object> second = executor.submit(() -> concurrentReturn(secondQr.payload(), containerQr.payload(), ready, start));
+            assertTrue(ready.await(10, TimeUnit.SECONDS));
+            start.countDown();
+
+            Object firstResult = first.get(15, TimeUnit.SECONDS);
+            Object secondResult = second.get(15, TimeUnit.SECONDS);
+            long successes = List.of(firstResult, secondResult).stream()
+                    .filter(ReturnContainerUseCase.ReturnResult.class::isInstance)
+                    .count();
+            List<FailureCode> failures = List.of(firstResult, secondResult).stream()
+                    .filter(FailureCode.class::isInstance)
+                    .map(FailureCode.class::cast)
+                    .toList();
+
+            assertEquals(1, successes);
+            assertEquals(1, failures.size());
+            assertTrue(Set.of(
+                    FailureCode.RETURN_ALREADY_REGISTERED,
+                    FailureCode.INVALID_STATE_TRANSITION
+            ).contains(failures.get(0)));
+            assertFalse(circulations.findById(delivery.circulation().id()).orElseThrow().isActive());
+            assertEquals(ContainerStatus.RETURNED, containers.findById(available.id()).orElseThrow().status());
+            assertEquals(4, getHistory.execute(available.id(), 0, 20).size());
+            long consumed = List.of(firstQr.tokenRef(), secondQr.tokenRef()).stream()
+                    .map(tokens::findById)
+                    .map(Optional::orElseThrow)
+                    .filter(com.revuelta.api.domain.participant.OperationQrToken::isConsumed)
+                    .count();
+            assertEquals(1, consumed);
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     private Object concurrentDelivery(
             String participantPayload,
             String containerPayload,
@@ -219,6 +309,21 @@ class PersistenceAdapterIntegrationTest {
         start.await(10, TimeUnit.SECONDS);
         try {
             return deliverContainer.execute(participantPayload, containerPayload, OPERATOR);
+        } catch (ApplicationFailureException failure) {
+            return failure.code();
+        }
+    }
+
+    private Object concurrentReturn(
+            String participantPayload,
+            String containerPayload,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException {
+        ready.countDown();
+        start.await(10, TimeUnit.SECONDS);
+        try {
+            return returnContainer.execute(participantPayload, containerPayload, OPERATOR);
         } catch (ApplicationFailureException failure) {
             return failure.code();
         }

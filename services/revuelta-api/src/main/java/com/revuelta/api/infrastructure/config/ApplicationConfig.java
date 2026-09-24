@@ -4,7 +4,9 @@ import com.revuelta.api.application.auth.LoginUseCase;
 import com.revuelta.api.application.circulation.DeliverContainerUseCase;
 import com.revuelta.api.application.circulation.DeliveryQrValidationService;
 import com.revuelta.api.application.circulation.PreviewDeliveryUseCase;
+import com.revuelta.api.application.circulation.PreviewReturnUseCase;
 import com.revuelta.api.application.circulation.ReturnContainerUseCase;
+import com.revuelta.api.application.circulation.ReturnQrValidationService;
 import com.revuelta.api.application.container.ActivateContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
 import com.revuelta.api.application.container.GetContainerUseCase;
@@ -95,21 +97,45 @@ public class ApplicationConfig {
 
     @Bean
     public ReturnContainerUseCase returnContainerUseCase(
+            ReturnQrValidationService validator,
             ContainerRepositoryPort containerRepository,
             CirculationRepositoryPort circulationRepository,
+            OperationQrTokenRepositoryPort tokens,
             ContainerEventRepositoryPort eventRepository,
             TransactionRunnerPort transactionRunner,
-            ServerClockPort clock,
             CorrelationIdProviderPort correlationIds
     ) {
         return new ReturnContainerUseCase(
+                validator,
                 containerRepository,
                 circulationRepository,
+                tokens,
                 eventRepository,
                 transactionRunner,
-                clock,
                 correlationIds
         );
+    }
+
+    @Bean
+    public ReturnQrValidationService returnQrValidationService(
+            OperationQrTokenRepositoryPort tokens,
+            ParticipantRepositoryPort participants,
+            ContainerRepositoryPort containerRepository,
+            CirculationRepositoryPort circulationRepository,
+            QrPayloadCodecPort qrCodec,
+            ServerClockPort clock
+    ) {
+        return new ReturnQrValidationService(
+                tokens, participants, containerRepository, circulationRepository, qrCodec, clock
+        );
+    }
+
+    @Bean
+    public PreviewReturnUseCase previewReturnUseCase(
+            ReturnQrValidationService validator,
+            CorrelationIdProviderPort correlationIds
+    ) {
+        return new PreviewReturnUseCase(validator, correlationIds);
     }
 
     @Bean
