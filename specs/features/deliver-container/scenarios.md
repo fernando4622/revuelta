@@ -12,6 +12,9 @@ the container becomes `IN_USE`,
 due-at and policy provenance are recorded,
 and one delivery event exists.
 
+The command contains both signed QR payloads and does not accept resolved IDs as
+a substitute for either scan.
+
 ## SC-DEL-002 — Additional container for participant
 
 Given the participant already has one active circulation,
@@ -55,3 +58,22 @@ then at most one becomes effective.
 Given valid participant and container codes,
 when an unauthorized client requests delivery,
 then the request is rejected without mutation.
+
+## SC-DEL-009 — Missing or substituted QR proof
+
+Given an actor knows a participant or container identifier,
+when delivery is requested without both signed QR payloads,
+then validation rejects the command without mutation.
+
+## SC-DEL-010 — Wrong QR purpose
+
+Given a current participant operation QR with purpose `RETURN`,
+when it is used for delivery,
+then delivery fails with `QR_PURPOSE_MISMATCH`,
+and the token remains unconsumed.
+
+## SC-DEL-011 — Transaction rollback
+
+Given both QR values and eligibility are valid,
+when circulation, container, event or token persistence fails,
+then none of the four mutations remains committed.

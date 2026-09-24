@@ -643,7 +643,7 @@ Todo lo anterior debe confirmar o revertir como una sola operación.
 - usuario inexistente/no elegible;
 - operador no autorizado;
 - política ausente;
-- reintento con la misma clave;
+- reintento con el mismo QR dinámico ya consumido;
 - rollback si falla el evento o la actualización;
 - dos dispositivos intentan entregar el mismo recipiente casi simultáneamente;
 - verificación de tiempo y fecha límite.

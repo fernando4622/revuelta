@@ -1,6 +1,6 @@
 # Feature Spec — Deliver Container
 
-**Status:** PRODUCT BEHAVIOR APPROVED. Authentication, identifiers, replay and concurrency foundations are resolved; participant/QR resolution and the complete feature slice remain pending.
+**Status:** APPROVED FOR F5 IMPLEMENTATION. Dual-QR proof, authorization, replay, concurrency and participant identity are resolved.
 
 ## Purpose
 
@@ -13,8 +13,8 @@ Authorized Cafetería actor.
 ## Preconditions
 
 - actor is authenticated and authorized;
-- a current `DELIVERY` participant operation QR was resolved and participant is active;
-- container QR was resolved;
+- a current `DELIVERY` participant operation QR is presented and participant is active;
+- the current signed container QR is presented;
 - container is active and `AVAILABLE`;
 - effective return policy exists;
 - container has no active circulation.
@@ -23,11 +23,13 @@ The participant MAY already have other active circulations.
 
 ## Inputs
 
-- participant operation token/reference from dynamic QR resolution;
-- container reference from container QR resolution;
-- idempotency/request metadata defined by API contract.
+- complete signed participant operation QR payload;
+- complete signed container QR payload.
 
-QR payloads and client timestamps are not authoritative.
+Both payloads are untrusted input and MUST be decoded and validated again by the
+delivery transaction. A client-provided participant or container identifier is
+not accepted as proof that either QR was scanned. Client timestamps and target
+state are prohibited.
 
 ## Outputs
 
@@ -63,11 +65,16 @@ One transaction creates the circulation, transitions the container and appends o
 ```text
 UNAUTHENTICATED
 FORBIDDEN_OPERATION
-PARTICIPANT_CODE_INVALID
+QR_EXPIRED
+QR_ALREADY_USED
+QR_PURPOSE_MISMATCH
+QR_TAMPERED
+UNSUPPORTED_QR_VERSION
 PARTICIPANT_NOT_FOUND
 PARTICIPANT_INACTIVE
 INVALID_QR
 CONTAINER_NOT_FOUND
+CONTAINER_QR_REVOKED
 INACTIVE_CONTAINER
 CONTAINER_NOT_AVAILABLE
 ACTIVE_CIRCULATION_EXISTS
