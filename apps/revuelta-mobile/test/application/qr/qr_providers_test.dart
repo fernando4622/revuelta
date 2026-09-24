@@ -10,6 +10,9 @@ import 'package:revuelta_mobile/domain/delivery/delivery.dart';
 import 'package:revuelta_mobile/domain/failure/failure.dart';
 import 'package:revuelta_mobile/domain/qr/operation_qr.dart';
 import 'package:revuelta_mobile/domain/qr/resolved_container_qr.dart';
+import 'package:revuelta_mobile/application/return_flow/return_providers.dart';
+import 'package:revuelta_mobile/application/return_flow/return_repository.dart';
+import 'package:revuelta_mobile/domain/return_flow/container_return.dart';
 
 void main() {
   test('repeated participant frames issue a single resolution request',
@@ -157,12 +160,84 @@ void main() {
     expect(repository.generatedPurpose, OperationQrPurpose.returnContainer);
     expect(container.read(operationQrProvider).value?.payload, 'dynamic-qr');
   });
+
+  test('return preview and confirmation use both QR values exactly once',
+      () async {
+    final qr = _FakeQrRepository()
+      ..participantCompleter.complete(_returnParticipant())
+      ..containerCompleter.complete(_inUseContainer());
+    final returns = _FakeReturnRepository();
+    final container = ProviderContainer(overrides: [
+      qrRepositoryProvider.overrideWithValue(qr),
+      deliveryRepositoryProvider.overrideWithValue(_FakeDeliveryRepository()),
+      returnRepositoryProvider.overrideWithValue(returns),
+    ]);
+    addTearDown(container.dispose);
+    final subscription = container.listen(cafeteriaScanProvider, (_, __) {});
+    addTearDown(subscription.close);
+
+    final controller = container.read(cafeteriaScanProvider.notifier);
+    controller.start();
+    await controller.acceptPayload('return-participant-payload');
+    await controller.acceptPayload('container-payload');
+    expect(container.read(cafeteriaScanProvider).canConfirmReturn, isTrue);
+
+    await Future.wait([controller.confirmReturn(), controller.confirmReturn()]);
+    final state = container.read(cafeteriaScanProvider);
+    expect(returns.previewCount, 1);
+    expect(returns.confirmCount, 1);
+    expect(returns.lastParticipantPayload, 'return-participant-payload');
+    expect(returns.lastContainerPayload, 'container-payload');
+    expect(state.activity, CafeteriaScanActivity.success);
+    expect(state.returnReceipt?.container.state, 'RETURNED');
+    expect(state.participantQrPayload, isNull);
+    expect(state.containerQrPayload, isNull);
+  });
+
+  test('uncertain return reads returned state without resubmitting', () async {
+    final qr = _FakeQrRepository()
+      ..participantCompleter.complete(_returnParticipant())
+      ..containerCompleter.complete(_inUseContainer())
+      ..nextContainers.add(_returnedContainer());
+    final returns = _FakeReturnRepository()
+      ..confirmError = const NetworkFailure();
+    final container = ProviderContainer(overrides: [
+      qrRepositoryProvider.overrideWithValue(qr),
+      deliveryRepositoryProvider.overrideWithValue(_FakeDeliveryRepository()),
+      returnRepositoryProvider.overrideWithValue(returns),
+    ]);
+    addTearDown(container.dispose);
+    final subscription = container.listen(cafeteriaScanProvider, (_, __) {});
+    addTearDown(subscription.close);
+
+    final controller = container.read(cafeteriaScanProvider.notifier);
+    controller.start();
+    await controller.acceptPayload('return-participant-payload');
+    await controller.acceptPayload('container-payload');
+    await controller.confirmReturn();
+    expect(container.read(cafeteriaScanProvider).activity,
+        CafeteriaScanActivity.uncertain);
+
+    await controller.recoverUncertainReturn();
+    final recovered = container.read(cafeteriaScanProvider);
+    expect(recovered.activity, CafeteriaScanActivity.success);
+    expect(recovered.recoveredFromState, isTrue);
+    expect(returns.confirmCount, 1);
+    expect(qr.containerResolutionCount, 2);
+  });
 }
 
 ResolvedOperationQr _participant() => ResolvedOperationQr(
       tokenRef: 'token-ref',
       participantRef: 'participant-ref',
       purpose: OperationQrPurpose.delivery,
+      expiresAt: DateTime.utc(2030),
+    );
+
+ResolvedOperationQr _returnParticipant() => ResolvedOperationQr(
+      tokenRef: 'return-token-ref',
+      participantRef: 'participant-ref',
+      purpose: OperationQrPurpose.returnContainer,
       expiresAt: DateTime.utc(2030),
     );
 
@@ -188,6 +263,15 @@ ResolvedContainerQr _inUseContainer() => ResolvedContainerQr(
         deliveredAt: DateTime.utc(2030),
         dueAt: DateTime.utc(2030, 1, 3),
       ),
+    );
+
+ResolvedContainerQr _returnedContainer() => const ResolvedContainerQr(
+      containerRef: 'container-ref',
+      displayCode: 'RV-0001',
+      state: 'RETURNED',
+      stateLabel: 'Pendiente de lavado',
+      eligibleForCirculation: false,
+      allowedActions: {},
     );
 
 class _FakeQrRepository implements QrRepository {
@@ -285,6 +369,62 @@ class _FakeDeliveryRepository implements DeliveryRepository {
         name: 'Piloto 48h',
         durationHours: 48,
       ),
+      traceId: 'trace-ref',
+    );
+  }
+}
+
+class _FakeReturnRepository implements ReturnRepository {
+  int previewCount = 0;
+  int confirmCount = 0;
+  String? lastParticipantPayload;
+  String? lastContainerPayload;
+  Object? confirmError;
+
+  @override
+  Future<ReturnPreview> preview({
+    required String participantQrPayload,
+    required String containerQrPayload,
+  }) async {
+    previewCount++;
+    lastParticipantPayload = participantQrPayload;
+    lastContainerPayload = containerQrPayload;
+    return ReturnPreview(
+      circulationId: 'circulation-ref',
+      participantRef: 'participant-ref',
+      container: const ReturnContainerSummary(
+        id: 'container-ref',
+        publicCode: 'RV-0001',
+        state: 'IN_USE',
+        stateLabel: 'En uso',
+      ),
+      deliveredAt: DateTime.utc(2030),
+      dueAt: DateTime.utc(2030, 1, 3),
+      previewedAt: DateTime.utc(2030, 1, 2),
+      traceId: 'trace-ref',
+    );
+  }
+
+  @override
+  Future<ReturnReceipt> confirm({
+    required String participantQrPayload,
+    required String containerQrPayload,
+  }) async {
+    confirmCount++;
+    lastParticipantPayload = participantQrPayload;
+    lastContainerPayload = containerQrPayload;
+    if (confirmError case final error?) throw error;
+    return ReturnReceipt(
+      circulationId: 'circulation-ref',
+      participantRef: 'participant-ref',
+      container: const ReturnContainerSummary(
+        id: 'container-ref',
+        publicCode: 'RV-0001',
+        state: 'RETURNED',
+        stateLabel: 'Pendiente de lavado',
+      ),
+      returnedAt: DateTime.utc(2030, 1, 2),
+      punctuality: 'ON_TIME',
       traceId: 'trace-ref',
     );
   }

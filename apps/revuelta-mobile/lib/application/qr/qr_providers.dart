@@ -7,8 +7,10 @@ import '../../domain/delivery/delivery.dart';
 import '../../domain/failure/failure.dart';
 import '../../domain/qr/operation_qr.dart';
 import '../../domain/qr/resolved_container_qr.dart';
+import '../../domain/return_flow/container_return.dart';
 import '../auth/auth_notifier.dart';
 import '../delivery/delivery_providers.dart';
+import '../return_flow/return_providers.dart';
 import 'qr_repository.dart';
 
 final qrRepositoryProvider = Provider<QrRepository>(
@@ -55,6 +57,8 @@ class CafeteriaScanState {
     this.container,
     this.preview,
     this.receipt,
+    this.returnPreview,
+    this.returnReceipt,
     this.recoveredFromState = false,
     this.failure,
     this.participantQrPayload,
@@ -67,6 +71,8 @@ class CafeteriaScanState {
   final ResolvedContainerQr? container;
   final DeliveryPreview? preview;
   final DeliveryReceipt? receipt;
+  final ReturnPreview? returnPreview;
+  final ReturnReceipt? returnReceipt;
   final bool recoveredFromState;
   final Failure? failure;
 
@@ -90,6 +96,14 @@ class CafeteriaScanState {
       activity == CafeteriaScanActivity.ready &&
       participant?.purpose == OperationQrPurpose.delivery &&
       preview != null &&
+      participantQrPayload != null &&
+      containerQrPayload != null;
+
+  bool get canConfirmReturn =>
+      step == CafeteriaScanStep.review &&
+      activity == CafeteriaScanActivity.ready &&
+      participant?.purpose == OperationQrPurpose.returnContainer &&
+      returnPreview != null &&
       participantQrPayload != null &&
       containerQrPayload != null;
 }
@@ -159,8 +173,7 @@ class CafeteriaScanController extends AutoDisposeNotifier<CafeteriaScanState> {
         containerQrPayload: payload,
       );
 
-      if (participant.purpose != OperationQrPurpose.delivery ||
-          !state.isPairCompatible) {
+      if (!state.isPairCompatible) {
         state = CafeteriaScanState(
           step: CafeteriaScanStep.review,
           activity: CafeteriaScanActivity.idle,
@@ -170,19 +183,35 @@ class CafeteriaScanController extends AutoDisposeNotifier<CafeteriaScanState> {
         return;
       }
 
-      final preview = await ref.read(deliveryRepositoryProvider).preview(
-            participantQrPayload: participantPayload,
-            containerQrPayload: payload,
-          );
-      state = CafeteriaScanState(
-        step: CafeteriaScanStep.review,
-        activity: CafeteriaScanActivity.ready,
-        participant: participant,
-        container: container,
-        preview: preview,
-        participantQrPayload: participantPayload,
-        containerQrPayload: payload,
-      );
+      if (participant.purpose == OperationQrPurpose.delivery) {
+        final preview = await ref.read(deliveryRepositoryProvider).preview(
+              participantQrPayload: participantPayload,
+              containerQrPayload: payload,
+            );
+        state = CafeteriaScanState(
+          step: CafeteriaScanStep.review,
+          activity: CafeteriaScanActivity.ready,
+          participant: participant,
+          container: container,
+          preview: preview,
+          participantQrPayload: participantPayload,
+          containerQrPayload: payload,
+        );
+      } else {
+        final preview = await ref.read(returnRepositoryProvider).preview(
+              participantQrPayload: participantPayload,
+              containerQrPayload: payload,
+            );
+        state = CafeteriaScanState(
+          step: CafeteriaScanStep.review,
+          activity: CafeteriaScanActivity.ready,
+          participant: participant,
+          container: container,
+          returnPreview: preview,
+          participantQrPayload: participantPayload,
+          containerQrPayload: payload,
+        );
+      }
     } catch (error) {
       state = CafeteriaScanState(
         step: resolvingStep,
@@ -312,6 +341,130 @@ class CafeteriaScanController extends AutoDisposeNotifier<CafeteriaScanState> {
         container: pending.container,
         preview: pending.preview,
         failure: _failure(error, 'Aún no pudimos confirmar el resultado.'),
+        participantQrPayload: pending.participantQrPayload,
+        containerQrPayload: pending.containerQrPayload,
+      );
+    }
+  }
+
+  Future<void> confirmReturn() async {
+    if (!state.canConfirmReturn) return;
+    final pending = state;
+    state = CafeteriaScanState(
+      step: CafeteriaScanStep.review,
+      activity: CafeteriaScanActivity.submitting,
+      participant: pending.participant,
+      container: pending.container,
+      returnPreview: pending.returnPreview,
+      participantQrPayload: pending.participantQrPayload,
+      containerQrPayload: pending.containerQrPayload,
+    );
+
+    try {
+      final receipt = await ref.read(returnRepositoryProvider).confirm(
+            participantQrPayload: pending.participantQrPayload!,
+            containerQrPayload: pending.containerQrPayload!,
+          );
+      state = CafeteriaScanState(
+        step: CafeteriaScanStep.finished,
+        activity: CafeteriaScanActivity.success,
+        participant: pending.participant,
+        container: pending.container,
+        returnPreview: pending.returnPreview,
+        returnReceipt: receipt,
+      );
+    } catch (error) {
+      final failure =
+          _failure(error, 'No fue posible confirmar la devolución.');
+      if (failure is NetworkFailure) {
+        state = CafeteriaScanState(
+          step: CafeteriaScanStep.review,
+          activity: CafeteriaScanActivity.uncertain,
+          participant: pending.participant,
+          container: pending.container,
+          returnPreview: pending.returnPreview,
+          failure: failure,
+          participantQrPayload: pending.participantQrPayload,
+          containerQrPayload: pending.containerQrPayload,
+        );
+        return;
+      }
+
+      ResolvedContainerQr? refreshed = pending.container;
+      if (failure is ConflictFailure) {
+        try {
+          refreshed = await ref
+              .read(qrRepositoryProvider)
+              .resolveContainerQr(pending.containerQrPayload!);
+        } catch (_) {
+          // Keep the original typed return conflict.
+        }
+      }
+      state = CafeteriaScanState(
+        step: CafeteriaScanStep.review,
+        activity: CafeteriaScanActivity.failure,
+        participant: pending.participant,
+        container: refreshed,
+        returnPreview: pending.returnPreview,
+        failure: failure,
+      );
+    }
+  }
+
+  Future<void> recoverUncertainReturn() async {
+    if (state.activity != CafeteriaScanActivity.uncertain ||
+        state.containerQrPayload == null ||
+        state.participant == null) {
+      return;
+    }
+    final pending = state;
+    state = CafeteriaScanState(
+      step: CafeteriaScanStep.review,
+      activity: CafeteriaScanActivity.resolving,
+      participant: pending.participant,
+      container: pending.container,
+      returnPreview: pending.returnPreview,
+      participantQrPayload: pending.participantQrPayload,
+      containerQrPayload: pending.containerQrPayload,
+    );
+    try {
+      final refreshed = await ref
+          .read(qrRepositoryProvider)
+          .resolveContainerQr(pending.containerQrPayload!);
+      if (refreshed.state == 'RETURNED' &&
+          refreshed.activeCirculation == null) {
+        state = CafeteriaScanState(
+          step: CafeteriaScanStep.finished,
+          activity: CafeteriaScanActivity.success,
+          participant: pending.participant,
+          container: refreshed,
+          returnPreview: pending.returnPreview,
+          recoveredFromState: true,
+        );
+        return;
+      }
+
+      final preview = await ref.read(returnRepositoryProvider).preview(
+            participantQrPayload: pending.participantQrPayload!,
+            containerQrPayload: pending.containerQrPayload!,
+          );
+      state = CafeteriaScanState(
+        step: CafeteriaScanStep.review,
+        activity: CafeteriaScanActivity.ready,
+        participant: pending.participant,
+        container: refreshed,
+        returnPreview: preview,
+        participantQrPayload: pending.participantQrPayload,
+        containerQrPayload: pending.containerQrPayload,
+      );
+    } catch (error) {
+      state = CafeteriaScanState(
+        step: CafeteriaScanStep.review,
+        activity: CafeteriaScanActivity.uncertain,
+        participant: pending.participant,
+        container: pending.container,
+        returnPreview: pending.returnPreview,
+        failure: _failure(error, 'Aún no pudimos confirmar la devolución.'),
         participantQrPayload: pending.participantQrPayload,
         containerQrPayload: pending.containerQrPayload,
       );
