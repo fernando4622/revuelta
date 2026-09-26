@@ -1,6 +1,6 @@
 # Feature Spec — Complete Container Washing
 
-**Status:** PRODUCT BEHAVIOR APPROVED. Authentication, idempotency and concurrency details remain required for implementation.
+**Status:** APPROVED FOR F7 IMPLEMENTATION. Authentication, replay and concurrency behavior are resolved.
 
 ## Purpose
 
@@ -44,6 +44,17 @@ RETURNED → AVAILABLE
 - client time is not authoritative;
 - duplicate/concurrent completion creates at most one effective transition/event;
 - no generic status endpoint is used.
+- only an authenticated `OPERATOR` performs the normal wash action;
+- optimistic locking permits at most one successful `RETURNED → AVAILABLE` transition;
+- a later retry after a committed wash receives `WASH_ALREADY_COMPLETED`;
+- the result remains queryable through the pending-wash and event-history queries.
+
+## Idempotency and concurrency
+
+The command has no client idempotency key. Sequential replay after success returns
+`409 WASH_ALREADY_COMPLETED`. Concurrent requests may yield one success and one
+`409 CONCURRENCY_CONFLICT`; in all cases exactly one state transition and one
+`WASH_COMPLETED` event may commit.
 
 ## Failures
 

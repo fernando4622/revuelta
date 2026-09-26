@@ -1,12 +1,12 @@
 # Complete Container Washing — API Contract
 
-**Status:** DRAFT TARGET. Product semantics, identifiers, server time and MVP replay behavior are approved; feature authorization remains gated.
+**Status:** APPROVED FOR F7 IMPLEMENTATION.
 
 ## Endpoint
 
 ```text
 POST /api/v1/containers/{containerId}/wash-completions
-Permission: COMPLETE_CONTAINER_WASH
+Authorization: authenticated `OPERATOR`
 Actor: Cafetería
 ```
 
