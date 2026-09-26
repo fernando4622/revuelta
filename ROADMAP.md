@@ -781,10 +781,10 @@ Implementar contratos explícitos para:
 
 ### Gate F7
 
-- [ ] No hay HTTP ni JSON crudo en widgets.
-- [ ] No hay información de negocio ficticia en modo productivo.
-- [ ] Cada perspectiva ve solo sus funciones.
-- [ ] Estados de carga, vacío, error, éxito y sesión vencida están cubiertos.
+- [x] No hay HTTP ni JSON crudo en widgets.
+- [x] No hay información de negocio ficticia en modo productivo.
+- [x] Cada perspectiva ve solo sus funciones.
+- [x] Estados de carga, vacío, error, éxito y sesión vencida están cubiertos.
 
 ---
 
@@ -1035,7 +1035,7 @@ El incremento de **autenticación y navegación por rol** quedó implementado y 
 - [x] Registro público y recuperación simulada ocultos de la ruta aprobada.
 - [x] Pruebas Flutter de resolución, navegación y aislamiento por rol.
 
-El alcance QR de F4, la entrega atómica F5 y la devolución atómica F6 quedaron implementados y aceptados. La transición excepcional de retiro sigue diferida por D-004 y no forma parte de estos gates. F7 no se inició dentro de esta fase.
+El alcance QR de F4, la entrega atómica F5, la devolución atómica F6 y las experiencias por perspectiva de F7 quedaron implementados y aceptados. La transición excepcional de retiro y la gestión de incidencias siguen diferidas por D-004; la interfaz las identifica como módulos no habilitados y no inventa operaciones de negocio.
 
 1. [x] Implementar generación de QR dinámico para Alumno/Maestro y resolución de solo lectura por Cafetería.
 2. [x] Implementar resolución firmada/versionada del QR estático del recipiente y rotación revocable.
@@ -1051,7 +1051,7 @@ dispositivo Alumno/Maestro genera QR dinámico
 
 5. [x] Implementar y aceptar F5 entrega, incluida la carrera con un único ganador y la recuperación ante timeout.
 6. [x] Implementar F6 devolución usando obligatoriamente ambos QR y verificando que el participante coincida con la circulación activa.
-7. Implementar F7 Flutter limpio, historial y experiencias por perspectiva en el siguiente incremento.
+7. [x] Implementar F7 Flutter limpio, historial y experiencias por perspectiva.
 8. Liberar a campo únicamente después de F9.
 
 Este orden reduce el riesgo de seguir ampliando una demostración visual sobre reglas todavía indefinidas.

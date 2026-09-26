@@ -1,7 +1,7 @@
 # ReVuelta — Implementation Status
 
-> **Última actualización:** 2026-09-20
-> **Estado general:** PROTOTIPO PARCIAL. Existe implementación backend/Flutter, pero no está verificada como MVP completo ni alineada todavía con todas las especificaciones.
+> **Última actualización:** 2026-09-26
+> **Estado general:** F1–F7 implementadas y verificadas para el alcance demostrable aprobado. El piloto sigue en `NO-GO` hasta cerrar F8 y F9.
 >
 > **Nota de auditoría:** las afirmaciones históricas de “completado” incluidas más abajo deben interpretarse junto con la revisión de UI de la sección 10 y el estado `NO-GO` de `ROADMAP.md`.
 
@@ -230,16 +230,15 @@ UUID v4, UTC `Instant`, replay por conflicto estable y la combinación índice p
 
 | Fase | Estado | Notas |
 |---|---|---|
-| Fase 0 — Constitución | ✅ ~Completa | Docs existentes; decisiones pendientes resueltas temporalmente |
-| Fase 1 — Skeleton / F1 build | ✅ Completa | Backend, Flutter, Docker, wrapper y CI verificados local y remotamente |
-| Fase 2 — Identity & Access | 🔜 Día 3 | JWT + roles |
-| Fase 3 — Container Registry | 🔜 Día 3 | CRUD básico |
-| Fase 4 — Circulation: Entrega | 🔜 Día 4 | Primer vertical completo |
-| Fase 5 — Circulation: Devolución | 🔜 Día 5 | Segundo vertical |
-| Fase 6 — Operación móvil | 🔜 Día 6 | Flutter flows |
-| Fase 7 — Observabilidad | 🔜 Día 7 | Básica para MVP |
-| Fase 8 — Hardening | ⏳ Post-MVP | Seguridad avanzada, performance |
-| Fase 9 — Pilot release | ⏳ Post-MVP | Deployment, seed, rollback |
+| F1 — Build reproducible, configuración segura y CI | ✅ Cerrada | Backend, Flutter, Docker, wrapper y CI verificados |
+| F2 — Arquitectura, errores, contrato y datos | ✅ Cerrada | Límites, OpenAPI, PostgreSQL, concurrencia y errores estables |
+| F3 — Identidad, autenticación y autorización | ✅ Cerrada para MVP/demo | Tres roles aislados; ciclo productivo de cuentas sigue diferido |
+| F4 — Registro, consulta operativa y QR real | ✅ Cerrada | Doble QR resuelto y aceptado físicamente |
+| F5 — Entrega | ✅ Cerrada | Mutación atómica y aceptación física |
+| F6 — Devolución | ✅ Cerrada | Mutación atómica, resultado `RETURNED` y aceptación integrada |
+| F7 — Flutter limpio, historial y perspectivas | ✅ Cerrada | Datos reales por rol, lavado, inventario y auditoría; módulos D-004 no se simulan |
+| F8 — Seguridad, observabilidad y resiliencia | ⏳ Pendiente | Siguiente fase; no iniciada en este incremento |
+| F9 — Verificación integral y piloto | ⏳ Pendiente | Salida controlada, rollback y evidencia final |
 
 ---
 
@@ -397,3 +396,17 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - Evidencia detallada: `docs/testing/f6-integrated-acceptance.md`.
 - El APK F6 quedó instalado en Samsung SM-S936B con el túnel `tcp:8080 → tcp:8080` activo. La repetición manual de cámara queda disponible para validación del usuario.
 - F6 queda cerrada. F7 no se inició en este bloque.
+
+## 21. Cierre de F7 — experiencias completas por perspectiva — 2026-09-26
+
+- Alumno/Maestro consulta sus circulaciones activas, fecha límite, instrucciones e historial propio mediante identidad derivada de la sesión; no puede consultar datos globales.
+- Cafetería conserva los flujos de doble QR y agrega cola real de recipientes pendientes de lavado, confirmación explícita `RETURNED → AVAILABLE` y actividad reciente del operador.
+- Operación ReVuelta consulta resumen, participantes, inventario, circulaciones y auditoría, además de registrar y activar recipientes mediante operaciones autorizadas.
+- Incidencias y retiro siguen bloqueados por D-004 y aparecen como módulos no habilitados; no se agregó una transición o dato ficticio para simularlos.
+- Flutter separa widgets, estado/casos de uso, dominio, repositorio y adaptador remoto; ningún widget de los flujos F7 construye HTTP ni interpreta JSON.
+- Los datos de negocio de Home e Historial dejaron de ser demostrativos. Impacto y notificaciones conservan la etiqueta visible de mockup aprobada por D-017.
+- OpenAPI documenta consultas paginadas y permisos; PostgreSQL usa consultas explícitas para filtros opcionales y respeta offsets reales.
+- `mvn test`: 116 pruebas, 0 fallos, 0 errores, incluidas arquitectura, contrato, seguridad, concurrencia y PostgreSQL 16.
+- `flutter test`: 34 pruebas aprobadas; el APK debug se compiló para `http://192.168.137.1:8080/api/v1`.
+- Docker reconstruido con salud `UP`; smoke autenticado: consultas Alumno/Maestro, Cafetería y ReVuelta respondieron `200`, y el acceso de Alumno/Maestro a administración respondió `403`.
+- F7 queda cerrada para el alcance aprobado. F8 no se inició en este bloque.
