@@ -1,346 +1,171 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
+
+import '../../application/operations/role_experience_providers.dart';
 import '../../domain/auth/user_session.dart';
-import '../return_flow/student_return_flow_page.dart';
+import '../../domain/failure/failure.dart';
+import '../../domain/operations/role_experience.dart';
 import '../shared/theme/app_colors.dart';
 import '../shared/widgets/container_card.dart';
-import '../container/container_passport_page.dart';
 import '../shared/widgets/logout_icon_button.dart';
-import '../shared/widgets/pilot_data_banner.dart';
 
-/// Screen representing "Inicio" (Mockup Screen 1).
-/// Features user greeting ("Hola, Valeria"), current active container status card with arc gauge,
-/// next action banner ("Devuelve tu contenedor"), prominent QR scan CTA,
-/// and adaptive switcher to preview different modes.
-class HomePage extends StatefulWidget {
+class HomePage extends ConsumerWidget {
+  const HomePage(
+      {super.key, required this.session, this.onScanTap, this.onMapTap});
+
   final UserSession session;
   final VoidCallback? onScanTap;
   final VoidCallback? onMapTap;
 
-  const HomePage({
-    super.key,
-    required this.session,
-    this.onScanTap,
-    this.onMapTap,
-  });
-
   @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  // Demonstration toggle: 0: Sin envases, 1: 1 envase (Valeria Default), 2: Varios envases
-  int _stateDemoIndex = 1;
-
-  @override
-  Widget build(BuildContext context) {
-    final username = widget.session.username;
-
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(myActiveCirculationsProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Top App Bar / Greeting Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: RefreshIndicator(
+          onRefresh: () => ref.refresh(myActiveCirculationsProvider.future),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            children: [
+              Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hola, $username',
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'Tu contenedor hace la diferencia.',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Hola, ${session.username}',
+                            style: const TextStyle(
+                                fontSize: 22, fontWeight: FontWeight.w900)),
+                        const Text('Aquí están tus recipientes activos.',
+                            style: TextStyle(color: AppColors.textSecondary)),
+                      ],
+                    ),
                   ),
-                  // Context demo switcher & Logout
-                  Row(
-                    children: [
-                      PopupMenuButton<int>(
-                        icon: const Icon(Icons.tune,
-                            color: AppColors.textSecondary, size: 20),
-                        tooltip: 'Ver escenarios del piloto',
-                        onSelected: (val) =>
-                            setState(() => _stateDemoIndex = val),
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                              value: 0, child: Text('Escenario: sin envases')),
-                          PopupMenuItem(
-                              value: 1, child: Text('Escenario: un envase')),
-                          PopupMenuItem(
-                              value: 2,
-                              child: Text('Escenario: varios envases')),
-                        ],
-                      ),
-                      const LogoutIconButton(color: AppColors.textSecondary),
-                    ],
-                  ),
+                  const LogoutIconButton(color: AppColors.textSecondary),
                 ],
               ),
-            ),
-
-            // Main Scrollable Content
-            Expanded(
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const PilotDataBanner(),
-                    const SizedBox(height: 16),
-                    if (_stateDemoIndex == 1) ...[
-                      _buildValeriaActiveContainerState(),
-                    ] else if (_stateDemoIndex == 0) ...[
-                      _buildZeroContainersState(),
-                    ] else ...[
-                      _buildMultipleContainersState(),
-                    ],
-                    const SizedBox(height: 24),
-                  ],
+              const SizedBox(height: 22),
+              active.when(
+                loading: () => const _LoadingState(),
+                error: (error, _) => _ErrorState(
+                  message: _failureMessage(error),
+                  onRetry: () => ref.invalidate(myActiveCirculationsProvider),
                 ),
+                data: (page) => page.items.isEmpty
+                    ? _EmptyState(onQrTap: onScanTap)
+                    : _ActiveState(items: page.items, onQrTap: onScanTap),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
+}
 
-  /// State 1: Valeria with 1 Active Container (Mockup Screen 1)
-  Widget _buildValeriaActiveContainerState() {
+class _ActiveState extends StatelessWidget {
+  const _ActiveState({required this.items, required this.onQrTap});
+
+  final List<ParticipantCirculation> items;
+  final VoidCallback? onQrTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final formatter = DateFormat('dd MMM, HH:mm');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Main Bento / Lunchbox Card with Arc Gauge
-        GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
-              ),
-            );
-          },
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-              child: Column(
-                children: [
-                  // Container Graphic & Arc Ring
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      Container(
-                        width: 130,
-                        height: 130,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: AppColors.mintGreen.withOpacity(0.4),
-                          border: Border.all(
-                              color: AppColors.forestGreen, width: 4),
-                        ),
-                      ),
-                      const Icon(
-                        Icons.lunch_dining,
-                        size: 56,
-                        color: AppColors.forestGreen,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'En uso',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  const Text(
-                    'Hace 42 min \u2022 Ventana puntual activa',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
+        Text(
+            items.length == 1
+                ? '1 recipiente en uso'
+                : '${items.length} recipientes en uso',
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        for (final item in items) ...[
+          ContainerCard(code: item.publicCode, status: item.containerState),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            child: Text(
+              'Devuelve en Cafetería antes de ${formatter.format(item.dueAt.toLocal())}.',
+              style:
+                  const TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
           ),
-        ),
-        const SizedBox(height: 16),
-
-        // Próximo paso Card
-        GestureDetector(
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
-              ),
-            );
-          },
-          child: Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.mintGreen,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.check,
-                        size: 16, color: AppColors.forestGreen),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Próximo paso',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Devuelve tu contenedor para que vuelva al ciclo.',
-                          style: TextStyle(
-                              fontSize: 11, color: AppColors.textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right,
-                      color: AppColors.textHint, size: 20),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 20),
-
-        // Main CTA: participant operation QR
+        ],
+        const SizedBox(height: 8),
         ElevatedButton.icon(
-          icon: const Icon(Icons.qr_code_2, size: 22),
+          onPressed: onQrTap,
+          icon: const Icon(Icons.qr_code_2),
           label: const Text('Generar QR para devolver'),
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.forestGreen,
-            minimumSize: const Size.fromHeight(52),
-          ),
-          onPressed: widget.onScanTap,
-        ),
-      ],
-    );
-  }
-
-  /// State 0: 0 Containers
-  Widget _buildZeroContainersState() {
-    return Column(
-      children: [
-        const SizedBox(height: 20),
-        Container(
-          width: 100,
-          height: 100,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: AppColors.mintGreen.withOpacity(0.5),
-          ),
-          child: const Icon(Icons.inventory_2_outlined,
-              size: 48, color: AppColors.forestGreen),
-        ),
-        const SizedBox(height: 20),
-        const Text(
-          'No tienes nada por devolver.',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          '\u00A1Pide tu próximo almuerzo en ReVuelta!',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 24),
-        ElevatedButton.icon(
-          icon: const Icon(Icons.qr_code_2),
-          label: const Text('Generar QR para pedir'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.forestGreen,
-            minimumSize: const Size.fromHeight(48),
-          ),
-          onPressed: widget.onScanTap,
-        ),
-      ],
-    );
-  }
-
-  /// State 2: Multiple Containers
-  Widget _buildMultipleContainersState() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        ContainerCard(
-          code: 'RV-0247',
-          status: 'IN_USE',
-          type: 'Bento Lunch',
-          cycleCount: 28,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) =>
-                    const StudentReturnFlowPage(containerCode: '#RV-0247'),
-              ),
-            );
-          },
-        ),
-        ContainerCard(
-          code: 'RV-0183',
-          status: 'IN_USE',
-          type: 'Vaso 500 ml',
-          cycleCount: 14,
-          onTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => const ContainerPassportPage(
-                  containerId: 'RV-0183',
-                  code: 'RV-0183',
-                  status: 'IN_USE',
-                  completedCycles: 14,
-                  type: 'Vaso 500 ml',
-                ),
-              ),
-            );
-          },
+              backgroundColor: AppColors.forestGreen,
+              minimumSize: const Size.fromHeight(52)),
         ),
       ],
     );
   }
 }
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onQrTap});
+  final VoidCallback? onQrTap;
+
+  @override
+  Widget build(BuildContext context) => Column(
+        children: [
+          const SizedBox(height: 24),
+          const Icon(Icons.inventory_2_outlined,
+              size: 72, color: AppColors.forestGreen),
+          const SizedBox(height: 18),
+          const Text('No tienes recipientes activos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          const Text('Cuando pidas en Cafetería, genera tu QR de entrega.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary)),
+          const SizedBox(height: 22),
+          ElevatedButton.icon(
+            onPressed: onQrTap,
+            icon: const Icon(Icons.qr_code_2),
+            label: const Text('Generar QR para pedir'),
+            style: ElevatedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50)),
+          ),
+        ],
+      );
+}
+
+class _LoadingState extends StatelessWidget {
+  const _LoadingState();
+  @override
+  Widget build(BuildContext context) => const Padding(
+      padding: EdgeInsets.only(top: 80),
+      child: Center(child: CircularProgressIndicator()));
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(children: [
+            const Icon(Icons.sync_problem,
+                color: AppColors.warningOrange, size: 42),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ]),
+        ),
+      );
+}
+
+String _failureMessage(Object error) => error is Failure
+    ? error.message
+    : 'No pudimos cargar tu información. Intenta nuevamente.';

@@ -8,13 +8,15 @@ import 'package:revuelta_mobile/presentation/history/history_page.dart';
 import 'package:revuelta_mobile/presentation/home/home_page.dart';
 import 'package:revuelta_mobile/presentation/impact/impact_page.dart';
 import 'package:revuelta_mobile/presentation/notifications/notifications_page.dart';
+import 'package:revuelta_mobile/application/operations/role_experience_providers.dart';
+import 'package:revuelta_mobile/domain/operations/role_experience.dart';
 
 void main() {
   const pilotLabel = 'Datos de demostración del piloto.';
 
-  testWidgets('mock data screens identify their pilot data', (tester) async {
+  testWidgets('explicit mockup screens identify their pilot data',
+      (tester) async {
     for (final page in <Widget>[
-      const HistoryPage(),
       const ImpactPage(),
       const NotificationsPage(),
     ]) {
@@ -23,7 +25,7 @@ void main() {
     }
   });
 
-  testWidgets('home presents pilot scenarios without developer wording',
+  testWidgets('home uses the real empty state without demo controls',
       (tester) async {
     const session = UserSession(
       userId: 'participant-id',
@@ -33,19 +35,37 @@ void main() {
     );
 
     await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(home: HomePage(session: session)),
+      ProviderScope(
+        overrides: [
+          myActiveCirculationsProvider.overrideWith(
+            (ref) async => const PagedResult<ParticipantCirculation>(
+                items: [], page: 0, size: 20, hasNext: false),
+          ),
+        ],
+        child: const MaterialApp(home: HomePage(session: session)),
       ),
     );
-
-    expect(find.text(pilotLabel), findsOneWidget);
-    await tester.tap(find.byTooltip('Ver escenarios del piloto'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Escenario: sin envases'), findsOneWidget);
-    expect(find.text('Escenario: un envase'), findsOneWidget);
-    expect(find.text('Escenario: varios envases'), findsOneWidget);
-    expect(find.textContaining('Modo:'), findsNothing);
+    expect(find.text('No tienes recipientes activos'), findsOneWidget);
+    expect(find.text(pilotLabel), findsNothing);
+    expect(find.byTooltip('Ver escenarios del piloto'), findsNothing);
+  });
+
+  testWidgets('history uses a real empty state', (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        myCirculationsProvider.overrideWith(
+          (ref, status) async => const PagedResult<ParticipantCirculation>(
+              items: [], page: 0, size: 20, hasNext: false),
+        ),
+      ],
+      child: const MaterialApp(home: HistoryPage()),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aún no hay movimientos en esta vista.'), findsOneWidget);
+    expect(find.text(pilotLabel), findsNothing);
   });
 
   testWidgets('deferred login options use pilot language', (tester) async {

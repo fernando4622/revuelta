@@ -1,211 +1,132 @@
 import 'package:flutter/material.dart';
-import '../shared/theme/app_colors.dart';
-import '../shared/widgets/pilot_data_banner.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
-/// Screen representing "Historial" (Mockup Screen 7).
-/// Features filter chips [Todos | En uso | Devueltos] and chronological history cards.
-class HistoryPage extends StatefulWidget {
+import '../../application/operations/role_experience_providers.dart';
+import '../../domain/failure/failure.dart';
+import '../shared/theme/app_colors.dart';
+
+class HistoryPage extends ConsumerStatefulWidget {
   const HistoryPage({super.key});
 
   @override
-  State<HistoryPage> createState() => _HistoryPageState();
+  ConsumerState<HistoryPage> createState() => _HistoryPageState();
 }
 
-class _HistoryPageState extends State<HistoryPage> {
-  int _selectedFilter = 0; // 0: Todos, 1: En uso, 2: Devueltos
-
-  final List<Map<String, dynamic>> _historyItems = [
-    {
-      'code': '#RV-0247',
-      'status': 'RETURNED',
-      'statusLabel': 'Devuelto',
-      'timestamp': 'Hoy, 11:24 a.m.',
-      'type': 'Bento Lunch',
-    },
-    {
-      'code': '#RV-0183',
-      'status': 'IN_USE',
-      'statusLabel': 'En uso',
-      'timestamp': 'Hace 1 h',
-      'type': 'Vaso 500 ml',
-    },
-    {
-      'code': '#RV-0102',
-      'status': 'RETURNED',
-      'statusLabel': 'Devuelto',
-      'timestamp': 'Ayer, 4:32 p.m.',
-      'type': 'Bowl Almuerzo',
-    },
-    {
-      'code': '#RV-0076',
-      'status': 'RETURNED',
-      'statusLabel': 'Devuelto',
-      'timestamp': '12 abr, 10:15 a.m.',
-      'type': 'Vaso 360 ml',
-    },
-    {
-      'code': '#RV-0031',
-      'status': 'IN_USE',
-      'statusLabel': 'En uso',
-      'timestamp': '11 abr, 2:20 p.m.',
-      'type': 'Bowl Almuerzo',
-    },
-  ];
+class _HistoryPageState extends ConsumerState<HistoryPage> {
+  String? _status;
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _historyItems.where((item) {
-      if (_selectedFilter == 1) return item['status'] == 'IN_USE';
-      if (_selectedFilter == 2) return item['status'] == 'RETURNED';
-      return true;
-    }).toList();
-
+    final history = ref.watch(myCirculationsProvider(_status));
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Historial'),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: PilotDataBanner(),
+      appBar: AppBar(title: const Text('Historial')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+            child: Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                    label: const Text('Todos'),
+                    selected: _status == null,
+                    onSelected: (_) => setState(() => _status = null)),
+                ChoiceChip(
+                    label: const Text('En uso'),
+                    selected: _status == 'ACTIVE',
+                    onSelected: (_) => setState(() => _status = 'ACTIVE')),
+                ChoiceChip(
+                    label: const Text('Devueltos'),
+                    selected: _status == 'COMPLETED',
+                    onSelected: (_) => setState(() => _status = 'COMPLETED')),
+              ],
             ),
-            // Filter Segmented Chips
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                children: [
-                  _FilterChipItem(
-                    label: 'Todos',
-                    isSelected: _selectedFilter == 0,
-                    onTap: () => setState(() => _selectedFilter = 0),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChipItem(
-                    label: 'En uso',
-                    isSelected: _selectedFilter == 1,
-                    onTap: () => setState(() => _selectedFilter = 1),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChipItem(
-                    label: 'Devueltos',
-                    isSelected: _selectedFilter == 2,
-                    onTap: () => setState(() => _selectedFilter = 2),
-                  ),
-                ],
+          ),
+          Expanded(
+            child: history.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, _) => _HistoryError(
+                message: error is Failure
+                    ? error.message
+                    : 'No pudimos cargar tu historial.',
+                onRetry: () => ref.invalidate(myCirculationsProvider(_status)),
               ),
-            ),
-
-            // History items list
-            Expanded(
-              child: ListView.separated(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                itemCount: filteredItems.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final item = filteredItems[index];
-                  final isInUse = item['status'] == 'IN_USE';
-
-                  return Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: isInUse
-                                  ? AppColors.mintGreen
-                                  : AppColors.surfaceMuted,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.lunch_dining,
-                              color: isInUse
-                                  ? AppColors.forestGreen
-                                  : AppColors.textSecondary,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item['code'],
+              data: (page) => page.items.isEmpty
+                  ? const _EmptyHistory()
+                  : RefreshIndicator(
+                      onRefresh: () =>
+                          ref.refresh(myCirculationsProvider(_status).future),
+                      child: ListView.separated(
+                        padding: const EdgeInsets.all(20),
+                        itemCount: page.items.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final item = page.items[index];
+                          final when = item.returnedAt ?? item.deliveredAt;
+                          final label =
+                              item.status == 'ACTIVE' ? 'En uso' : 'Devuelto';
+                          return Card(
+                            child: ListTile(
+                              leading: Icon(
+                                item.status == 'ACTIVE'
+                                    ? Icons.sync
+                                    : Icons.check_circle_outline,
+                                color: AppColors.forestGreen,
+                              ),
+                              title: Text(item.publicCode,
                                   style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${item['statusLabel']} \u2022 ${item['timestamp']}',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                    color: isInUse
-                                        ? AppColors.forestGreen
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
+                                      fontWeight: FontWeight.w700)),
+                              subtitle: Text(
+                                  '$label · ${DateFormat('dd MMM yyyy, HH:mm').format(when.toLocal())}'),
+                              trailing: item.punctuality == null
+                                  ? null
+                                  : Text(item.punctuality == 'ON_TIME'
+                                      ? 'A tiempo'
+                                      : 'Tarde'),
                             ),
-                          ),
-                          const Icon(Icons.chevron_right,
-                              color: AppColors.textHint),
-                        ],
+                          );
+                        },
                       ),
                     ),
-                  );
-                },
-              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _FilterChipItem extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _FilterChipItem({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
+class _EmptyHistory extends StatelessWidget {
+  const _EmptyHistory();
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.forestGreen : AppColors.surfaceWhite,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.forestGreen : AppColors.cardBorder,
-          ),
+  Widget build(BuildContext context) => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(Icons.history, size: 58, color: AppColors.forestGreen),
+            SizedBox(height: 12),
+            Text('Aún no hay movimientos en esta vista.',
+                textAlign: TextAlign.center),
+          ]),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
-          ),
+      );
+}
+
+class _HistoryError extends StatelessWidget {
+  const _HistoryError({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ]),
         ),
-      ),
-    );
-  }
+      );
 }
