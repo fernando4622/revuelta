@@ -15,7 +15,7 @@ public class ListContainersUseCase {
 
     public PageResult<Container> execute(String query, ContainerStatus status, int page, int size) {
         PageResult.validate(page, size);
-        var rows = containerRepository.search(normalize(query), status, page, size + 1);
+        var rows = containerRepository.search(normalize(query), status, page * size, size + 1);
         return PageResult.fromExtraRow(rows, page, size);
     }
 

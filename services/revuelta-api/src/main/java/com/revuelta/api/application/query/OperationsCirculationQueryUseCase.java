@@ -19,7 +19,7 @@ public class OperationsCirculationQueryUseCase {
 
     public PageResult<Item> execute(CirculationStatus status, int page, int size) {
         PageResult.validate(page, size);
-        var rows = circulations.findAll(status, page, size + 1);
+        var rows = circulations.findAll(status, page * size, size + 1);
         var items = rows.stream().map(circulation -> {
             var container = containers.findById(circulation.containerId()).orElseThrow(() ->
                     new ApplicationFailureException(FailureCode.CONTAINER_NOT_FOUND, "Container not found"));

@@ -25,7 +25,7 @@ public class OperatorActivityQueryUseCase {
 
     public PageResult<Item> execute(UserId actorId, int page, int size) {
         PageResult.validate(page, size);
-        var rows = events.findByActorIdAndTypes(actorId, OPERATOR_EVENTS, page, size + 1);
+        var rows = events.findByActorIdAndTypes(actorId, OPERATOR_EVENTS, page * size, size + 1);
         var items = rows.stream().map(event -> {
             var container = containers.findById(event.containerId()).orElseThrow(() ->
                     new ApplicationFailureException(FailureCode.CONTAINER_NOT_FOUND, "Container not found"));

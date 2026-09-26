@@ -13,7 +13,7 @@ public class ParticipantDirectoryQueryUseCase {
 
     public PageResult<Item> execute(int page, int size) {
         PageResult.validate(page, size);
-        var rows = participants.findAll(page, size + 1);
+        var rows = participants.findAll(page * size, size + 1);
         return PageResult.fromExtraRow(rows.stream()
                 .map(participant -> new Item(
                         participant.id().value().toString(), participant.active(), participant.createdAt()

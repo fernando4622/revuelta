@@ -14,11 +14,14 @@ public class GetContainerHistoryUseCase {
     }
 
     public java.util.List<ContainerEvent> execute(ContainerId containerId, int page, int size) {
-        return eventRepository.findByContainerId(containerId, page, size);
+        PageResult.validate(page, size);
+        return eventRepository.findByContainerId(containerId, page * size, size);
     }
 
     public PageResult<ContainerEvent> executePaged(ContainerId containerId, int page, int size) {
         PageResult.validate(page, size);
-        return PageResult.fromExtraRow(eventRepository.findByContainerId(containerId, page, size + 1), page, size);
+        return PageResult.fromExtraRow(
+                eventRepository.findByContainerId(containerId, page * size, size + 1), page, size
+        );
     }
 }

@@ -43,8 +43,8 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
     }
 
     @Override
-    public List<ContainerEvent> findByContainerId(ContainerId containerId, int page, int size) {
-        return repository.findByContainerIdOrderByOccurredAtDesc(containerId.value(), PageRequest.of(page, size))
+    public List<ContainerEvent> findByContainerId(ContainerId containerId, int offset, int size) {
+        return repository.findByContainerIdOrderByOccurredAtDesc(containerId.value(), new OffsetPageRequest(offset, size))
                 .stream()
                 .map(this::toDomain)
                 .toList();
@@ -64,21 +64,21 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
 
     @Override
     public List<ContainerEvent> findByActorIdAndTypes(
-            UserId actorId, Set<ContainerEventType> types, int page, int size
+            UserId actorId, Set<ContainerEventType> types, int offset, int size
     ) {
         Set<String> names = types.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet());
         return repository.findByActorIdAndEventTypeInOrderByOccurredAtDesc(
-                        actorId.value(), names, PageRequest.of(page, size)
+                        actorId.value(), names, new OffsetPageRequest(offset, size)
                 ).stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
-    public List<ContainerEvent> findAll(ContainerEventType type, int page, int size) {
+    public List<ContainerEvent> findAll(ContainerEventType type, int offset, int size) {
         var rows = type == null
-                ? repository.findAll(PageRequest.of(page, size, org.springframework.data.domain.Sort.by("occurredAt").descending())).getContent()
-                : repository.findByEventTypeOrderByOccurredAtDesc(type.name(), PageRequest.of(page, size));
+                ? repository.findAll(new OffsetPageRequest(offset, size, org.springframework.data.domain.Sort.by("occurredAt").descending())).getContent()
+                : repository.findByEventTypeOrderByOccurredAtDesc(type.name(), new OffsetPageRequest(offset, size));
         return rows.stream().map(this::toDomain).toList();
     }
 

@@ -20,7 +20,7 @@ public class OperatorQueueQueryUseCase {
 
     public PageResult<Item> execute(int page, int size) {
         PageResult.validate(page, size);
-        var rows = containers.search(null, ContainerStatus.RETURNED, page, size + 1);
+        var rows = containers.search(null, ContainerStatus.RETURNED, page * size, size + 1);
         var items = rows.stream().map(container -> {
             Instant returnedAt = events.findLatestByContainerIdAndType(container.id(), ContainerEventType.RETURNED)
                     .map(event -> event.occurredAt())

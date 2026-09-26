@@ -19,7 +19,7 @@ public class OperationsEventQueryUseCase {
 
     public PageResult<Item> execute(ContainerEventType type, int page, int size) {
         PageResult.validate(page, size);
-        var rows = events.findAll(type, page, size + 1);
+        var rows = events.findAll(type, page * size, size + 1);
         var items = rows.stream().map(event -> {
             var container = containers.findById(event.containerId()).orElseThrow(() ->
                     new ApplicationFailureException(FailureCode.CONTAINER_NOT_FOUND, "Container not found"));

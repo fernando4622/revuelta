@@ -27,8 +27,8 @@ public class ParticipantRepositoryAdapter implements ParticipantRepositoryPort {
     }
 
     @Override
-    public List<Participant> findAll(int page, int size) {
-        return repository.findAll(PageRequest.of(page, size)).getContent().stream()
+    public List<Participant> findAll(int offset, int size) {
+        return repository.findAll(new OffsetPageRequest(offset, size)).getContent().stream()
                 .map(this::toDomain)
                 .toList();
     }

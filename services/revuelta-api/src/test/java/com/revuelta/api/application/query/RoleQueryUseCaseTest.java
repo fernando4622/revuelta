@@ -57,6 +57,23 @@ class RoleQueryUseCaseTest {
     }
 
     @Test
+    void shouldUseRequestedPageSizeForOffsetWhenFetchingAnExtraRow() {
+        var participants = mock(ParticipantRepositoryPort.class);
+        var circulations = mock(CirculationRepositoryPort.class);
+        UserId accountId = UserId.generate();
+        Participant participant = new Participant(new ParticipantId(UUID.randomUUID()), true, now);
+        when(participants.findByAccountId(accountId)).thenReturn(Optional.of(participant));
+        when(circulations.findByBorrowerId(participant.id(), CirculationStatus.COMPLETED, 40, 21))
+                .thenReturn(List.of());
+
+        new ParticipantCirculationQueryUseCase(
+                participants, circulations, mock(ContainerRepositoryPort.class)
+        ).list(accountId, CirculationStatus.COMPLETED, 2, 20);
+
+        verify(circulations).findByBorrowerId(participant.id(), CirculationStatus.COMPLETED, 40, 21);
+    }
+
+    @Test
     void shouldHideAnotherParticipantsCirculationAsNotFound() {
         var participants = mock(ParticipantRepositoryPort.class);
         var circulations = mock(CirculationRepositoryPort.class);

@@ -32,7 +32,7 @@ public class ParticipantCirculationQueryUseCase {
     public PageResult<Item> list(UserId accountId, CirculationStatus status, int page, int size) {
         PageResult.validate(page, size);
         Participant participant = participantFor(accountId);
-        var rows = circulations.findByBorrowerId(participant.id(), status, page, size + 1);
+        var rows = circulations.findByBorrowerId(participant.id(), status, page * size, size + 1);
         return PageResult.fromExtraRow(rows.stream().map(this::toItem).toList(), page, size);
     }
 

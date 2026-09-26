@@ -64,8 +64,8 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
     }
 
     @Override
-    public List<Container> search(String query, ContainerStatus status, int page, int size) {
-        return repository.search(query, status == null ? null : status.name(), PageRequest.of(page, size))
+    public List<Container> search(String query, ContainerStatus status, int offset, int size) {
+        return repository.search(query, status == null ? null : status.name(), new OffsetPageRequest(offset, size))
                 .stream()
                 .map(this::toDomain)
                 .toList();
