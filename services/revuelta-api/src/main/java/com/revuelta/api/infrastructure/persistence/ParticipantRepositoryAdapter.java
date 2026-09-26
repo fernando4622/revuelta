@@ -8,6 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.PageRequest;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +24,13 @@ public class ParticipantRepositoryAdapter implements ParticipantRepositoryPort {
     @Override
     public Optional<Participant> findByAccountId(UserId accountId) {
         return repository.findByAccountId(accountId.value()).map(this::toDomain);
+    }
+
+    @Override
+    public List<Participant> findAll(int page, int size) {
+        return repository.findAll(PageRequest.of(page, size)).getContent().stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     private Participant toDomain(ParticipantJpaEntity entity) {

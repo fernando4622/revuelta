@@ -12,6 +12,14 @@ import com.revuelta.api.application.container.GetContainerHistoryUseCase;
 import com.revuelta.api.application.container.GetContainerUseCase;
 import com.revuelta.api.application.container.ListContainersUseCase;
 import com.revuelta.api.application.container.RegisterContainerUseCase;
+import com.revuelta.api.application.container.CompleteContainerWashUseCase;
+import com.revuelta.api.application.query.OperatorActivityQueryUseCase;
+import com.revuelta.api.application.query.OperatorQueueQueryUseCase;
+import com.revuelta.api.application.query.OperationsCirculationQueryUseCase;
+import com.revuelta.api.application.query.OperationsEventQueryUseCase;
+import com.revuelta.api.application.query.OperationsSummaryQueryUseCase;
+import com.revuelta.api.application.query.ParticipantCirculationQueryUseCase;
+import com.revuelta.api.application.query.ParticipantDirectoryQueryUseCase;
 import com.revuelta.api.application.port.AccessTokenIssuerPort;
 import com.revuelta.api.application.port.AuthenticationAuditPort;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
@@ -182,6 +190,71 @@ public class ApplicationConfig {
     @Bean
     public ListContainersUseCase listContainersUseCase(ContainerRepositoryPort containerRepository) {
         return new ListContainersUseCase(containerRepository);
+    }
+
+    @Bean
+    public CompleteContainerWashUseCase completeContainerWashUseCase(
+            ContainerRepositoryPort containers,
+            CirculationRepositoryPort circulations,
+            ContainerEventRepositoryPort events,
+            TransactionRunnerPort transactions,
+            ServerClockPort clock,
+            CorrelationIdProviderPort correlationIds
+    ) {
+        return new CompleteContainerWashUseCase(
+                containers, circulations, events, transactions, clock, correlationIds
+        );
+    }
+
+    @Bean
+    public ParticipantCirculationQueryUseCase participantCirculationQueryUseCase(
+            ParticipantRepositoryPort participants,
+            CirculationRepositoryPort circulations,
+            ContainerRepositoryPort containers
+    ) {
+        return new ParticipantCirculationQueryUseCase(participants, circulations, containers);
+    }
+
+    @Bean
+    public OperatorQueueQueryUseCase operatorQueueQueryUseCase(
+            ContainerRepositoryPort containers, ContainerEventRepositoryPort events
+    ) {
+        return new OperatorQueueQueryUseCase(containers, events);
+    }
+
+    @Bean
+    public OperatorActivityQueryUseCase operatorActivityQueryUseCase(
+            ContainerEventRepositoryPort events, ContainerRepositoryPort containers
+    ) {
+        return new OperatorActivityQueryUseCase(events, containers);
+    }
+
+    @Bean
+    public OperationsSummaryQueryUseCase operationsSummaryQueryUseCase(
+            ContainerRepositoryPort containers, CirculationRepositoryPort circulations
+    ) {
+        return new OperationsSummaryQueryUseCase(containers, circulations);
+    }
+
+    @Bean
+    public ParticipantDirectoryQueryUseCase participantDirectoryQueryUseCase(
+            ParticipantRepositoryPort participants
+    ) {
+        return new ParticipantDirectoryQueryUseCase(participants);
+    }
+
+    @Bean
+    public OperationsCirculationQueryUseCase operationsCirculationQueryUseCase(
+            CirculationRepositoryPort circulations, ContainerRepositoryPort containers
+    ) {
+        return new OperationsCirculationQueryUseCase(circulations, containers);
+    }
+
+    @Bean
+    public OperationsEventQueryUseCase operationsEventQueryUseCase(
+            ContainerEventRepositoryPort events, ContainerRepositoryPort containers
+    ) {
+        return new OperationsEventQueryUseCase(events, containers);
     }
 
     @Bean

@@ -2,7 +2,8 @@ package com.revuelta.api.application.container;
 
 import com.revuelta.api.application.port.ContainerRepositoryPort;
 import com.revuelta.api.domain.container.Container;
-import java.util.List;
+import com.revuelta.api.domain.container.ContainerStatus;
+import com.revuelta.api.application.query.PageResult;
 
 public class ListContainersUseCase {
 
@@ -12,7 +13,13 @@ public class ListContainersUseCase {
         this.containerRepository = containerRepository;
     }
 
-    public List<Container> execute(int page, int size) {
-        return containerRepository.findAll(page, size);
+    public PageResult<Container> execute(String query, ContainerStatus status, int page, int size) {
+        PageResult.validate(page, size);
+        var rows = containerRepository.search(normalize(query), status, page, size + 1);
+        return PageResult.fromExtraRow(rows, page, size);
+    }
+
+    private String normalize(String query) {
+        return query == null || query.isBlank() ? null : query.trim();
     }
 }

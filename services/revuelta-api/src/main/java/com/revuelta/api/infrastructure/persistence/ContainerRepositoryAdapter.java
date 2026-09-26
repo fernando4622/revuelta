@@ -30,7 +30,7 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
             return toDomain(saved);
         } catch (ObjectOptimisticLockingFailureException exception) {
             throw new ApplicationFailureException(
-                    FailureCode.INVALID_STATE_TRANSITION,
+                    FailureCode.CONCURRENCY_CONFLICT,
                     "The container was changed by another operation"
             );
         } catch (DataIntegrityViolationException exception) {
@@ -61,6 +61,24 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
                 .stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Override
+    public List<Container> search(String query, ContainerStatus status, int page, int size) {
+        return repository.search(query, status == null ? null : status.name(), PageRequest.of(page, size))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countAll() {
+        return repository.count();
+    }
+
+    @Override
+    public long countByStatus(ContainerStatus status) {
+        return repository.countByStatus(status.name());
     }
 
     @Override

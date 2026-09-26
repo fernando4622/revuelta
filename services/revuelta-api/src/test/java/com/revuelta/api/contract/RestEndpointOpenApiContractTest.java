@@ -6,6 +6,8 @@ import com.revuelta.api.interfaces.rest.AuthController;
 import com.revuelta.api.interfaces.rest.CirculationController;
 import com.revuelta.api.interfaces.rest.ContainerController;
 import com.revuelta.api.interfaces.rest.QrController;
+import com.revuelta.api.interfaces.rest.RoleExperienceController;
+import com.revuelta.api.application.query.OperationsSummaryQueryUseCase;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.lang.reflect.RecordComponent;
@@ -61,6 +63,9 @@ class RestEndpointOpenApiContractTest {
                 recordFields(CirculationController.EventResponse.class),
                 openApiSchemaFields("ContainerEvent")
         );
+        assertEquals(recordFields(ContainerController.WashContainerResponse.class), openApiSchemaFields("WashContainer"));
+        assertEquals(recordFields(ContainerController.WashCompletionResponse.class), openApiSchemaFields("WashCompletion"));
+        assertEquals(recordFields(OperationsSummaryQueryUseCase.Summary.class), openApiSchemaFields("OperationsSummary"));
     }
 
     @Test
@@ -98,7 +103,8 @@ class RestEndpointOpenApiContractTest {
     private Set<Route> implementedRoutes() {
         Set<Route> routes = new HashSet<>();
         for (Class<?> controller : Set.of(
-                AuthController.class, ContainerController.class, CirculationController.class, QrController.class
+                AuthController.class, ContainerController.class, CirculationController.class,
+                QrController.class, RoleExperienceController.class
         )) {
             RequestMapping classMapping = controller.getAnnotation(RequestMapping.class);
             String prefix = firstPath(selectPaths(classMapping.path(), classMapping.value()));

@@ -179,12 +179,18 @@ paths:
       x-required-roles: [ADMIN]
       security: [{ bearerAuth: [] }]
       parameters:
+        - name: query
+          in: query
+          schema: { type: string }
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/ContainerState' }
         - name: page
           in: query
-          schema: { type: integer, default: 0 }
+          schema: { type: integer, minimum: 0, default: 0 }
         - name: size
           in: query
-          schema: { type: integer, default: 20 }
+          schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
       responses:
         '200':
           description: Paginated container results for the requested page
@@ -193,10 +199,7 @@ paths:
               $ref: '#/components/headers/CorrelationId'
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Container'
+              schema: { $ref: '#/components/schemas/ContainerPage' }
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
@@ -481,10 +484,7 @@ paths:
               $ref: '#/components/headers/CorrelationId'
           content:
             application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ContainerEvent'
+              schema: { $ref: '#/components/schemas/ContainerEventPage' }
         '400':
           $ref: '#/components/responses/400BadRequest'
         '401':
@@ -494,7 +494,209 @@ paths:
         '500':
           $ref: '#/components/responses/500InternalServerError'
 
+  /me/circulations:
+    get:
+      summary: List circulations owned by the authenticated participant
+      operationId: listMyCirculations
+      x-required-roles: [PARTICIPANT]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, COMPLETED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Participant-owned circulations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParticipantCirculationPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /me/circulations/{circulationId}:
+    get:
+      summary: Get one circulation owned by the authenticated participant
+      operationId: getMyCirculation
+      x-required-roles: [PARTICIPANT]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: circulationId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Participant-owned circulation
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParticipantCirculation' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operator/pending-washes:
+    get:
+      summary: List returned containers pending washing
+      operationId: listPendingWashes
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Pending-wash queue
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PendingWashPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operator/recent-operations:
+    get:
+      summary: List handoff and wash events performed by the authenticated operator
+      operationId: listMyOperatorActivity
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Operator-owned activity
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperatorActivityPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /containers/{containerId}/wash-completions:
+    post:
+      summary: Complete washing of one returned container
+      operationId: completeContainerWash
+      x-required-roles: [OPERATOR]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: containerId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Container is available after washing
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WashCompletion' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '404': { $ref: '#/components/responses/404NotFound' }
+        '409': { $ref: '#/components/responses/409Conflict' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operations/summary:
+    get:
+      summary: Get persisted pilot inventory and circulation counts
+      operationId: getOperationsSummary
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      responses:
+        '200':
+          description: Operations summary
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperationsSummary' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operations/participants:
+    get:
+      summary: List opaque participant references
+      operationId: listParticipants
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Participant directory without PII
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ParticipantPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operations/circulations:
+    get:
+      summary: List global circulations without participant PII
+      operationId: listOperationsCirculations
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { type: string, enum: [ACTIVE, COMPLETED] }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Global circulation records
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperationsCirculationPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
+  /operations/events:
+    get:
+      summary: List append-only operational events
+      operationId: listOperationsEvents
+      x-required-roles: [ADMIN]
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: type
+          in: query
+          schema: { type: string }
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Append-only global audit events
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/OperationsEventPage' }
+        '400': { $ref: '#/components/responses/400BadRequest' }
+        '401': { $ref: '#/components/responses/401Unauthenticated' }
+        '403': { $ref: '#/components/responses/403Forbidden' }
+        '500': { $ref: '#/components/responses/500InternalServerError' }
+
 components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
   headers:
     CorrelationId:
       description: Server-generated identifier for correlating this response with operational logs
@@ -525,6 +727,10 @@ components:
         errors:
           type: array
           items: { type: string }
+
+    ContainerState:
+      type: string
+      enum: [REGISTERED, AVAILABLE, IN_USE, RETURNED, DAMAGED, LOST, RETIRED]
 
     Container:
       type: object
@@ -704,6 +910,185 @@ components:
         correlationId: { type: string, format: uuid }
         participantRef: { type: string, format: uuid, nullable: true }
         circulationRef: { type: string, format: uuid, nullable: true }
+
+    PageMetadata:
+      type: object
+      required: [page, size, hasNext]
+      properties:
+        page: { type: integer, minimum: 0 }
+        size: { type: integer, minimum: 1, maximum: 100 }
+        hasNext: { type: boolean }
+
+    ContainerPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/Container' } }
+
+    ContainerEventPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/ContainerEvent' } }
+
+    ParticipantCirculation:
+      type: object
+      required: [circulationId, containerId, publicCode, containerState, stateLabel, deliveredAt, dueAt, status]
+      properties:
+        circulationId: { type: string, format: uuid }
+        containerId: { type: string, format: uuid }
+        publicCode: { type: string }
+        containerState: { $ref: '#/components/schemas/ContainerState' }
+        stateLabel: { type: string }
+        deliveredAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time, nullable: true }
+        status: { type: string, enum: [ACTIVE, COMPLETED] }
+        punctuality: { type: string, enum: [ON_TIME, LATE], nullable: true }
+
+    ParticipantCirculationPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/ParticipantCirculation' } }
+
+    PendingWash:
+      type: object
+      required: [containerId, publicCode, state, stateLabel, returnedAt]
+      properties:
+        containerId: { type: string, format: uuid }
+        publicCode: { type: string }
+        state: { type: string, enum: [RETURNED] }
+        stateLabel: { type: string, example: Pendiente de lavado }
+        returnedAt: { type: string, format: date-time }
+
+    PendingWashPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/PendingWash' } }
+
+    OperatorActivity:
+      type: object
+      required: [eventId, eventType, containerId, publicCode, occurredAt, resultingState, traceId]
+      properties:
+        eventId: { type: string, format: uuid }
+        eventType: { type: string, enum: [DELIVERED, RETURNED, WASH_COMPLETED] }
+        containerId: { type: string, format: uuid }
+        publicCode: { type: string }
+        occurredAt: { type: string, format: date-time }
+        resultingState: { $ref: '#/components/schemas/ContainerState' }
+        traceId: { type: string, format: uuid }
+
+    OperatorActivityPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/OperatorActivity' } }
+
+    WashContainer:
+      type: object
+      required: [id, publicCode, state, stateLabel]
+      properties:
+        id: { type: string, format: uuid }
+        publicCode: { type: string }
+        state: { type: string, enum: [AVAILABLE] }
+        stateLabel: { type: string, example: Disponible }
+
+    WashCompletion:
+      type: object
+      required: [container, washedAt, traceId]
+      properties:
+        container: { $ref: '#/components/schemas/WashContainer' }
+        washedAt: { type: string, format: date-time }
+        traceId: { type: string, format: uuid }
+
+    OperationsSummary:
+      type: object
+      required: [totalContainers, registered, available, inUse, returned, damaged, lost, retired, activeCirculations]
+      properties:
+        totalContainers: { type: integer, format: int64 }
+        registered: { type: integer, format: int64 }
+        available: { type: integer, format: int64 }
+        inUse: { type: integer, format: int64 }
+        returned: { type: integer, format: int64 }
+        damaged: { type: integer, format: int64 }
+        lost: { type: integer, format: int64 }
+        retired: { type: integer, format: int64 }
+        activeCirculations: { type: integer, format: int64 }
+
+    ParticipantDirectoryItem:
+      type: object
+      required: [participantRef, active, createdAt]
+      properties:
+        participantRef: { type: string, format: uuid }
+        active: { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    ParticipantPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/ParticipantDirectoryItem' } }
+
+    OperationsCirculation:
+      type: object
+      required: [circulationId, participantRef, containerId, publicCode, status, deliveredAt, dueAt]
+      properties:
+        circulationId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid }
+        containerId: { type: string, format: uuid }
+        publicCode: { type: string }
+        status: { type: string, enum: [ACTIVE, COMPLETED] }
+        deliveredAt: { type: string, format: date-time }
+        dueAt: { type: string, format: date-time }
+        returnedAt: { type: string, format: date-time, nullable: true }
+        punctuality: { type: string, enum: [ON_TIME, LATE], nullable: true }
+
+    OperationsCirculationPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/OperationsCirculation' } }
+
+    OperationsEvent:
+      type: object
+      required: [eventId, eventType, containerId, publicCode, actorId, occurredAt, newStatus, traceId]
+      properties:
+        eventId: { type: string, format: uuid }
+        eventType: { type: string }
+        containerId: { type: string, format: uuid }
+        publicCode: { type: string }
+        actorId: { type: string, format: uuid }
+        occurredAt: { type: string, format: date-time }
+        previousStatus: { type: string, nullable: true }
+        newStatus: { $ref: '#/components/schemas/ContainerState' }
+        reason: { type: string, nullable: true }
+        traceId: { type: string, format: uuid }
+        participantRef: { type: string, format: uuid, nullable: true }
+        circulationRef: { type: string, format: uuid, nullable: true }
+
+    OperationsEventPage:
+      allOf:
+        - $ref: '#/components/schemas/PageMetadata'
+        - type: object
+          required: [items]
+          properties:
+            items: { type: array, items: { $ref: '#/components/schemas/OperationsEvent' } }
 
   responses:
     401Unauthenticated:

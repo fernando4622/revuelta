@@ -13,6 +13,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
@@ -46,6 +48,38 @@ public class ContainerEventRepositoryAdapter implements ContainerEventRepository
                 .stream()
                 .map(this::toDomain)
                 .toList();
+    }
+
+    @Override
+    public Optional<ContainerEvent> findLatestByContainerIdAndType(ContainerId containerId, ContainerEventType type) {
+        return repository.findFirstByContainerIdAndEventTypeOrderByOccurredAtDesc(
+                containerId.value(), type.name()
+        ).map(this::toDomain);
+    }
+
+    @Override
+    public boolean existsByContainerIdAndType(ContainerId containerId, ContainerEventType type) {
+        return repository.existsByContainerIdAndEventType(containerId.value(), type.name());
+    }
+
+    @Override
+    public List<ContainerEvent> findByActorIdAndTypes(
+            UserId actorId, Set<ContainerEventType> types, int page, int size
+    ) {
+        Set<String> names = types.stream().map(Enum::name).collect(java.util.stream.Collectors.toSet());
+        return repository.findByActorIdAndEventTypeInOrderByOccurredAtDesc(
+                        actorId.value(), names, PageRequest.of(page, size)
+                ).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<ContainerEvent> findAll(ContainerEventType type, int page, int size) {
+        var rows = type == null
+                ? repository.findAll(PageRequest.of(page, size, org.springframework.data.domain.Sort.by("occurredAt").descending())).getContent()
+                : repository.findByEventTypeOrderByOccurredAtDesc(type.name(), PageRequest.of(page, size));
+        return rows.stream().map(this::toDomain).toList();
     }
 
     private ContainerEvent toDomain(ContainerEventJpaEntity entity) {

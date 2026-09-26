@@ -15,6 +15,7 @@ import com.revuelta.api.application.circulation.ReturnQrValidationService;
 import com.revuelta.api.application.container.ActivateContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
 import com.revuelta.api.application.container.RegisterContainerUseCase;
+import com.revuelta.api.application.container.CompleteContainerWashUseCase;
 import com.revuelta.api.application.qr.GenerateOperationQrUseCase;
 import com.revuelta.api.application.qr.GetContainerQrUseCase;
 import com.revuelta.api.application.port.CirculationRepositoryPort;
@@ -85,6 +86,7 @@ class PersistenceAdapterIntegrationTest {
     @Autowired private GetContainerQrUseCase getContainerQr;
     @Autowired private ReturnContainerUseCase returnContainer;
     @Autowired private GetContainerHistoryUseCase getHistory;
+    @Autowired private CompleteContainerWashUseCase completeWash;
     @Autowired private DeliveryQrValidationService deliveryValidator;
     @Autowired private ReturnQrValidationService returnValidator;
     @Autowired private ContainerRepositoryPort containers;
@@ -299,6 +301,48 @@ class PersistenceAdapterIntegrationTest {
         }
     }
 
+    @Test
+    void concurrentWashHasOneWinnerOneConflictAndOneEvent() throws Exception {
+        var registered = registerContainer.execute("WASH-RACE-" + UUID.randomUUID(), ADMIN);
+        var available = activateContainer.execute(registered.container().id(), ADMIN, "Initial activation");
+        var deliveryQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.DELIVERY);
+        var containerQr = getContainerQr.execute(available.id());
+        deliverContainer.execute(deliveryQr.payload(), containerQr.payload(), OPERATOR);
+        var returnQr = generateOperationQr.execute(PARTICIPANT, OperationQrPurpose.RETURN);
+        returnContainer.execute(returnQr.payload(), containerQr.payload(), OPERATOR);
+        CountDownLatch ready = new CountDownLatch(2);
+        CountDownLatch start = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<Object> first = executor.submit(() -> concurrentWash(available.id(), ready, start));
+            Future<Object> second = executor.submit(() -> concurrentWash(available.id(), ready, start));
+            assertTrue(ready.await(10, TimeUnit.SECONDS));
+            start.countDown();
+
+            Object firstResult = first.get(15, TimeUnit.SECONDS);
+            Object secondResult = second.get(15, TimeUnit.SECONDS);
+            long successes = List.of(firstResult, secondResult).stream()
+                    .filter(CompleteContainerWashUseCase.Result.class::isInstance)
+                    .count();
+            List<FailureCode> failures = List.of(firstResult, secondResult).stream()
+                    .filter(FailureCode.class::isInstance)
+                    .map(FailureCode.class::cast)
+                    .toList();
+
+            assertEquals(1, successes);
+            assertEquals(1, failures.size());
+            assertTrue(Set.of(
+                    FailureCode.WASH_ALREADY_COMPLETED,
+                    FailureCode.CONCURRENCY_CONFLICT
+            ).contains(failures.get(0)));
+            assertEquals(ContainerStatus.AVAILABLE, containers.findById(available.id()).orElseThrow().status());
+            assertEquals(5, getHistory.execute(available.id(), 0, 20).size());
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
     private Object concurrentDelivery(
             String participantPayload,
             String containerPayload,
@@ -324,6 +368,20 @@ class PersistenceAdapterIntegrationTest {
         start.await(10, TimeUnit.SECONDS);
         try {
             return returnContainer.execute(participantPayload, containerPayload, OPERATOR);
+        } catch (ApplicationFailureException failure) {
+            return failure.code();
+        }
+    }
+
+    private Object concurrentWash(
+            com.revuelta.api.domain.container.ContainerId containerId,
+            CountDownLatch ready,
+            CountDownLatch start
+    ) throws InterruptedException {
+        ready.countDown();
+        start.await(10, TimeUnit.SECONDS);
+        try {
+            return completeWash.execute(containerId, OPERATOR);
         } catch (ApplicationFailureException failure) {
             return failure.code();
         }

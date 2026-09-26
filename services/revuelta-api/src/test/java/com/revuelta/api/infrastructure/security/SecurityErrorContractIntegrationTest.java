@@ -305,6 +305,42 @@ class SecurityErrorContractIntegrationTest {
                 Arguments.of("inspect full container history", new EndpointAccess(
                         "GET", "/api/v1/containers/" + containerId + "/history", null,
                         Set.of("ADMIN")
+                )),
+                Arguments.of("list participant-owned circulations", new EndpointAccess(
+                        "GET", "/api/v1/me/circulations", null,
+                        Set.of("PARTICIPANT")
+                )),
+                Arguments.of("inspect participant-owned circulation", new EndpointAccess(
+                        "GET", "/api/v1/me/circulations/" + circulationId, null,
+                        Set.of("PARTICIPANT")
+                )),
+                Arguments.of("list pending washes", new EndpointAccess(
+                        "GET", "/api/v1/operator/pending-washes", null,
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("list operator activity", new EndpointAccess(
+                        "GET", "/api/v1/operator/recent-operations", null,
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("complete container wash", new EndpointAccess(
+                        "POST", "/api/v1/containers/" + containerId + "/wash-completions", null,
+                        Set.of("OPERATOR")
+                )),
+                Arguments.of("inspect operations summary", new EndpointAccess(
+                        "GET", "/api/v1/operations/summary", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("list participants", new EndpointAccess(
+                        "GET", "/api/v1/operations/participants", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("list global circulations", new EndpointAccess(
+                        "GET", "/api/v1/operations/circulations", null,
+                        Set.of("ADMIN")
+                )),
+                Arguments.of("list global events", new EndpointAccess(
+                        "GET", "/api/v1/operations/events", null,
+                        Set.of("ADMIN")
                 ))
         );
     }

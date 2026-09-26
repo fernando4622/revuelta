@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 
 import java.util.Optional;
+import java.util.List;
+import org.springframework.data.domain.PageRequest;
 
 @Component
 @RequiredArgsConstructor
@@ -51,6 +53,11 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
     }
 
     @Override
+    public Optional<Circulation> findByIdAndBorrowerId(CirculationId id, ParticipantId borrowerId) {
+        return repository.findByIdAndBorrowerId(id.value(), borrowerId.value()).map(this::toDomain);
+    }
+
+    @Override
     public Optional<Circulation> findActiveByContainerId(ContainerId containerId) {
         return repository.findActiveByContainerId(containerId.value()).map(this::toDomain);
     }
@@ -58,6 +65,30 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
     @Override
     public boolean hasActiveCirculation(ContainerId containerId) {
         return repository.hasActiveCirculation(containerId.value());
+    }
+
+    @Override
+    public List<Circulation> findByBorrowerId(
+            ParticipantId borrowerId, CirculationStatus status, int page, int size
+    ) {
+        return repository.findByBorrower(
+                        borrowerId.value(), status == null ? null : status.name(), PageRequest.of(page, size)
+                ).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<Circulation> findAll(CirculationStatus status, int page, int size) {
+        return repository.search(status == null ? null : status.name(), PageRequest.of(page, size))
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public long countByStatus(CirculationStatus status) {
+        return repository.countByStatus(status.name());
     }
 
     private CirculationJpaEntity toEntity(Circulation domain) {

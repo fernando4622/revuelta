@@ -22,12 +22,11 @@ $session = Invoke-RestMethod `
     -Body $loginBody
 $headers = @{ Authorization = "Bearer $($session.token)" }
 
-$existing = @(
-    Invoke-RestMethod `
-        -Method Get `
-        -Uri "$BaseUrl/containers?page=0&size=100" `
-        -Headers $headers
-)
+$existingResponse = Invoke-RestMethod `
+    -Method Get `
+    -Uri "$BaseUrl/containers?page=0&size=100" `
+    -Headers $headers
+$existing = @($existingResponse.items)
 $manifest = @()
 
 1..5 | ForEach-Object {

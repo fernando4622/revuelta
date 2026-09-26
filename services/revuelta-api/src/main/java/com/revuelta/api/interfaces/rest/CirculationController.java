@@ -19,7 +19,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -91,16 +90,15 @@ public class CirculationController {
 
     @GetMapping("/containers/{containerId}/history")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<EventResponse>> getHistory(
+    public ResponseEntity<PageResponse<EventResponse>> getHistory(
             @PathVariable UUID containerId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
-        List<EventResponse> events = getContainerHistoryUseCase.execute(new ContainerId(containerId), page, size)
-                .stream()
-                .map(EventResponse::fromDomain)
-                .toList();
-        return ResponseEntity.ok(events);
+        return ResponseEntity.ok(PageResponse.from(
+                getContainerHistoryUseCase.executePaged(new ContainerId(containerId), page, size),
+                EventResponse::fromDomain
+        ));
     }
 
     public record DeliverRequest(
