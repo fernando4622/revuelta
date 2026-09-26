@@ -20,24 +20,20 @@ public interface SpringDataCirculationRepository extends JpaRepository<Circulati
 
     Optional<CirculationJpaEntity> findByIdAndBorrowerId(UUID id, UUID borrowerId);
 
-    @Query("""
-            SELECT c FROM CirculationJpaEntity c
-            WHERE c.borrowerId = :borrowerId
-              AND (:status IS NULL OR c.status = :status)
-            ORDER BY c.deliveredAt DESC
-            """)
-    List<CirculationJpaEntity> findByBorrower(
-            @Param("borrowerId") UUID borrowerId,
-            @Param("status") String status,
+    List<CirculationJpaEntity> findByBorrowerIdOrderByDeliveredAtDesc(
+            UUID borrowerId,
             Pageable pageable
     );
 
-    @Query("""
-            SELECT c FROM CirculationJpaEntity c
-            WHERE (:status IS NULL OR c.status = :status)
-            ORDER BY c.deliveredAt DESC
-            """)
-    List<CirculationJpaEntity> search(@Param("status") String status, Pageable pageable);
+    List<CirculationJpaEntity> findByBorrowerIdAndStatusOrderByDeliveredAtDesc(
+            UUID borrowerId,
+            String status,
+            Pageable pageable
+    );
+
+    List<CirculationJpaEntity> findAllByOrderByDeliveredAtDesc(Pageable pageable);
+
+    List<CirculationJpaEntity> findByStatusOrderByDeliveredAtDesc(String status, Pageable pageable);
 
     long countByStatus(String status);
 }

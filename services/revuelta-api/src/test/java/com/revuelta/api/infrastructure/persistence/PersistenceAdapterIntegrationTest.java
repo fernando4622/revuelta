@@ -27,6 +27,7 @@ import com.revuelta.api.domain.container.ContainerStatus;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.event.ContainerEventRepositoryPort;
 import com.revuelta.api.domain.participant.OperationQrPurpose;
+import com.revuelta.api.domain.participant.ParticipantId;
 import com.revuelta.api.domain.user.UserId;
 import java.util.List;
 import java.util.Optional;
@@ -106,6 +107,16 @@ class PersistenceAdapterIntegrationTest {
         var returned = returnContainer.execute(returnQr.payload(), containerQr.payload(), OPERATOR);
 
         assertEquals(ContainerStatus.RETURNED, returned.container().status());
+        assertTrue(containers.search(null, null, 0, 20).stream()
+                .anyMatch(container -> container.id().equals(returned.container().id())));
+        assertTrue(containers.search(null, ContainerStatus.RETURNED, 0, 20).stream()
+                .anyMatch(container -> container.id().equals(returned.container().id())));
+        assertTrue(circulations.findAll(null, 0, 20).stream()
+                .anyMatch(circulation -> circulation.id().equals(delivery.circulation().id())));
+        assertTrue(circulations.findByBorrowerId(
+                        new ParticipantId(PARTICIPANT.value()), null, 0, 20
+                ).stream()
+                .anyMatch(circulation -> circulation.id().equals(delivery.circulation().id())));
         assertNotNull(delivery.circulation().returnPolicyId());
         assertEquals(1, delivery.circulation().returnPolicyVersion());
 

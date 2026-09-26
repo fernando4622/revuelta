@@ -71,17 +71,24 @@ public class CirculationRepositoryAdapter implements CirculationRepositoryPort {
     public List<Circulation> findByBorrowerId(
             ParticipantId borrowerId, CirculationStatus status, int offset, int size
     ) {
-        return repository.findByBorrower(
-                        borrowerId.value(), status == null ? null : status.name(), new OffsetPageRequest(offset, size)
-                ).stream()
+        var pageable = new OffsetPageRequest(offset, size);
+        var results = status == null
+                ? repository.findByBorrowerIdOrderByDeliveredAtDesc(borrowerId.value(), pageable)
+                : repository.findByBorrowerIdAndStatusOrderByDeliveredAtDesc(
+                        borrowerId.value(), status.name(), pageable
+                );
+        return results.stream()
                 .map(this::toDomain)
                 .toList();
     }
 
     @Override
     public List<Circulation> findAll(CirculationStatus status, int offset, int size) {
-        return repository.search(status == null ? null : status.name(), new OffsetPageRequest(offset, size))
-                .stream()
+        var pageable = new OffsetPageRequest(offset, size);
+        var results = status == null
+                ? repository.findAllByOrderByDeliveredAtDesc(pageable)
+                : repository.findByStatusOrderByDeliveredAtDesc(status.name(), pageable);
+        return results.stream()
                 .map(this::toDomain)
                 .toList();
     }

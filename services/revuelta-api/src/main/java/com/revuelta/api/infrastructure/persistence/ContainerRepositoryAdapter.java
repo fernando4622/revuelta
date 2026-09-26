@@ -65,7 +65,20 @@ public class ContainerRepositoryAdapter implements ContainerRepositoryPort {
 
     @Override
     public List<Container> search(String query, ContainerStatus status, int offset, int size) {
-        return repository.search(query, status == null ? null : status.name(), new OffsetPageRequest(offset, size))
+        var pageable = new OffsetPageRequest(offset, size);
+        List<ContainerJpaEntity> rows;
+        if (query == null && status == null) {
+            rows = repository.findAllByOrderByUpdatedAtDesc(pageable);
+        } else if (query == null) {
+            rows = repository.findByStatusOrderByUpdatedAtDesc(status.name(), pageable);
+        } else if (status == null) {
+            rows = repository.findByCodeContainingIgnoreCaseOrderByUpdatedAtDesc(query, pageable);
+        } else {
+            rows = repository.findByCodeContainingIgnoreCaseAndStatusOrderByUpdatedAtDesc(
+                    query, status.name(), pageable
+            );
+        }
+        return rows
                 .stream()
                 .map(this::toDomain)
                 .toList();
