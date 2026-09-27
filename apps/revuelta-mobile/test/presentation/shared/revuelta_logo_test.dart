@@ -15,6 +15,7 @@ void main() {
     final image = tester.widget<Image>(find.byType(Image));
     expect(image.image, const AssetImage('resources/logo.jpeg'));
     expect(image.width, 180);
-    expect(find.bySemanticsLabel('ReVuelta, cada vuelta cuenta'), findsOneWidget);
+    expect(
+        find.bySemanticsLabel('ReVuelta, cada vuelta cuenta'), findsOneWidget);
   });
 }
