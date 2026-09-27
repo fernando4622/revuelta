@@ -1,7 +1,7 @@
 # F9 Integral Verification and Controlled Pilot Readiness Specification
 
-**Status:** PROPOSED — implementation and field `GO` require the decisions in
-Section 15.
+**Status:** APPROVED FOR PILOT-LIKE LOCAL TECHNICAL REHEARSAL on 2026-09-27.
+Real-pilot `GO` remains blocked by the decisions and owners in Section 15.
 
 ## 1. Purpose
 
@@ -119,9 +119,9 @@ container or circulation state in a real environment.
 
 ## 8. Environment and data policy
 
-The first technical rehearsal may use the existing laptop and local hotspot if
-its runtime shape matches the controlled-pilot topology. It must be described
-as **pilot-like local staging**, never as production infrastructure.
+The first technical rehearsal uses the approved existing laptop and local
+hotspot when its runtime shape matches the controlled-pilot topology. It is
+**pilot-like local staging**, never production infrastructure.
 
 The rehearsal environment must:
 
@@ -281,22 +281,25 @@ VALIDATION`.
   open a security incident;
 - P0/P1 field defect: stop the run and suspend candidate approval.
 
-## 15. Decisions required before implementation
+## 15. Approved decisions and remaining field blockers
 
-The following decisions are intentionally not selected by this proposal:
+The product owner approved on 2026-09-27:
 
-1. **F9 target:** approve the laptop/local-hotspot topology as pilot-like local
-   staging for technical verification, or provide the real staging target.
-2. **D-003:** approve the exact return window. The current development seed is
-   48 hours but is not an approved pilot decision.
-3. **D-005:** approve whether delivery transitions directly from `AVAILABLE` to
-   `IN_USE` and leaves `ASSIGNED` unused in V1.
-4. **D-004:** either defer exceptional damaged/lost/retired operations from the
-   first controlled pilot or approve a complete transition/evidence/circulation
-   policy before including Scenario 13.
-5. **D-007:** approve a real pilot account provisioning/revocation procedure;
+1. laptop/local hotspot as pilot-like local staging for technical verification;
+2. the exact D-003 return window of 48 hours;
+3. direct `AVAILABLE → IN_USE` delivery with `ASSIGNED` unused in V1;
+4. exceptional operations restricted to `ADMIN`, with a mandatory textual
+   reason and no photo in V1.
+
+The local technical rehearsal may proceed. These items still block a real
+field `GO`:
+
+1. **D-004 active circulation:** decide whether an `IN_USE` container marked
+   damaged/lost exceptionally closes its circulation and unlinks the
+   participant, or preserves the active circulation for later resolution.
+2. **D-007:** approve a real-pilot account provisioning/revocation procedure;
    developer seed users cannot satisfy this gate.
-6. Name the Cafeteria representative, ReVuelta representative, support owner,
+3. Name the Cafeteria representative, ReVuelta representative, support owner,
    release authority, support schedule and recovery objective.
 
 ## 16. Acceptance scenarios
@@ -346,7 +349,8 @@ returns to `NO-GO` until resolution and re-verification.
 ## 17. Non-goals
 
 - declaring a real pilot ready from automated tests alone;
-- inventing the unresolved D-003, D-004, D-005 or D-007 semantics;
+- inventing the unresolved active-circulation part of D-004 or the real-pilot
+  D-007 semantics;
 - using developer seeds in production;
 - provisioning cloud infrastructure without a separate approved decision;
 - implementing offline mutations;

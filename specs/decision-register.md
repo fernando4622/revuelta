@@ -6,9 +6,9 @@ This register prevents silent assumptions.
 |---|---|---|---|---|
 | D-001 | Exact operational/admin role matrix | approved for MVP: `PARTICIPANT` → Alumno/maestro, `OPERATOR` → Cafetería, `ADMIN` → Operación ReVuelta | NO for MVP; production provisioning review remains | Product |
 | D-002 | Borrower identity model | superseded by D-019: authenticated participant account plus short-lived operation QR; no PII in QR | NO for MVP demo; production account binding remains | Product |
-| D-003 | Exact pilot return window within 1–3 days | unresolved | YES for pilot config | Product |
-| D-004 | Exceptional lifecycle transition permissions/evidence | unresolved | YES | Product + Operations |
-| D-005 | Meaning of ASSIGNED vs IN_USE | unresolved | YES | Product |
+| D-003 | Exact pilot return window within 1–3 days | approved: 48 hours from server-authoritative delivery time | NO | Product |
+| D-004 | Exceptional lifecycle transition permissions/evidence | partially approved: `ADMIN` only, mandatory textual reason, no photo in V1; effect on an active circulation remains unresolved | YES for `IN_USE` exception operations | Product + Operations |
+| D-005 | Meaning of ASSIGNED vs IN_USE | approved: `ASSIGNED` is unused in V1; physical delivery transitions `AVAILABLE` directly to `IN_USE` | NO | Product |
 | D-006 | Meaning/persistence of RETURNED state | approved: persistent pending-wash state | NO | Product |
 | D-007 | Authentication/session mechanism | approved for development/MVP demo: username/password + signed JWT for 4 hours, no refresh; production identity provisioning/revocation remains open | NO for MVP demo; YES before real pilot | Architecture/Security |
 | D-008 | Final PK/external identifier strategy | approved for MVP: application-generated UUID v4, shared as PostgreSQL PK and API identifier | NO | Architecture/Data |
@@ -36,3 +36,9 @@ D-019 does not make possession of either QR an authenticated staff session. Only
 The participant QR is emitted only for an authenticated `PARTICIPANT` account with an explicit participant association. It is read-only while resolved and is consumed atomically only when F5/F6 commits the matching handoff. Server time determines expiration.
 
 D-010 makes mutating operations deterministic for the MVP but does not promise replay of the original success response. A request observed after the first commit receives the stable conflict for its resulting state. Introducing stored idempotency keys requires a future contract decision.
+
+D-003 and D-005 were approved by the product owner on 2026-09-27 for F9.
+D-004 approval on the same date covers actor and evidence only. A container with
+an active circulation MUST NOT be moved to `DAMAGED` or `LOST` until the product
+owner decides whether that circulation is exceptionally closed and the
+participant is unlinked, or remains active for later resolution.

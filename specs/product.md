@@ -185,10 +185,13 @@ V1 is not acceptable if:
 
 ## 6. Open decisions
 
-- D-003 exact return window;
-- D-004 exceptional-state evidence details;
-- D-005 final treatment of unused `ASSIGNED`;
+- D-004 active-circulation outcome for a damaged/lost container; actor and V1
+  evidence are approved as `ADMIN`, mandatory textual reason and no photo;
 - production institutional account provisioning, recovery and token revocation beyond the approved MVP mechanism;
 - D-017 real environmental methodology;
 
-UUID v4 identifiers, UTC `Instant`, replay by stable conflict, the partial-index/optimistic-locking concurrency strategy and the dual-QR handoff are resolved for the MVP in D-008, D-009, D-010, D-013, D-019 and D-020.
+The 48-hour return policy and direct `AVAILABLE → IN_USE` delivery are resolved
+in D-003 and D-005. UUID v4 identifiers, UTC `Instant`, replay by stable
+conflict, the partial-index/optimistic-locking concurrency strategy and the
+dual-QR handoff are resolved for the MVP in D-008, D-009, D-010, D-013, D-019
+and D-020.

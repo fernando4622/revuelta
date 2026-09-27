@@ -836,9 +836,10 @@ Implementar contratos explícitos para:
 
 **Prioridad:** P0 para liberar
 **Dependencias:** todos los gates anteriores.
-**Estado 2026-09-26:** especificación de preparación propuesta en
-`specs/ops/f9-pilot-readiness.md`; el estado continúa `NO-GO` hasta resolver
-sus decisiones bloqueantes y obtener evidencia/aceptación de campo.
+**Estado 2026-09-27:** especificación aprobada para ensayo técnico local en
+laptop + hotspot. D-003 queda en 48 horas y D-005 confirma
+`AVAILABLE → IN_USE` sin usar `ASSIGNED`. El piloto real continúa `NO-GO`
+hasta resolver D-004/D-007, completar evidencia y obtener aceptación de campo.
 
 ### 13.1 Pirámide de verificación
 

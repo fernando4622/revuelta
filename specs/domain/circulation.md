@@ -1,6 +1,8 @@
 # Circulation Specification
 
-**Status:** APPROVED FOR PARTICIPANT CARDINALITY AND NORMAL HANDOFF. Policy, authentication, keys, idempotency and concurrency details retain their registered decisions.
+**Status:** APPROVED FOR PARTICIPANT CARDINALITY, 48-HOUR POLICY AND NORMAL
+HANDOFF. Authentication, keys, idempotency and concurrency details retain their
+registered decisions.
 
 ## 1. Concept
 
@@ -95,7 +97,8 @@ resolve authenticated Cafetería actor
 - Policy version and resulting due-at are preserved on the circulation.
 - Later policy changes do not recompute active circulation deadlines.
 
-Exact pilot window remains D-003.
+The pilot return window is 48 hours from server-authoritative `delivered-at`.
+Therefore `due-at = delivered-at + 48 hours` for the approved V1 policy.
 
 ## 8. Idempotency and concurrency
 

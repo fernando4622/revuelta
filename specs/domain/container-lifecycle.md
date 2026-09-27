@@ -1,6 +1,8 @@
 # Container Lifecycle Specification
 
-**Status:** APPROVED FOR NORMAL PILOT FLOW. Exceptional-state evidence and final `ASSIGNED` treatment remain open.
+**Status:** APPROVED FOR NORMAL PILOT FLOW. `ASSIGNED` treatment and V1
+exception evidence are approved; active-circulation exception outcomes remain
+open.
 
 ## 1. Concept
 
@@ -19,7 +21,7 @@ A `Container` represents one physical reusable food container that is individual
 |---|---|
 | `REGISTERED` | Exists in inventory but is not eligible for delivery |
 | `AVAILABLE` | Clean and eligible for a new circulation |
-| `ASSIGNED` | Reserved state; not used by the current immediate physical-handoff flow |
+| `ASSIGNED` | Reserved legacy vocabulary; unused and unreachable in V1 |
 | `IN_USE` | In a participant's possession through an active circulation |
 | `RETURNED` | Received by Cafetería, circulation finalized, pending washing |
 | `DAMAGED` | Unavailable because damage was recorded |
@@ -62,7 +64,14 @@ DAMAGED   → RETIRED
 LOST      → RETIRED
 ```
 
-Only Operación ReVuelta may perform them, through named use cases with a mandatory reason. Exact evidence requirements remain blocked by D-004.
+Only Operación ReVuelta (`ADMIN`) may perform exceptional transitions, through
+named use cases with a mandatory textual reason. V1 does not require a photo.
+
+Transitions from `IN_USE` remain blocked: D-004 has not resolved whether the
+active circulation must be exceptionally closed and the participant unlinked,
+or remain active for later resolution. No implementation may expose those
+transitions until that effect is approved. The remaining candidate transition
+matrix also requires an explicit implementation spec before it becomes an API.
 
 ## 6. Transition contract
 
