@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/operations/api_role_experience_repository.dart';
+import '../../domain/failure/failure.dart';
 import '../../domain/operations/role_experience.dart';
 import '../auth/auth_notifier.dart';
 import 'role_experience_repository.dart';
@@ -71,15 +72,26 @@ class WashController extends AutoDisposeAsyncNotifier<WashReceipt?> {
 
   Future<bool> complete(String containerId) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(
-      () =>
-          ref.read(roleExperienceRepositoryProvider).completeWash(containerId),
-    );
-    if (state.hasValue) {
+    try {
+      final receipt = await ref
+          .read(roleExperienceRepositoryProvider)
+          .completeWash(containerId);
+      state = AsyncValue.data(receipt);
       ref.invalidate(pendingWashesProvider);
       ref.invalidate(recentOperatorOperationsProvider);
+      return true;
+    } on NetworkFailure catch (_, stackTrace) {
+      state = AsyncValue.error(
+        const OperationResultUncertainFailure(),
+        stackTrace,
+      );
+      ref.invalidate(pendingWashesProvider);
+      ref.invalidate(recentOperatorOperationsProvider);
+      return false;
+    } catch (error, stackTrace) {
+      state = AsyncValue.error(error, stackTrace);
+      return false;
     }
-    return state.hasValue;
   }
 }
 

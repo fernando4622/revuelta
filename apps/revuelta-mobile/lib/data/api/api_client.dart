@@ -9,6 +9,10 @@ import '../auth/secure_session_storage.dart';
 typedef SessionExpiredCallback = FutureOr<void> Function();
 
 class ApiClient {
+  static const connectTimeout = Duration(seconds: 5);
+  static const sendTimeout = Duration(seconds: 10);
+  static const receiveTimeout = Duration(seconds: 10);
+
   static const defaultBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
     defaultValue: 'http://localhost:8080/api/v1',
@@ -23,8 +27,17 @@ class ApiClient {
     SessionStorage? sessionStore,
     this.onSessionExpired,
     String baseUrl = defaultBaseUrl,
-  })  : dio = dioClient ?? Dio(BaseOptions(baseUrl: baseUrl)),
+  })  : dio = dioClient ??
+            Dio(BaseOptions(
+              baseUrl: baseUrl,
+              connectTimeout: connectTimeout,
+              sendTimeout: sendTimeout,
+              receiveTimeout: receiveTimeout,
+            )),
         sessionStorage = sessionStore ?? SecureSessionStorage() {
+    dio.options.connectTimeout ??= connectTimeout;
+    dio.options.sendTimeout ??= sendTimeout;
+    dio.options.receiveTimeout ??= receiveTimeout;
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await sessionStorage.read('jwt_token');
@@ -101,6 +114,7 @@ class ApiClient {
         case 409:
           return ConflictFailure(message, code: code);
         case 400:
+        case 413:
           return ValidationFailure(message, code: code);
         default:
           return ServerFailure(message, code: code);

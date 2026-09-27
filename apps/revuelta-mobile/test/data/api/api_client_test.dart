@@ -9,6 +9,21 @@ void main() {
     final client = ApiClient(baseUrl: 'https://api.example.test/api/v1');
 
     expect(client.dio.options.baseUrl, 'https://api.example.test/api/v1');
+    expect(client.dio.options.connectTimeout, const Duration(seconds: 5));
+    expect(client.dio.options.sendTimeout, const Duration(seconds: 10));
+    expect(client.dio.options.receiveTimeout, const Duration(seconds: 10));
+  });
+
+  test('adds safe timeouts to an injected client without replacing its URL',
+      () {
+    final dio = Dio(BaseOptions(baseUrl: 'https://injected.example.test'));
+
+    final client = ApiClient(dioClient: dio);
+
+    expect(client.dio.options.baseUrl, 'https://injected.example.test');
+    expect(client.dio.options.connectTimeout, const Duration(seconds: 5));
+    expect(client.dio.options.sendTimeout, const Duration(seconds: 10));
+    expect(client.dio.options.receiveTimeout, const Duration(seconds: 10));
   });
 
   test('expired session clears credentials and emits session expiration',

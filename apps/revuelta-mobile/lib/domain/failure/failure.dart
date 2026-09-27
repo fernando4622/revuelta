@@ -14,6 +14,14 @@ class NetworkFailure extends Failure {
       : super(message, code: 'NETWORK_ERROR');
 }
 
+class OperationResultUncertainFailure extends Failure {
+  const OperationResultUncertainFailure()
+      : super(
+          'No pudimos confirmar el resultado. Actualizamos la información; revisa el estado antes de intentarlo otra vez.',
+          code: 'OPERATION_RESULT_UNCERTAIN',
+        );
+}
+
 class AuthFailure extends Failure {
   const AuthFailure(String message, {String? code})
       : super(message, code: code ?? 'AUTH_ERROR');
