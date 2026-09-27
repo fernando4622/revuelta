@@ -87,7 +87,7 @@ class CriticalJourneyE2eTest {
                         "containerQrPayload", first.qrPayload()
                 )
         ), 409);
-        assertEquals("CONTAINER_NOT_AVAILABLE", thirdPreview.get("code").stringValue());
+        assertEquals("ACTIVE_CIRCULATION_EXISTS", thirdPreview.get("code").stringValue());
 
         String returnQr = operationQr(participantToken, "RETURN");
         JsonNode returned = json(post(
