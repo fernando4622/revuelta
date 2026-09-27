@@ -1,7 +1,7 @@
 # ReVuelta — Implementation Status
 
 > **Última actualización:** 2026-09-26
-> **Estado general:** F1–F7 implementadas y verificadas para el alcance demostrable aprobado. El piloto sigue en `NO-GO` hasta cerrar F8 y F9.
+> **Estado general:** F1–F8 implementadas y verificadas para el alcance demostrable aprobado. El piloto sigue en `NO-GO` hasta cerrar F9.
 >
 > **Nota de auditoría:** las afirmaciones históricas de “completado” incluidas más abajo deben interpretarse junto con la revisión de UI de la sección 10 y el estado `NO-GO` de `ROADMAP.md`.
 
@@ -33,7 +33,7 @@
 │   ├── src/main/resources/
 │   │   ├── db/migration/        ✅ V1–V8 comunes; semillas demo aisladas en `db/dev`
 │   │   └── openapi.yaml         ✅ OpenAPI 3.0 specification contract
-│   └── src/test/java/           ✅ 73 pruebas de dominio, aplicación, migración, contrato, seguridad, adaptación y arquitectura
+│   └── src/test/java/           ✅ 124 pruebas de dominio, aplicación, migración, contrato, seguridad, observabilidad, adaptación y arquitectura
 └── apps/revuelta-mobile/        ✅ App Flutter (Clean Arch + Riverpod AsyncNotifier)
     ├── pubspec.yaml             ✅ Dependencias (riverpod, dio, secure_storage, mobile_scanner)
     └── lib/
@@ -82,6 +82,7 @@ El repositorio tiene una base ejecutable y verificable, pero los flujos MVP rest
 | `specs/ui/cafeteria-experience.md` | Draft | Herramienta operativa de cafetería |
 | `specs/ui/revuelta-operations-experience.md` | Draft | Administración del piloto ITVer |
 | `specs/ops/observability.md` | Approved Baseline | Logging, métricas |
+| `specs/ops/f8-hardening.md` | Verified F8 | JWT, HTTP, límites, observabilidad y resiliencia |
 | ADR-001 a ADR-006 | Accepted Baseline | Decisiones arquitectónicas |
 
 ---
@@ -237,7 +238,7 @@ UUID v4, UTC `Instant`, replay por conflicto estable y la combinación índice p
 | F5 — Entrega | ✅ Cerrada | Mutación atómica y aceptación física |
 | F6 — Devolución | ✅ Cerrada | Mutación atómica, resultado `RETURNED` y aceptación integrada |
 | F7 — Flutter limpio, historial y perspectivas | ✅ Cerrada | Datos reales por rol, lavado, inventario y auditoría; módulos D-004 no se simulan |
-| F8 — Seguridad, observabilidad y resiliencia | ⏳ Pendiente | Siguiente fase; no iniciada en este incremento |
+| F8 — Seguridad, observabilidad y resiliencia | ✅ Cerrada | JWT contextual/rotación, límites, métricas, probes, timeouts, runbook y recuperación verificados |
 | F9 — Verificación integral y piloto | ⏳ Pendiente | Salida controlada, rollback y evidencia final |
 
 ---
@@ -410,3 +411,15 @@ Las specs permiten comenzar la separación de shells y estados visuales mediante
 - `flutter test`: 34 pruebas aprobadas; el APK debug se compiló para `http://192.168.137.1:8080/api/v1`.
 - Docker reconstruido con salud `UP`; smoke autenticado: consultas Alumno/Maestro, Cafetería y ReVuelta respondieron `200`, y el acceso de Alumno/Maestro a administración respondió `403`.
 - F7 queda cerrada para el alcance aprobado. F8 no se inició en este bloque.
+
+## 22. Cierre de F8 — seguridad, observabilidad y resiliencia — 2026-09-26
+
+- JWT valida `kid`, firma, issuer, audience, UUID subject, rol conocido, username, emisión y expiración; la clave activa emite y un anillo de claves anteriores permite rotación solapada controlada.
+- CORS queda negado por defecto y limitado a orígenes localhost configurados en `dev`; se añadieron cabeceras defensivas, límites de campo/cuerpo/cabeceras y errores seguros `413/503`.
+- Todas las mutaciones críticas emiten log JSON correlacionado y métricas con etiquetas acotadas; Prometheus requiere `ADMIN`, mientras liveness/readiness públicas exponen solo estado agregado.
+- Flutter usa timeouts 5/10/10 segundos, no reintenta mutaciones ni QR automáticamente y trata un lavado incierto refrescando la cola antes de permitir otra acción.
+- El runbook define diagnóstico, contención, alertas, rotación JWT y recuperación; la revisión de seguridad no deja hallazgos P0/P1 abiertos en el alcance MVP/demo.
+- `mvn verify`: 124 pruebas, 0 fallos/errores/omitidas. `flutter test`: 36 pruebas aprobadas. Redocly validó OpenAPI y Trivy reportó 0 vulnerabilidades `HIGH/CRITICAL` corregibles y 0 secretos.
+- El ensayo Docker mantuvo liveness `200` y readiness `503` con PostgreSQL detenido; después del reinicio readiness volvió a `200` y el mismo recurso persistido siguió disponible. Ambos contenedores quedaron saludables.
+- APK debug recompilado para `http://192.168.137.1:8080/api/v1`.
+- F8 queda cerrada. No se inició F9 y el piloto continúa en `NO-GO`.

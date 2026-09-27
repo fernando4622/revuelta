@@ -26,11 +26,20 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/revuelta_db
       SPRING_DATASOURCE_USERNAME: revuelta_user
       SPRING_DATASOURCE_PASSWORD: revuelta_password
-      JWT_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      JWT_ACTIVE_KEY_ID: dev-current
+      JWT_ACTIVE_SECRET: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      JWT_ISSUER: revuelta-api
+      JWT_AUDIENCE: revuelta-mobile
       QR_SIGNING_SECRET: cmV2dWVsdGEtZGV2LXFyLXNpZ25pbmctc2VjcmV0ISE=
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health/liveness"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 30s
     profiles:
       - full
 

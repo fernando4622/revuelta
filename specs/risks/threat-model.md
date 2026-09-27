@@ -71,3 +71,26 @@
 **Impact:** client retries mutation.
 
 **Mitigations:** idempotency/deduplication, query-after-timeout strategy where useful, deterministic command state.
+
+## RISK-011 Token context and key rollover
+**Threat:** a correctly signed token is accepted by the wrong service/context, or key replacement invalidates every in-flight session without a controlled overlap.
+
+**Mitigations:** mandatory issuer/audience/subject/role/time claims, protected `kid`, active signing key plus bounded verification-only previous keys, uniform public authentication failure.
+
+## RISK-012 Resource exhaustion by untrusted input
+**Threat:** oversized headers, JSON bodies, fields or database connection demand consume pilot resources.
+
+**Mitigations:** explicit 16 KiB header/body limits, bounded field/query/pagination validation, ten-connection pool, short acquisition/validation timeouts and safe `400/413/503` responses.
+
+## RISK-013 Dependency outage without diagnosis
+**Threat:** PostgreSQL becomes unavailable while the API process still responds, causing ambiguous failures or unsafe retries.
+
+**Mitigations:** readiness includes database while liveness does not, dependency failures map to safe `503`, mutations are not automatically retried, structured correlation/metrics and the F8 recovery runbook guide containment.
+
+## F8 review status
+
+Controls for RISK-001 through RISK-013 within the approved MVP/demo scope were
+reviewed on 2026-09-26. No P0/P1 finding remains open in that scope. Residual
+production identity, TLS, backup/restore, rollback and field-validation risks
+remain explicitly gated by F9 and the decision register; see
+`docs/security/f8-security-review.md`.

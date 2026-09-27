@@ -1,6 +1,6 @@
 # Observability Specification
 
-**Status:** APPROVED BASELINE.
+**Status:** APPROVED AND IMPLEMENTED FOR F8.
 
 ## 1. Correlation
 
@@ -43,6 +43,11 @@ Backend MUST expose liveness/readiness semantics appropriate to deployment.
 
 Health endpoints MUST not expose secrets or detailed infrastructure credentials.
 
+For F8, `/actuator/health/liveness` and `/actuator/health/readiness` are public
+and expose only aggregate status. PostgreSQL participates in readiness, not
+liveness. Prometheus output requires `ADMIN`; all other actuator endpoints are
+unavailable.
+
 ## 5. Metrics
 
 Minimum useful metrics:
@@ -57,3 +62,7 @@ Minimum useful metrics:
 - API latency for critical operations.
 
 Metrics MUST NOT be treated as the business source of truth; they are operational observations.
+
+F8 uses bounded `operation`, `outcome`, HTTP status and stable error-code labels.
+Identifiers and correlation values are prohibited as metric labels. Alert
+thresholds and recovery actions are governed by `docs/runbooks/f8-operations.md`.

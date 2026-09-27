@@ -1,6 +1,6 @@
 # F8 Security, Observability and Resilience Specification
 
-**Status:** PROPOSED — requires approval before implementation.
+**Status:** VERIFIED AND CLOSED FOR F8 on 2026-09-26.
 
 ## 1. Purpose
 
@@ -33,7 +33,7 @@ or a production identity provider.
 - an attacker controlling HTTP headers, bodies, JWT values, QR payloads,
   identifiers, timing and request repetition.
 
-## 4. JWT policy proposed for approval
+## 4. JWT policy
 
 Every issued access token contains and every protected request validates:
 
@@ -66,7 +66,7 @@ production configuration.
 This is signing-key rotation, not per-user token revocation. Early revocation
 remains outside the approved MVP authentication scope.
 
-## 5. HTTP security policy proposed for approval
+## 5. HTTP security policy
 
 - Native Flutter requests do not depend on CORS.
 - Browser origins are denied by default.
@@ -88,7 +88,7 @@ Actuator access is separated:
   tokens, QR payloads or secrets;
 - every other actuator endpoint remains unavailable.
 
-## 6. Input and resource limits proposed for approval
+## 6. Input and resource limits
 
 Transport validation adds limits without changing identifier meaning:
 
@@ -245,3 +245,17 @@ then it queries server state and does not resubmit the command automatically.
 - per-user token revocation or refresh tokens;
 - treating metrics/logs as audit history;
 - installing a cloud alert delivery provider.
+
+## 13. Verification evidence
+
+- backend `mvn verify`: 124 tests, 0 failures/errors/skips;
+- Flutter: 36 tests passing; analysis has no errors or warnings, only existing informational lints;
+- Redocly 2.53.3: OpenAPI valid;
+- Trivy 0.74.0: 0 fixable `HIGH/CRITICAL` vulnerabilities and 0 detected secrets;
+- Docker: API and PostgreSQL healthy after rebuild;
+- outage drill: PostgreSQL stopped while liveness stayed `200`, readiness returned `503`, readiness recovered to `200`, and the same persisted resource remained queryable;
+- debug APK built for the approved local hotspot URL.
+
+Operational and security evidence lives in
+`docs/runbooks/f8-operations.md` and `docs/security/f8-security-review.md`.
+F9 remains out of scope and is the next phase.
