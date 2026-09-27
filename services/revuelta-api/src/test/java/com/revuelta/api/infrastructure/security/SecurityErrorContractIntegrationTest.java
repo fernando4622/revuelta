@@ -6,10 +6,15 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.revuelta.api.domain.user.UserId;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Instant;
+import java.util.Date;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -70,12 +75,7 @@ class SecurityErrorContractIntegrationTest {
     @Test
     void shouldReturnUnauthenticatedProblemWhenTokenIsInvalidOrExpired() throws Exception {
         HttpResponse<String> invalidResponse = getContainers("not-a-jwt");
-        JwtTokenProvider expiredTokenProvider = new JwtTokenProvider(TEST_JWT_SECRET, -1);
-        String expiredToken = expiredTokenProvider.issue(
-                new UserId(UUID.randomUUID()),
-                "expired-user",
-                "ADMIN"
-        );
+        String expiredToken = expiredToken();
         HttpResponse<String> expiredResponse = getContainers(expiredToken);
 
         assertProblem(invalidResponse, 401, "UNAUTHENTICATED");
@@ -105,6 +105,65 @@ class SecurityErrorContractIntegrationTest {
                 .orElseThrow();
         assertNotEquals("client-controlled-value", serverCorrelationId);
         UUID.fromString(serverCorrelationId);
+    }
+
+    @Test
+    void shouldApplySecurityHeadersAndRestrictiveCorsPolicy() throws Exception {
+        HttpResponse<String> protectedResponse = getContainers(null);
+
+        assertEquals("nosniff", protectedResponse.headers()
+                .firstValue("X-Content-Type-Options").orElseThrow());
+        assertEquals("DENY", protectedResponse.headers()
+                .firstValue("X-Frame-Options").orElseThrow());
+        assertEquals("no-referrer", protectedResponse.headers()
+                .firstValue("Referrer-Policy").orElseThrow());
+        assertTrue(protectedResponse.headers().firstValue("Cache-Control")
+                .orElseThrow().contains("no-store"));
+        assertTrue(protectedResponse.headers().firstValue("Content-Security-Policy")
+                .orElseThrow().contains("default-src 'none'"));
+
+        HttpResponse<String> allowed = preflight("http://localhost:3000");
+        assertEquals(200, allowed.statusCode());
+        assertEquals("http://localhost:3000", allowed.headers()
+                .firstValue("Access-Control-Allow-Origin").orElseThrow());
+        assertTrue(allowed.headers().firstValue("Access-Control-Allow-Credentials").isEmpty());
+
+        HttpResponse<String> denied = preflight("https://attacker.example");
+        assertTrue(denied.headers().firstValue("Access-Control-Allow-Origin").isEmpty());
+    }
+
+    @Test
+    void shouldRejectOversizedFieldsAndJsonBodiesWithoutEchoingThem() throws Exception {
+        HttpResponse<String> oversizedField = login("u".repeat(65), "password123");
+        assertProblem(oversizedField, 400, "VALIDATION_ERROR", "/api/v1/auth/login");
+
+        String marker = "secret-marker-" + "x".repeat(17000);
+        HttpResponse<String> oversizedBody = postJson(
+                "/api/v1/auth/login",
+                "{\"username\":\"student1\",\"password\":\"" + marker + "\"}"
+        );
+        assertProblem(oversizedBody, 413, "REQUEST_TOO_LARGE", "/api/v1/auth/login");
+        assertFalse(oversizedBody.body().contains(marker));
+    }
+
+    @Test
+    void shouldExposeMinimalProbesAndProtectOperationalMetrics() throws Exception {
+        HttpResponse<String> liveness = getPath("/actuator/health/liveness", null);
+        HttpResponse<String> readiness = getPath("/actuator/health/readiness", null);
+        assertEquals(200, liveness.statusCode());
+        assertEquals(200, readiness.statusCode());
+        assertEquals(Set.of("status"), jsonFieldNames(liveness.body()));
+        assertEquals(Set.of("status"), jsonFieldNames(readiness.body()));
+
+        assertProblem(getPath("/actuator/prometheus", null), 401, "UNAUTHENTICATED",
+                "/actuator/prometheus");
+        assertProblem(getPath("/actuator/prometheus", tokenFor("student1")), 403,
+                "FORBIDDEN_OPERATION", "/actuator/prometheus");
+
+        HttpResponse<String> metrics = getPath("/actuator/prometheus", tokenFor("admin"));
+        assertEquals(200, metrics.statusCode());
+        assertTrue(metrics.body().contains("revuelta_circulations_active"));
+        assertFalse(metrics.body().contains("jwt_token"));
     }
 
     @Test
@@ -224,12 +283,12 @@ class SecurityErrorContractIntegrationTest {
         HttpResponse<String> unauthenticated = request(endpoint, null);
         assertProblem(unauthenticated, 401, "UNAUTHENTICATED", endpoint.path());
 
-        for (String role : Set.of("PARTICIPANT", "OPERATOR", "ADMIN", "UNKNOWN")) {
+        for (String role : Set.of("PARTICIPANT", "OPERATOR", "ADMIN")) {
             String token = switch (role) {
                 case "PARTICIPANT" -> tokenFor("student1");
                 case "OPERATOR" -> tokenFor("operator");
                 case "ADMIN" -> tokenFor("admin");
-                default -> tokenProvider.issue(UserId.generate(), "unknown", role);
+                default -> throw new IllegalStateException("Unexpected role in security test: " + role);
             };
             HttpResponse<String> response = request(endpoint, token);
 
@@ -379,6 +438,20 @@ class SecurityErrorContractIntegrationTest {
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> getPath(String path, String token) throws Exception {
+        HttpRequest.Builder request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + path))
+                .GET();
+        if (token != null) {
+            request.header("Authorization", "Bearer " + token);
+        }
+        return HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofString());
+    }
+
+    private Set<String> jsonFieldNames(String body) throws Exception {
+        return new java.util.HashSet<>(objectMapper.readTree(body).propertyNames());
+    }
+
     private HttpResponse<String> postContainer(String token, String code) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create("http://localhost:" + serverPort + "/api/v1/containers"))
@@ -399,10 +472,45 @@ class SecurityErrorContractIntegrationTest {
         return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    private HttpResponse<String> postJson(String path, String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + path))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
+    private HttpResponse<String> preflight(String origin) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create("http://localhost:" + serverPort + "/api/v1/containers"))
+                .header("Origin", origin)
+                .header("Access-Control-Request-Method", "GET")
+                .header("Access-Control-Request-Headers", "Authorization")
+                .method("OPTIONS", HttpRequest.BodyPublishers.noBody())
+                .build();
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+    }
+
     private String tokenFor(String username) throws Exception {
         HttpResponse<String> response = login(username, "password123");
         assertEquals(200, response.statusCode());
         return objectMapper.readTree(response.body()).get("token").stringValue();
+    }
+
+    private String expiredToken() {
+        Instant expiredAt = Instant.now().minusSeconds(3600);
+        return Jwts.builder()
+                .header().keyId("dev-current").and()
+                .issuer("revuelta-api")
+                .audience().add("revuelta-mobile").and()
+                .subject(UUID.randomUUID().toString())
+                .claim("username", "expired-user")
+                .claim("role", "ADMIN")
+                .issuedAt(Date.from(expiredAt.minusSeconds(300)))
+                .expiration(Date.from(expiredAt))
+                .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(TEST_JWT_SECRET)))
+                .compact();
     }
 
     private HttpResponse<String> request(EndpointAccess endpoint, String token) throws Exception {

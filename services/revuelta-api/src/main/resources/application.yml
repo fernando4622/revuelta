@@ -6,6 +6,11 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_MAX_POOL_SIZE:10}
+      minimum-idle: ${DB_MIN_IDLE:2}
+      connection-timeout: ${DB_CONNECTION_TIMEOUT_MS:3000}
+      validation-timeout: ${DB_VALIDATION_TIMEOUT_MS:1000}
   jpa:
     open-in-view: false
     hibernate:
@@ -17,8 +22,48 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET}
+  active-key-id: ${JWT_ACTIVE_KEY_ID:current}
+  active-secret: ${JWT_ACTIVE_SECRET:${jwt.secret}}
+  previous-keys: ${JWT_PREVIOUS_KEYS:}
+  issuer: ${JWT_ISSUER:revuelta-api}
+  audience: ${JWT_AUDIENCE:revuelta-mobile}
   expiration-hours: ${JWT_EXPIRATION_HOURS:4}
+  clock-skew-seconds: ${JWT_CLOCK_SKEW_SECONDS:30}
 
 qr:
   signing-secret: ${QR_SIGNING_SECRET}
   operation-ttl-seconds: ${QR_OPERATION_TTL_SECONDS:120}
+
+security:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  max-json-body-bytes: ${MAX_JSON_BODY_BYTES:16384}
+
+server:
+  max-http-request-header-size: 16KB
+  tomcat:
+    connection-timeout: 5s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db
+  metrics:
+    tags:
+      service: revuelta-api
+
+logging:
+  structured:
+    format:
+      console: logstash

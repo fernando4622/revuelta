@@ -6,8 +6,10 @@ import com.revuelta.api.application.circulation.PreviewReturnUseCase;
 import com.revuelta.api.application.circulation.ReturnContainerUseCase;
 import com.revuelta.api.application.container.GetContainerHistoryUseCase;
 import com.revuelta.api.domain.container.ContainerId;
+import com.revuelta.api.domain.circulation.Punctuality;
 import com.revuelta.api.domain.event.ContainerEvent;
 import com.revuelta.api.domain.user.UserId;
+import com.revuelta.api.infrastructure.observability.OperationalTelemetry;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -31,6 +33,7 @@ public class CirculationController {
     private final PreviewReturnUseCase previewReturnUseCase;
     private final ReturnContainerUseCase returnContainerUseCase;
     private final GetContainerHistoryUseCase getContainerHistoryUseCase;
+    private final OperationalTelemetry telemetry;
 
     @PostMapping("/circulations")
     @PreAuthorize("hasRole('OPERATOR')")
@@ -85,6 +88,9 @@ public class CirculationController {
                 request.containerQrPayload(),
                 operatorId
         );
+        if (result.circulation().punctuality() == Punctuality.LATE) {
+            telemetry.recordLateReturn();
+        }
         return ResponseEntity.ok(ReturnReceiptResponse.fromResult(result));
     }
 

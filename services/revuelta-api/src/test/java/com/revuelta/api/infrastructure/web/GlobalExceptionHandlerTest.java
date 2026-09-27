@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 
 import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCode;
+import com.revuelta.api.infrastructure.observability.OperationalTelemetry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpInputMessage;
@@ -21,7 +23,7 @@ class GlobalExceptionHandlerTest {
     void shouldMapNotFoundApplicationFailureWithoutLosingItsCode() {
         HttpServletRequest request = mockRequest("/api/v1/containers/missing");
 
-        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = new GlobalExceptionHandler()
+        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = handler()
                 .handleApplicationFailure(
                         new ApplicationFailureException(FailureCode.CONTAINER_NOT_FOUND, "Container was not found"),
                         request
@@ -36,7 +38,7 @@ class GlobalExceptionHandlerTest {
     void shouldMapConflictApplicationFailureWithoutLosingItsCode() {
         HttpServletRequest request = mockRequest("/api/v1/circulations");
 
-        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = new GlobalExceptionHandler()
+        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = handler()
                 .handleApplicationFailure(
                         new ApplicationFailureException(FailureCode.ACTIVE_CIRCULATION_EXISTS, "Active circulation exists"),
                         request
@@ -51,7 +53,7 @@ class GlobalExceptionHandlerTest {
     void shouldReturnBadRequestForMalformedJsonWithoutExposingParserDetails() {
         HttpServletRequest request = mockRequest("/api/v1/auth/login");
 
-        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = new GlobalExceptionHandler()
+        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = handler()
                 .handleUnreadableRequest(
                         new HttpMessageNotReadableException(
                                 "unexpected parser details",
@@ -70,7 +72,7 @@ class GlobalExceptionHandlerTest {
     void shouldReturnBadRequestForMalformedPathIdentifierWithoutExposingConversionDetails() {
         HttpServletRequest request = mockRequest("/api/v1/containers/not-a-uuid");
 
-        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = new GlobalExceptionHandler()
+        ResponseEntity<GlobalExceptionHandler.ProblemDetail> response = handler()
                 .handleTypeMismatch(
                         new MethodArgumentTypeMismatchException(
                                 "not-a-uuid",
@@ -92,5 +94,11 @@ class GlobalExceptionHandlerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRequestURI()).thenReturn(uri);
         return request;
+    }
+
+    private GlobalExceptionHandler handler() {
+        return new GlobalExceptionHandler(
+                new OperationalTelemetry(new SimpleMeterRegistry())
+        );
     }
 }

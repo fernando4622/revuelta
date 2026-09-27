@@ -5,8 +5,13 @@ import com.revuelta.api.application.failure.ApplicationFailureException;
 import com.revuelta.api.application.failure.FailureCategory;
 import com.revuelta.api.domain.container.ContainerTransitionException;
 import com.revuelta.api.domain.circulation.CirculationTransitionException;
+import com.revuelta.api.infrastructure.observability.CriticalOperationClassifier;
+import com.revuelta.api.infrastructure.observability.OperationalTelemetry;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataAccessResourceFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,13 +22,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.transaction.CannotCreateTransactionException;
 
 import java.time.Instant;
 import java.util.List;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final OperationalTelemetry telemetry;
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ProblemDetail> handleAuthenticationRequired(
@@ -93,6 +102,10 @@ public class GlobalExceptionHandler {
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .toList();
 
+        telemetry.recordFailureCode(
+                CriticalOperationClassifier.classify(request.getMethod(), request.getRequestURI()),
+                "VALIDATION_ERROR"
+        );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .contentType(MediaType.APPLICATION_PROBLEM_JSON)
                 .body(new ProblemDetail(
@@ -134,10 +147,57 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolation(
+            ConstraintViolationException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.BAD_REQUEST,
+                "VALIDATION_ERROR",
+                "Request parameter validation failed",
+                request
+        );
+    }
+
+    @ExceptionHandler(RequestTooLargeException.class)
+    public ResponseEntity<ProblemDetail> handleRequestTooLarge(
+            RequestTooLargeException ex,
+            HttpServletRequest request
+    ) {
+        return buildProblem(
+                HttpStatus.PAYLOAD_TOO_LARGE,
+                "REQUEST_TOO_LARGE",
+                "Request body exceeds the permitted size",
+                request
+        );
+    }
+
+    @ExceptionHandler({DataAccessResourceFailureException.class, CannotCreateTransactionException.class})
+    public ResponseEntity<ProblemDetail> handleDependencyUnavailable(
+            RuntimeException ex,
+            HttpServletRequest request
+    ) {
+        log.atError()
+                .addKeyValue("outcome", "dependency_unavailable")
+                .addKeyValue("dependency", "database")
+                .addKeyValue("exceptionType", ex.getClass().getSimpleName())
+                .log("required_dependency_unavailable");
+        return buildProblem(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "DEPENDENCY_UNAVAILABLE",
+                "A required service is temporarily unavailable",
+                request
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnexpected(Exception ex, HttpServletRequest request) {
         String traceId = CorrelationId.resolve(request);
-        log.error("Unexpected server failure [traceId={}]: ", traceId, ex);
+        log.atError()
+                .addKeyValue("outcome", "unexpected_failure")
+                .addKeyValue("exceptionType", ex.getClass().getSimpleName())
+                .log("unexpected_server_failure");
 
         return buildProblem(
                 HttpStatus.INTERNAL_SERVER_ERROR,
@@ -153,6 +213,10 @@ public class GlobalExceptionHandler {
             String detail,
             HttpServletRequest request
     ) {
+        telemetry.recordFailureCode(
+                CriticalOperationClassifier.classify(request.getMethod(), request.getRequestURI()),
+                code
+        );
         ProblemDetail problem = new ProblemDetail(
                 "https://revuelta.app/problems/" + code.toLowerCase().replace('_', '-'),
                 status.getReasonPhrase(),

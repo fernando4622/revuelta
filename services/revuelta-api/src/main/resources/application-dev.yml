@@ -10,10 +10,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
+    show-sql: false
   flyway:
     enabled: true
     validate-on-migrate: true
@@ -21,7 +18,13 @@ spring:
 
 jwt:
   secret: ${JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+  active-key-id: ${JWT_ACTIVE_KEY_ID:dev-current}
+  active-secret: ${JWT_ACTIVE_SECRET:${jwt.secret}}
+  previous-keys: ${JWT_PREVIOUS_KEYS:}
+  issuer: ${JWT_ISSUER:revuelta-api}
+  audience: ${JWT_AUDIENCE:revuelta-mobile}
   expiration-hours: ${JWT_EXPIRATION_HOURS:4}
+  clock-skew-seconds: ${JWT_CLOCK_SKEW_SECONDS:30}
 
 qr:
   signing-secret: ${QR_SIGNING_SECRET:cmV2dWVsdGEtZGV2LXFyLXNpZ25pbmctc2VjcmV0ISE=}
@@ -31,3 +34,7 @@ logging:
   level:
     root: INFO
     com.revuelta.api: DEBUG
+
+security:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}

@@ -3,6 +3,7 @@ package com.revuelta.api.interfaces.rest;
 import com.revuelta.api.application.auth.LoginUseCase;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -30,8 +31,12 @@ public class AuthController {
     }
 
     public record LoginRequest(
-            @NotBlank(message = "Username must not be blank") String username,
-            @NotBlank(message = "Password must not be blank") String password
+            @NotBlank(message = "Username must not be blank")
+            @Size(max = 64, message = "Username must contain at most 64 characters")
+            String username,
+            @NotBlank(message = "Password must not be blank")
+            @Size(max = 128, message = "Password must contain at most 128 characters")
+            String password
     ) {}
 
     public record LoginResponse(

@@ -21,8 +21,8 @@ paths:
               type: object
               required: [username, password]
               properties:
-                username: { type: string, example: "operator" }
-                password: { type: string, example: "password123" }
+                username: { type: string, minLength: 1, maxLength: 64, example: "operator" }
+                password: { type: string, minLength: 1, maxLength: 128, example: "password123" }
       responses:
         '200':
           description: Successful authentication
@@ -53,8 +53,12 @@ paths:
             application/problem+json:
               schema:
                 $ref: '#/components/schemas/ProblemDetail'
+        '413':
+          $ref: '#/components/responses/413PayloadTooLarge'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /me/operation-qrs:
     post:
@@ -83,7 +87,9 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operation-qr-resolutions:
     post:
@@ -99,7 +105,7 @@ paths:
               type: object
               required: [payload]
               properties:
-                payload: { type: string, maxLength: 512 }
+                payload: { type: string, minLength: 1, maxLength: 512 }
       responses:
         '200':
           description: Minimal participant handoff identity
@@ -113,7 +119,9 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /container-qr-resolutions:
     post:
@@ -129,7 +137,7 @@ paths:
               type: object
               required: [payload]
               properties:
-                payload: { type: string, maxLength: 512 }
+                payload: { type: string, minLength: 1, maxLength: 512 }
       responses:
         '200':
           description: Real operational container state and allowed actions
@@ -143,7 +151,9 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /containers:
     post:
@@ -159,7 +169,7 @@ paths:
               type: object
               required: [code]
               properties:
-                code: { type: string, example: "CTR-100" }
+                code: { type: string, minLength: 1, maxLength: 64, example: "CTR-100" }
       responses:
         '201':
           $ref: '#/components/responses/RegisteredContainerResponse'
@@ -171,8 +181,12 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '413':
+          $ref: '#/components/responses/413PayloadTooLarge'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
     get:
       summary: List containers (paginated)
       operationId: listContainers
@@ -181,7 +195,7 @@ paths:
       parameters:
         - name: query
           in: query
-          schema: { type: string }
+          schema: { type: string, maxLength: 64 }
         - name: status
           in: query
           schema: { $ref: '#/components/schemas/ContainerState' }
@@ -208,6 +222,8 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /containers/{containerId}:
     get:
@@ -233,6 +249,8 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /containers/{containerId}/activate:
     post:
@@ -252,7 +270,7 @@ paths:
             schema:
               type: object
               properties:
-                reason: { type: string, example: "Initial activation" }
+                reason: { type: string, maxLength: 500, example: "Initial activation" }
       responses:
         '200':
           $ref: '#/components/responses/ContainerResponse'
@@ -266,8 +284,12 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '413':
+          $ref: '#/components/responses/413PayloadTooLarge'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /containers/{containerId}/qr:
     get:
@@ -293,6 +315,7 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /containers/{containerId}/qr-rotations:
     post:
@@ -313,7 +336,7 @@ paths:
               type: object
               required: [reason]
               properties:
-                reason: { type: string, minLength: 1 }
+                reason: { type: string, minLength: 1, maxLength: 500 }
       responses:
         '200':
           description: Newly rotated container QR payload
@@ -327,7 +350,9 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /delivery-previews:
     post:
@@ -359,7 +384,9 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /circulations:
     post:
@@ -396,8 +423,12 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '413':
+          $ref: '#/components/responses/413PayloadTooLarge'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /return-previews:
     post:
@@ -429,8 +460,12 @@ paths:
           $ref: '#/components/responses/404NotFound'
         '409':
           $ref: '#/components/responses/409Conflict'
+        '413':
+          $ref: '#/components/responses/413PayloadTooLarge'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /circulation-returns:
     post:
@@ -457,7 +492,9 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
+        '413': { $ref: '#/components/responses/413PayloadTooLarge' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /containers/{containerId}/history:
     get:
@@ -493,6 +530,8 @@ paths:
           $ref: '#/components/responses/403Forbidden'
         '500':
           $ref: '#/components/responses/500InternalServerError'
+        '503':
+          $ref: '#/components/responses/503ServiceUnavailable'
 
   /me/circulations:
     get:
@@ -517,6 +556,7 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '409': { $ref: '#/components/responses/409Conflict' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /me/circulations/{circulationId}:
     get:
@@ -540,6 +580,7 @@ paths:
         '403': { $ref: '#/components/responses/403Forbidden' }
         '404': { $ref: '#/components/responses/404NotFound' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operator/pending-washes:
     get:
@@ -560,6 +601,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operator/recent-operations:
     get:
@@ -580,6 +622,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /containers/{containerId}/wash-completions:
     post:
@@ -604,6 +647,7 @@ paths:
         '404': { $ref: '#/components/responses/404NotFound' }
         '409': { $ref: '#/components/responses/409Conflict' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operations/summary:
     get:
@@ -620,6 +664,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operations/participants:
     get:
@@ -640,6 +685,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operations/circulations:
     get:
@@ -663,6 +709,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
   /operations/events:
     get:
@@ -686,6 +733,7 @@ paths:
         '401': { $ref: '#/components/responses/401Unauthenticated' }
         '403': { $ref: '#/components/responses/403Forbidden' }
         '500': { $ref: '#/components/responses/500InternalServerError' }
+        '503': { $ref: '#/components/responses/503ServiceUnavailable' }
 
 components:
   parameters:
@@ -1167,6 +1215,24 @@ components:
             $ref: '#/components/schemas/ProblemDetail'
     409Conflict:
       description: Business Conflict / State Machine Error
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    413PayloadTooLarge:
+      description: JSON request body exceeds the 16 KiB operational limit
+      headers:
+        X-Correlation-ID:
+          $ref: '#/components/headers/CorrelationId'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    503ServiceUnavailable:
+      description: A required dependency is temporarily unavailable
       headers:
         X-Correlation-ID:
           $ref: '#/components/headers/CorrelationId'

@@ -1,6 +1,6 @@
 # REST API Contract Baseline
 
-**Status:** APPROVED F2 BASELINE for identifiers, time, error shape, correlation and MVP replay behavior. Production identity binding and unimplemented feature contracts remain gated in their own phases.
+**Status:** APPROVED F2 BASELINE, hardened by the approved F8 transport contract. Production identity binding and unimplemented feature contracts remain gated in their own phases.
 
 ## 1. Contract principles
 
@@ -135,6 +135,12 @@ All errors follow `specs/api/errors.md`.
 500 safe unexpected failure
 503 unavailable dependency
 ```
+
+F8 additionally requires every JSON request-body operation to declare `413`
+for the 16 KiB limit and every implemented operation to declare safe `503`
+dependency failure behavior. Field limits in OpenAPI are authoritative for
+username, password transport values, QR payloads, container codes, reason text,
+inventory query and pagination.
 
 ## 10. Contract acceptance
 

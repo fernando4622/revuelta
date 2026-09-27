@@ -50,9 +50,18 @@ PARTICIPANT_INACTIVE
 PARTICIPANT_CODE_RECOVERY_NOT_SUPPORTED
 CONTAINER_NOT_RETURNED
 WASH_ALREADY_COMPLETED
+REQUEST_TOO_LARGE
+DEPENDENCY_UNAVAILABLE
 ```
 
 A feature may add a code only when its spec explains the exact condition.
+
+`REQUEST_TOO_LARGE` is a transport rejection for a JSON body larger than the
+approved F8 limit. It maps to HTTP `413` and never echoes submitted content.
+
+`DEPENDENCY_UNAVAILABLE` represents a temporary required-infrastructure outage
+such as loss of database connectivity. It maps to HTTP `503` without exposing
+connection details.
 
 `CONTAINER_CODE_ALREADY_EXISTS` is returned when container registration receives a
 normalized code that is already owned by another container. It is a conflict and

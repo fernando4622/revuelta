@@ -10,11 +10,13 @@ import com.revuelta.api.domain.container.ContainerId;
 import com.revuelta.api.domain.user.UserId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
@@ -24,6 +26,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1/containers")
 @RequiredArgsConstructor
+@Validated
 public class ContainerController {
 
     private final RegisterContainerUseCase registerContainerUseCase;
@@ -51,7 +54,7 @@ public class ContainerController {
     public ResponseEntity<ContainerResponse> activate(
             @PathVariable UUID containerId,
             @AuthenticationPrincipal String actorIdString,
-            @RequestBody(required = false) ActivateRequest request
+            @Valid @RequestBody(required = false) ActivateRequest request
     ) {
         String reason = (request != null && request.reason() != null) ? request.reason() : "Activation";
         UserId actorId = new UserId(UUID.fromString(actorIdString));
@@ -69,7 +72,8 @@ public class ContainerController {
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<PageResponse<ContainerResponse>> list(
-            @RequestParam(required = false) String query,
+            @RequestParam(required = false)
+            @Size(max = 64, message = "query must contain at most 64 characters") String query,
             @RequestParam(required = false) com.revuelta.api.domain.container.ContainerStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -91,8 +95,13 @@ public class ContainerController {
         return ResponseEntity.ok(WashCompletionResponse.fromResult(result));
     }
 
-    public record RegisterContainerRequest(@NotBlank(message = "Code must not be blank") String code) {}
-    public record ActivateRequest(String reason) {}
+    public record RegisterContainerRequest(
+            @NotBlank(message = "Code must not be blank")
+            @Size(max = 64, message = "Code must contain at most 64 characters") String code
+    ) {}
+    public record ActivateRequest(
+            @Size(max = 500, message = "Reason must contain at most 500 characters") String reason
+    ) {}
 
     public record RegisteredContainerResponse(
             String id,

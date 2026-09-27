@@ -11,6 +11,7 @@ import com.revuelta.api.domain.user.UserId;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -85,8 +86,14 @@ public class QrController {
     }
 
     public record GenerateOperationQrRequest(@NotNull OperationQrPurpose purpose) {}
-    public record QrPayloadRequest(@NotBlank String payload) {}
-    public record RotateContainerQrRequest(@NotBlank String reason) {}
+    public record QrPayloadRequest(
+            @NotBlank
+            @Size(max = 512, message = "payload must contain at most 512 characters") String payload
+    ) {}
+    public record RotateContainerQrRequest(
+            @NotBlank
+            @Size(max = 500, message = "reason must contain at most 500 characters") String reason
+    ) {}
 
     public record OperationQrResponse(
             UUID tokenRef,
