@@ -836,6 +836,9 @@ Implementar contratos explícitos para:
 
 **Prioridad:** P0 para liberar
 **Dependencias:** todos los gates anteriores.
+**Estado 2026-09-26:** especificación de preparación propuesta en
+`specs/ops/f9-pilot-readiness.md`; el estado continúa `NO-GO` hasta resolver
+sus decisiones bloqueantes y obtener evidencia/aceptación de campo.
 
 ### 13.1 Pirámide de verificación
 
