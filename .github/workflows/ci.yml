@@ -87,3 +87,33 @@ jobs:
         run: flutter analyze --no-fatal-infos
       - name: Test
         run: flutter test
+
+  operations:
+    name: F9 backup and isolated restore
+    runs-on: ubuntu-latest
+    needs: backend
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate F9 PowerShell scripts
+        shell: pwsh
+        run: |
+          Get-ChildItem tools/f9/*.ps1 | ForEach-Object {
+            [void][scriptblock]::Create((Get-Content -LiteralPath $_.FullName -Raw))
+          }
+      - name: Start pilot-like local stack
+        run: docker compose --profile full up -d --build --wait
+      - name: Demonstrate backup and isolated restore
+        shell: pwsh
+        run: ./tools/f9/Test-F9DatabaseRecovery.ps1 -BackupDirectory "${{ runner.temp }}/revuelta-f9"
+      - name: Upload non-secret restore evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: f9-database-restore-evidence
+          path: ${{ runner.temp }}/revuelta-f9/*.restore.json
+          retention-days: 14
+      - name: Capture service logs after a failure
+        if: failure()
+        run: docker compose --profile full logs --no-color
+      - name: Remove ephemeral CI stack
+        if: always()
+        run: docker compose --profile full down --volumes
